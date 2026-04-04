@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About - Thesis Archive Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --maroon: #8B2332;
+    --maroon-dark: #6E1C28;
+    --maroon-light: #B83A4E;
+    --terracotta: #C4654A;
+    --terracotta-light: #D4846E;
+    --gold: #C9963A;
+    --gold-light: #DABA5E;
+    --sage: #3D8B4A;
+    --sage-light: #5BAF68;
+    --sky: #4A8FB5;
+    --sky-light: #7BB8D4;
+    --t: 0.3s;
+  }
+
+  [data-theme="light"] {
+    --bg-body: #F4EEE7;
+    --bg-sidebar: #FBF8F4;
+    --bg-main: #F7F2EC;
+    --bg-card: #FFFFFF;
+    --bg-card-alt: #FBF8F4;
+    --bg-input: #FFFFFF;
+    --bg-highlight: #FFF8F2;
+
+    --text-primary: #2E1A1A;
+    --text-secondary: #5C4444;
+    --text-tertiary: #8F7A7A;
+    --text-accent: var(--maroon);
+
+    --border: rgba(139,35,50,0.08);
+    --border-strong: rgba(139,35,50,0.14);
+    --input-border: rgba(139,35,50,0.12);
+
+    --sidebar-active-bg: rgba(139,35,50,0.07);
+    --sidebar-hover-bg: rgba(139,35,50,0.04);
+
+    --shadow-sm: 0 1px 3px rgba(60,30,30,0.05);
+    --shadow-md: 0 4px 14px rgba(60,30,30,0.07);
+    --shadow-lg: 0 8px 30px rgba(60,30,30,0.09);
+
+    --topbar-bg: #FFFFFF;
+  }
+
+  [data-theme="dark"] {
+    --bg-body: #14101A;
+    --bg-sidebar: #1C1620;
+    --bg-main: #1A1218;
+    --bg-card: #241C22;
+    --bg-card-alt: #2A2028;
+    --bg-input: #2A2028;
+    --bg-highlight: #2A2028;
+
+    --text-primary: #F0E4E6;
+    --text-secondary: #B8A0A4;
+    --text-tertiary: #6A555A;
+    --text-accent: #D45068;
+
+    --border: rgba(200,160,170,0.08);
+    --border-strong: rgba(200,160,170,0.14);
+    --input-border: rgba(200,160,170,0.1);
+
+    --sidebar-active-bg: rgba(184,58,78,0.1);
+    --sidebar-hover-bg: rgba(184,58,78,0.05);
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.15);
+    --shadow-md: 0 4px 14px rgba(0,0,0,0.2);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.25);
+
+    --maroon: #B83A4E;
+    --maroon-dark: #9B2E40;
+    --maroon-light: #D45068;
+    --terracotta: #D4846E;
+    --sage: #5BAF68;
+    --sky: #7BB8D4;
+    --gold: #DABA5E;
+
+    --topbar-bg: #1C1620;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg-body);
+    color: var(--text-primary);
+    display: flex;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition: background var(--t), color var(--t);
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 248px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    transition: background var(--t), border-color var(--t);
+  }
+
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 8px;
+    margin-bottom: 32px;
+    text-decoration: none;
+  }
+
+  .sidebar-logo {
+    width: 36px; height: 36px;
+    background: var(--maroon);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background var(--t);
+  }
+
+  .sidebar-logo svg { width: 18px; height: 18px; fill: white; }
+
+  .sidebar-brand-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 15px;
+    color: var(--text-primary);
+    transition: color var(--t);
+  }
+
+  .sidebar-brand-text span { color: var(--maroon); }
+
+  .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+
+  .nav-section-label {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-tertiary);
+    padding: 16px 12px 8px;
+    transition: color var(--t);
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 14px; font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .nav-item:hover { background: var(--sidebar-hover-bg); color: var(--text-primary); }
+
+  .nav-item.active {
+    background: var(--sidebar-active-bg);
+    color: var(--maroon);
+    font-weight: 600;
+  }
+
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: -16px; top: 8px; bottom: 8px;
+    width: 3px;
+    background: var(--maroon);
+    border-radius: 0 3px 3px 0;
+  }
+
+  .nav-item svg {
+    width: 20px; height: 20px; flex-shrink: 0;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .sidebar-footer {
+    display: flex; flex-direction: column; gap: 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  .sidebar-footer a {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    padding: 7px 14px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .sidebar-footer a:hover { color: var(--text-secondary); background: var(--sidebar-hover-bg); }
+
+  /* ===== MAIN ===== */
+  .main {
+    flex: 1;
+    margin-left: 248px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== TOP BAR ===== */
+  .topbar {
+    height: 64px;
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    transition: background var(--t), border-color var(--t);
+  }
+
+  .search-bar {
+    display: flex; align-items: center; gap: 0;
+    background: var(--bg-input);
+    border: 1.5px solid var(--input-border);
+    border-radius: 12px;
+    padding: 0 16px;
+    width: 420px;
+    height: 42px;
+    transition: all 0.25s ease;
+  }
+
+  .search-bar:focus-within {
+    border-color: var(--maroon);
+    box-shadow: 0 0 0 3px rgba(139,35,50,0.08);
+  }
+
+  .search-bar svg {
+    width: 18px; height: 18px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    margin-right: 10px;
+  }
+
+  .search-bar input {
+    flex: 1;
+    border: none; outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .search-bar input::placeholder { color: var(--text-tertiary); }
+
+  .search-badge {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--maroon);
+    background: rgba(139,35,50,0.08);
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    margin-left: 8px;
+  }
+
+  .topbar-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .topbar-info {
+    display: flex; align-items: center; gap: 16px;
+    font-size: 13px; color: var(--text-tertiary);
+    margin-right: 8px;
+  }
+
+  .topbar-info-item { display: flex; align-items: center; gap: 5px; }
+  .topbar-info-item svg { width: 15px; height: 15px; }
+
+  .topbar-icon-btn {
+    width: 38px; height: 38px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--bg-card);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    color: var(--text-secondary);
+  }
+
+  .topbar-icon-btn:hover { border-color: var(--maroon); color: var(--maroon); }
+  .topbar-icon-btn svg { width: 18px; height: 18px; }
+
+  .notif-dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 7px; height: 7px;
+    background: var(--maroon);
+    border-radius: 50%;
+    border: 1.5px solid var(--bg-card);
+  }
+
+  .theme-toggle { color: var(--gold); }
+  [data-theme="dark"] .theme-toggle { color: var(--sky); }
+  .theme-toggle .sun-icon, .theme-toggle .moon-icon { width: 18px; height: 18px; }
+  [data-theme="light"] .theme-toggle .moon-icon { display: none; }
+  [data-theme="dark"] .theme-toggle .sun-icon { display: none; }
+
+  .user-profile {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    padding: 4px 8px 4px 4px;
+    border-radius: 10px;
+    transition: background 0.2s ease;
+  }
+
+  .user-profile:hover { background: var(--sidebar-hover-bg); }
+
+  .user-avatar {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--maroon), var(--terracotta));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 14px;
+  }
+
+  .user-info { line-height: 1.2; }
+
+  .user-name {
+    font-size: 13px; font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .user-role {
+    font-size: 11px; color: var(--text-tertiary);
+  }
+  /* ===== TOPBAR DROPDOWNS ===== */
+  .topbar-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .dropdown-panel {
+    position: absolute;
+    top: 54px;
+    right: 0;
+    width: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 80;
+  }
+
+  .dropdown-panel.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dropdown-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .dropdown-link {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--maroon);
+    text-decoration: none;
+  }
+
+  .dropdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px 14px;
+  }
+
+  .dropdown-item {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 10px;
+    align-items: center;
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    transition: all 0.2s ease;
+  }
+
+  .dropdown-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .dropdown-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dropdown-icon svg { width: 18px; height: 18px; }
+
+  .di-maroon { background: var(--stat-maroon-bg); color: var(--maroon); }
+  .di-sage { background: var(--stat-sage-bg); color: var(--sage); }
+  .di-terracotta { background: var(--stat-terracotta-bg); color: var(--terracotta); }
+
+  .dropdown-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .dropdown-text strong {
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+
+  .dropdown-text span {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  .profile-panel {
+    width: 240px;
+    padding: 10px;
+  }
+
+  .profile-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+
+  .profile-card .user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    font-size: 13px;
+  }
+
+  .profile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .profile-action {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+  }
+
+  .profile-action:hover {
+    background: var(--sidebar-hover-bg);
+    color: var(--text-primary);
+  }
+
+  .profile-action svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+  }
+
+  .profile-action.signout {
+    color: var(--maroon);
+    font-weight: 700;
+  }
+
+  /* ===== CONTENT ===== */
+  .content {
+    flex: 1;
+    padding: 28px 32px;
+  }
+
+  .page-hero {
+    background: linear-gradient(135deg, rgba(139,35,50,0.1), rgba(201,150,58,0.08));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px;
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .page-hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+
+  .page-hero p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .hero-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .hero-panel h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+  }
+
+  .hero-panel ul { list-style: none; display: grid; gap: 8px; }
+  .hero-panel li {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--maroon);
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+
+  .about-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    display: grid;
+    gap: 10px;
+    transition: all 0.25s ease;
+  }
+
+  .about-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+  .about-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .about-card p {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .metric-label { font-size: 12px; color: var(--text-tertiary); margin-bottom: 8px; }
+  .metric-value { font-family: 'DM Serif Display', serif; font-size: 24px; }
+
+  .team-section {
+    display: grid;
+    grid-template-columns: 1.4fr 0.6fr;
+    gap: 20px;
+  }
+
+  .team-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .team-card h3 { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 10px; }
+
+  .timeline {
+    display: grid;
+    gap: 12px;
+  }
+
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    align-items: center;
+  }
+
+  .timeline-item span {
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .principles {
+    display: grid;
+    gap: 10px;
+  }
+
+  .principle {
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 1200px) {
+    .page-hero { grid-template-columns: 1fr; }
+    .about-grid { grid-template-columns: 1fr 1fr; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .team-section { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+  }
+
+  @media (max-width: 768px) {
+    .topbar { padding: 0 16px; }
+    .search-bar { width: 200px; }
+    .topbar-info { display: none; }
+    .content { padding: 20px 16px; }
+    .about-grid { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="#" class="sidebar-brand">
+    <div class="sidebar-logo"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+    <div class="sidebar-brand-text">Thesis <span>Archive</span></div>
+  </a>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+
+    <a href="student dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </a>
+
+    <a href="categories.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Categories
+    </a>
+
+    <a href="upload thesis.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload Thesis
+    </a>
+
+    <div class="nav-section-label" style="margin-top:8px;">Activity</div>
+
+    <a href="recently viewed.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Recently Viewed
+    </a>
+
+    <a href="my submissions.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      My Submissions
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="about.html" class="nav-item" style="padding: 7px 14px;" data-utility-link>About</a>
+    <a href="support.html" data-utility-link>Support</a>
+    <a href="terms and conditions.html" data-utility-link>Terms &amp; Conditions</a>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Search announcements, policies, contacts...">
+      <span class="search-badge">AI</span>
+    </div>
+
+    <div class="topbar-right">
+      <div class="topbar-info">
+        <div class="topbar-info-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="liveTime">09:00 AM</span>
+        </div>
+        <div class="topbar-info-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="liveDate">07-FEB-2026</span>
+        </div>
+      </div>
+
+            <div class="topbar-dropdown">
+        <button class="topbar-icon-btn" id="notifBtn" aria-label="Notifications" aria-expanded="false" aria-controls="notifPanel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-dot"></span>
+        </button>
+
+        <div class="dropdown-panel notif-panel" id="notifPanel" aria-hidden="true">
+          <div class="dropdown-header">
+            <div class="dropdown-title">Notifications</div>
+            <a class="dropdown-link" href="#">View all</a>
+          </div>
+          <div class="dropdown-list">
+            <div class="dropdown-item">
+              <div class="dropdown-icon di-maroon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div>
+              <div class="dropdown-text">
+                <strong>Submission received</strong>
+                <span>Thesis proposal - 1 hour ago</span>
+              </div>
+            </div>
+            <div class="dropdown-item">
+              <div class="dropdown-icon di-sage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div class="dropdown-text">
+                <strong>Adviser feedback posted</strong>
+                <span>Check comments - Today</span>
+              </div>
+            </div>
+            <div class="dropdown-item">
+              <div class="dropdown-icon di-terracotta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"/><path d="M12 3v18"/></svg></div>
+              <div class="dropdown-text">
+                <strong>Deadline reminder</strong>
+                <span>Final draft due Feb 15, 2026 - 2 days left</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="topbar-icon-btn theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+
+            <div class="topbar-dropdown">
+        <div class="user-profile" id="profileBtn" aria-label="Profile menu" aria-expanded="false" aria-controls="profilePanel" role="button" tabindex="0">
+          <div class="user-avatar" data-profile-initials>JV</div>
+          <div class="user-info">
+            <div class="user-name" data-profile-name>Julius Ceasar Visbal</div>
+            <div class="user-role" data-profile-role>Student</div>
+          </div>
+        </div>
+
+        <div class="dropdown-panel profile-panel" id="profilePanel" aria-hidden="true">
+          <div class="profile-card">
+            <div class="user-avatar" data-profile-initials>JV</div>
+            <div class="user-info">
+              <div class="user-name" data-profile-name>Julius Ceasar Visbal</div>
+              <div class="user-role" data-profile-role-long>Student - BS Computer Science</div>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <a class="profile-action" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+              My Profile
+            </a>
+            <a class="profile-action" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c0 .67.26 1.3.73 1.77.47.47 1.1.73 1.77.73H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Settings
+            </a>
+            <a class="profile-action signout" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+              Sign out
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+    <section class="page-hero">
+      <div>
+        <h1>About the Thesis Archive</h1>
+        <p>The Thesis Archive Management System is a curated digital library for student research. It keeps every approved thesis organized, searchable, and ready for future study. Built for students, advisers, and librarians, it streamlines submission, review, and preservation from proposal to final archive.</p>
+      </div>
+      <div class="hero-panel">
+        <h3>What We Protect</h3>
+        <ul>
+          <li><span class="dot"></span>Verified authorship and academic integrity</li>
+          <li><span class="dot"></span>Complete submission history with revisions</li>
+          <li><span class="dot"></span>Long-term access to institutional research</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="about-grid">
+      <div class="about-card">
+        <h4>Purpose</h4>
+        <p>Provide a trusted repository where theses are preserved, discoverable, and categorized by department, year, and keywords.</p>
+      </div>
+      <div class="about-card">
+        <h4>How It Works</h4>
+        <p>Students submit their work, advisers and panels validate it, and the library team archives the final copy for campus access.</p>
+      </div>
+      <div class="about-card">
+        <h4>Who It Serves</h4>
+        <p>Students looking for references, advisers reviewing progress, and librarians maintaining the university research legacy.</p>
+      </div>
+      <div class="about-card">
+        <h4>Data Stewardship</h4>
+        <p>Version history, permissions, and secure storage ensure that every document stays intact and traceable over time.</p>
+      </div>
+      <div class="about-card">
+        <h4>Discovery</h4>
+        <p>Advanced search, tags, and category views help students find relevant studies across disciplines quickly.</p>
+      </div>
+      <div class="about-card">
+        <h4>Impact</h4>
+        <p>By reusing prior research, students build stronger proposals and prevent duplicated work across batches.</p>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+  // Theme toggle
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const html = document.documentElement;
+    html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+  });
+
+  // Live time & date
+  function updateDateTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const dateStr = String(now.getDate()).padStart(2,'0') + '-' + months[now.getMonth()] + '-' + now.getFullYear();
+    document.getElementById('liveTime').textContent = timeStr;
+    document.getElementById('liveDate').textContent = dateStr;
+  }
+  updateDateTime();
+  setInterval(updateDateTime, 30000);
+
+    const roleProfiles = {
+    student: {
+      initials: 'JV',
+      name: 'Julius Ceasar Visbal',
+      role: 'Student',
+      roleLong: 'Student - BS Computer Science',
+      avatarBg: ''
+    },
+    faculty: {
+      initials: 'DR',
+      name: 'Dr. Rosario Mendoza',
+      role: 'Faculty / Dean',
+      roleLong: 'Faculty / Dean - Adviser',
+      avatarBg: 'linear-gradient(135deg,var(--sky),var(--maroon))'
+    },
+    vpaa: {
+      initials: 'DR',
+      name: 'Dr. Alicia Reyes',
+      role: 'VPAA',
+      roleLong: 'VPAA - Faculty Oversight',
+      avatarBg: 'linear-gradient(135deg,var(--sky),var(--maroon))'
+    }
+  };
+  const activeRole = 'student';
+  const profile = roleProfiles[activeRole];
+
+  document.querySelectorAll('[data-profile-initials]').forEach((el) => {
+    el.textContent = profile.initials;
+    el.style.background = profile.avatarBg || '';
+  });
+  document.querySelectorAll('[data-profile-name]').forEach((el) => {
+    el.textContent = profile.name;
+  });
+  document.querySelectorAll('[data-profile-role]').forEach((el) => {
+    el.textContent = profile.role;
+  });
+  document.querySelectorAll('[data-profile-role-long]').forEach((el) => {
+    el.textContent = profile.roleLong;
+  });
+
+  const notifBtn = document.getElementById('notifBtn');
+  const notifPanel = document.getElementById('notifPanel');
+  const profileBtn = document.getElementById('profileBtn');
+  const profilePanel = document.getElementById('profilePanel');
+
+  function setPanelState(btn, panel, isOpen) {
+    if (!btn || !panel) return;
+    panel.classList.toggle('open', isOpen);
+    panel.setAttribute('aria-hidden', String(!isOpen));
+    btn.setAttribute('aria-expanded', String(isOpen));
+  }
+
+  function closeAllPanels() {
+    setPanelState(notifBtn, notifPanel, false);
+    setPanelState(profileBtn, profilePanel, false);
+  }
+
+  function togglePanel(btn, panel) {
+    const willOpen = !panel.classList.contains('open');
+    closeAllPanels();
+    setPanelState(btn, panel, willOpen);
+  }
+
+  if (notifBtn) {
+    notifBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      togglePanel(notifBtn, notifPanel);
+    });
+  }
+
+  if (profileBtn) {
+    profileBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      togglePanel(profileBtn, profilePanel);
+    });
+
+    profileBtn.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        togglePanel(profileBtn, profilePanel);
+      }
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const isDropdown = event.target.closest('.topbar-dropdown');
+    if (!isDropdown) closeAllPanels();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAllPanels();
+  });
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
