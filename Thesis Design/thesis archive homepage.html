@@ -911,7 +911,7 @@
     <div class="nav-title">Thesis <span>Archive</span></div>
   </a>
   <div class="nav-links">
-    <a href="#" class="active">Home</a>
+    <a href="#home" class="active">Home</a>
     <a href="#features">About</a>
     <a href="#departments">Departments</a>
     <a href="#categories">Browse</a>
@@ -923,7 +923,7 @@
   </div>
 </nav>
 
-<section class="hero">
+<section class="hero" id="home">
   <div class="hero-bg-image"></div>
   <div class="hero-overlay"></div>
   <div class="hero-pattern"></div>
@@ -1107,7 +1107,7 @@
     </div>
     <div class="footer-uni">
       <div class="footer-uni-text">
-        <h4>Technological University of the Philippines ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Manila</h4>
+        <h4>Technological University of the Philippines — Manila</h4>
         <span>San Marcelino St, Ayala Blvd, Ermita, Manila, 1000</span>
       </div>
       <div class="footer-uni-seal"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
@@ -1127,9 +1127,51 @@
     html.setAttribute('data-theme', next);
   });
 
-  // Nav scroll
-  window.addEventListener('scroll', () => {
-    document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+  const navbar = document.getElementById('navbar');
+  const sectionNavLinks = Array.from(document.querySelectorAll('.nav-links a:not(.nav-cta)'));
+  const observedSections = sectionNavLinks
+    .map((link) => {
+      const target = document.querySelector(link.getAttribute('href'));
+      return target ? { link, target } : null;
+    })
+    .filter(Boolean);
+
+  function setActiveNav(targetId) {
+    sectionNavLinks.forEach((link) => {
+      const isActive = link.getAttribute('href') === `#${targetId}`;
+      link.classList.toggle('active', isActive);
+      if (isActive) {
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  function updateNavbarState() {
+    navbar.classList.toggle('scrolled', window.scrollY > 50);
+
+    const triggerPoint = navbar.offsetHeight + 120;
+    let activeId = 'home';
+
+    observedSections.forEach(({ target }) => {
+      if (target.getBoundingClientRect().top <= triggerPoint) {
+        activeId = target.id;
+      }
+    });
+
+    setActiveNav(activeId);
+  }
+
+  window.addEventListener('scroll', updateNavbarState);
+  window.addEventListener('load', updateNavbarState);
+  window.addEventListener('hashchange', updateNavbarState);
+
+  sectionNavLinks.forEach((link) => {
+    link.addEventListener('click', () => {
+      const targetId = link.getAttribute('href').slice(1);
+      setActiveNav(targetId);
+    });
   });
 
   // Scroll reveal
@@ -1140,6 +1182,7 @@
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  updateNavbarState();
 </script>
 <button type="button" class="ai-chatbot-fab" aria-label="Open AI chatbot">
   <svg viewBox="0 0 64 64" aria-hidden="true">

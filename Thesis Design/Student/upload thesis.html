@@ -667,6 +667,69 @@
     align-items: center;
   }
 
+  .file-input-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .file-display {
+    min-height: 48px;
+    border: 1.5px solid var(--input-border);
+    background: var(--bg-input);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--text-tertiary);
+  }
+
+  .file-display.has-file {
+    color: var(--text-primary);
+  }
+
+  .file-display-text {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-clear-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--input-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .file-clear-btn:hover {
+    border-color: var(--maroon);
+    color: var(--maroon);
+    background: rgba(139,35,50,0.06);
+  }
+
+  .file-clear-btn.hidden {
+    display: none;
+  }
+
   .btn-row {
     display: flex;
     gap: 12px;
@@ -1086,15 +1149,27 @@
 
             <div class="form-field full">
               <div class="file-row">
-                <input type="file" id="thesisPdf" accept=".pdf">
+                <input type="file" id="thesisPdf" class="file-input-hidden" accept=".pdf">
+                <div class="file-display" id="thesisPdfName">
+                  <span class="file-display-text">No file chosen</span>
+                  <button type="button" class="file-clear-btn hidden" data-clear-target="thesisPdf" aria-label="Clear selected PDF">x</button>
+                </div>
                 <label for="thesisPdf" class="btn btn-ghost">Select PDF</label>
               </div>
               <div class="file-row">
-                <input type="file" id="coverImage" accept=".png,.jpg,.jpeg">
+                <input type="file" id="coverImage" class="file-input-hidden" accept=".png,.jpg,.jpeg">
+                <div class="file-display" id="coverImageName">
+                  <span class="file-display-text">No file chosen</span>
+                  <button type="button" class="file-clear-btn hidden" data-clear-target="coverImage" aria-label="Clear selected cover image">x</button>
+                </div>
                 <label for="coverImage" class="btn btn-ghost">Upload Cover</label>
               </div>
               <div class="file-row">
-                <input type="file" id="supplementary" multiple>
+                <input type="file" id="supplementary" class="file-input-hidden" multiple>
+                <div class="file-display" id="supplementaryName">
+                  <span class="file-display-text">No files chosen</span>
+                  <button type="button" class="file-clear-btn hidden" data-clear-target="supplementary" aria-label="Clear supplementary files">x</button>
+                </div>
                 <label for="supplementary" class="btn btn-ghost">Supplementary Files</label>
               </div>
             </div>
@@ -1269,6 +1344,44 @@
     const isOther = categorySelect.value === 'other';
     newCategoryField.classList.toggle('hidden', !isOther);
   });
+
+  [
+    { inputId: 'thesisPdf', displayId: 'thesisPdfName', emptyText: 'No file chosen' },
+    { inputId: 'coverImage', displayId: 'coverImageName', emptyText: 'No file chosen' },
+    { inputId: 'supplementary', displayId: 'supplementaryName', emptyText: 'No files chosen' }
+  ].forEach(({ inputId, displayId, emptyText }) => {
+    const input = document.getElementById(inputId);
+    const display = document.getElementById(displayId);
+    const text = display ? display.querySelector('.file-display-text') : null;
+    const clearButton = display ? display.querySelector('.file-clear-btn') : null;
+    if (!input || !display || !text || !clearButton) return;
+
+    function resetDisplay() {
+      text.textContent = emptyText;
+      display.classList.remove('has-file');
+      clearButton.classList.add('hidden');
+    }
+
+    input.addEventListener('change', () => {
+      if (!input.files || input.files.length === 0) {
+        resetDisplay();
+        return;
+      }
+
+      text.textContent = input.multiple && input.files.length > 1
+        ? `${input.files.length} files selected`
+        : input.files[0].name;
+      display.classList.add('has-file');
+      clearButton.classList.remove('hidden');
+    });
+
+    clearButton.addEventListener('click', () => {
+      input.value = '';
+      resetDisplay();
+    });
+
+    resetDisplay();
+  });
 </script>
 <button type="button" class="ai-chatbot-fab" aria-label="Open AI chatbot">
   <svg viewBox="0 0 64 64" aria-hidden="true">
@@ -1283,8 +1396,6 @@
 </button>
 </body>
 </html>
-
-
 
 
 

@@ -683,15 +683,51 @@
     min-height: 46px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     padding: 0 14px;
     border: 1.5px solid var(--input-border);
     border-radius: 12px;
     background: var(--bg-input);
     color: var(--text-tertiary);
     font-size: 13px;
+  }
+
+  .file-selected.has-file {
+    color: var(--text-primary);
+  }
+
+  .file-selected-text {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .file-clear-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--input-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .file-clear-btn:hover {
+    border-color: var(--maroon);
+    color: var(--maroon);
+    background: rgba(139,35,50,0.06);
+  }
+
+  .file-clear-btn.hidden {
+    display: none;
   }
 
   .btn-row {
@@ -1220,17 +1256,26 @@
             <div class="form-field full">
               <div class="file-row">
                 <input type="file" id="thesisPdf" accept=".pdf">
-                <div class="file-selected" id="thesisPdfName">No file chosen</div>
+                <div class="file-selected" id="thesisPdfName">
+                  <span class="file-selected-text">No file chosen</span>
+                  <button type="button" class="file-clear-btn hidden" aria-label="Clear selected PDF">x</button>
+                </div>
                 <label for="thesisPdf" class="btn btn-ghost">Select PDF</label>
               </div>
               <div class="file-row">
                 <input type="file" id="coverImage" accept=".png,.jpg,.jpeg">
-                <div class="file-selected" id="coverImageName">No file chosen</div>
+                <div class="file-selected" id="coverImageName">
+                  <span class="file-selected-text">No file chosen</span>
+                  <button type="button" class="file-clear-btn hidden" aria-label="Clear selected cover image">x</button>
+                </div>
                 <label for="coverImage" class="btn btn-ghost">Upload Cover</label>
               </div>
               <div class="file-row">
                 <input type="file" id="supplementary" multiple>
-                <div class="file-selected" id="supplementaryName">No files chosen</div>
+                <div class="file-selected" id="supplementaryName">
+                  <span class="file-selected-text">No files chosen</span>
+                  <button type="button" class="file-clear-btn hidden" aria-label="Clear supplementary files">x</button>
+                </div>
                 <label for="supplementary" class="btn btn-ghost">Supplementary Files</label>
               </div>
             </div>
@@ -1409,21 +1454,40 @@
   function bindFileName(inputId, outputId, emptyLabel) {
     const input = document.getElementById(inputId);
     const output = document.getElementById(outputId);
-    if (!input || !output) return;
+    const text = output ? output.querySelector('.file-selected-text') : null;
+    const clearButton = output ? output.querySelector('.file-clear-btn') : null;
+    if (!input || !output || !text || !clearButton) return;
+
+    function resetFileState() {
+      text.textContent = emptyLabel;
+      output.classList.remove('has-file');
+      clearButton.classList.add('hidden');
+    }
 
     input.addEventListener('change', () => {
       if (!input.files || input.files.length === 0) {
-        output.textContent = emptyLabel;
+        resetFileState();
         return;
       }
 
       if (input.multiple && input.files.length > 1) {
-        output.textContent = `${input.files.length} files selected`;
+        text.textContent = `${input.files.length} files selected`;
+        output.classList.add('has-file');
+        clearButton.classList.remove('hidden');
         return;
       }
 
-      output.textContent = input.files[0].name;
+      text.textContent = input.files[0].name;
+      output.classList.add('has-file');
+      clearButton.classList.remove('hidden');
     });
+
+    clearButton.addEventListener('click', () => {
+      input.value = '';
+      resetFileState();
+    });
+
+    resetFileState();
   }
 
   bindFileName('thesisPdf', 'thesisPdfName', 'No file chosen');
@@ -1443,9 +1507,6 @@
 </button>
 </body>
 </html>
-
-
-
 
 
 
