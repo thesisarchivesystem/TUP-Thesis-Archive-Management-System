@@ -885,7 +885,212 @@
     box-shadow: 0 16px 34px rgba(0,0,0,0.34);
   }
 
+  .ai-chatbot-panel {
+    position: fixed;
+    right: 24px;
+    bottom: 100px;
+    width: min(360px, calc(100vw - 32px));
+    background: color-mix(in srgb, var(--bg-card) 92%, white 8%);
+    border: 1px solid var(--border-hover);
+    border-radius: 24px;
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    z-index: 290;
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .ai-chatbot-panel.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .ai-chatbot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    background:
+      radial-gradient(circle at top left, rgba(255,255,255,0.2), transparent 45%),
+      linear-gradient(135deg, var(--maroon), var(--terracotta));
+    color: #fff;
+  }
+
+  .ai-chatbot-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ai-chatbot-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+
+  .ai-chatbot-avatar svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+  }
+
+  .ai-chatbot-title h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .ai-chatbot-title p {
+    font-size: 12px;
+    opacity: 0.86;
+  }
+
+  .ai-chatbot-close {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .ai-chatbot-close:hover {
+    background: rgba(255,255,255,0.22);
+    transform: scale(1.04);
+  }
+
+  .ai-chatbot-body {
+    padding: 18px;
+    background:
+      linear-gradient(180deg, rgba(139,35,50,0.04), transparent 30%),
+      var(--bg-card);
+  }
+
+  .ai-chatbot-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 16px;
+  }
+
+  .chat-bubble {
+    max-width: 88%;
+    padding: 12px 14px;
+    border-radius: 18px;
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .chat-bubble.bot {
+    align-self: flex-start;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-bottom-left-radius: 6px;
+  }
+
+  .chat-bubble.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--maroon), var(--terracotta));
+    color: #fff;
+    border-bottom-right-radius: 6px;
+  }
+
+  .ai-chatbot-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .chat-suggestion {
+    border: 1px solid var(--border-hover);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .chat-suggestion:hover {
+    border-color: rgba(139,35,50,0.3);
+    color: var(--maroon);
+    transform: translateY(-1px);
+  }
+
+  .ai-chatbot-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 8px;
+  }
+
+  .ai-chatbot-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+
+  .ai-chatbot-send {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--maroon), var(--terracotta));
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .ai-chatbot-send:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(139,35,50,0.2);
+  }
+
+  .ai-chatbot-send svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+
   @media (max-width: 768px) {
+    .ai-chatbot-panel {
+      right: 16px;
+      bottom: 88px;
+      width: min(340px, calc(100vw - 20px));
+      border-radius: 22px;
+    }
+
     .ai-chatbot-fab {
       right: 18px;
       bottom: 18px;
@@ -1116,6 +1321,50 @@
   <div class="footer-bottom"><p>&copy; 2026 Thesis Archive Management System. All rights reserved.</p></div>
 </footer>
 
+<div class="ai-chatbot-panel" id="aiChatbotPanel" aria-hidden="true">
+  <div class="ai-chatbot-header">
+    <div class="ai-chatbot-title">
+      <div class="ai-chatbot-avatar" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7v2a3 3 0 0 0 3 3h1v1a2 2 0 0 0 2 2h2a4 4 0 0 0 4-4v-3a5 5 0 0 0-10 0v1H8a1 1 0 0 1-1-1V9a5 5 0 0 1 10 0v5a2 2 0 0 1-2 2h-2v2h2a4 4 0 0 0 4-4v-3h1a3 3 0 0 0 3-3V9a7 7 0 0 0-7-7z"/></svg>
+      </div>
+      <div>
+        <h3>Archive Assistant</h3>
+        <p>Ask about theses, departments, and access.</p>
+      </div>
+    </div>
+    <button type="button" class="ai-chatbot-close" id="aiChatbotClose" aria-label="Close AI chatbot">&times;</button>
+  </div>
+  <div class="ai-chatbot-body">
+    <div class="ai-chatbot-messages" id="aiChatMessages">
+      <div class="chat-bubble bot">Hi! I can help you find thesis collections, browse categories, or guide you to the right sign-in page.</div>
+      <div class="chat-bubble bot">Try one of the quick prompts below.</div>
+    </div>
+    <div class="ai-chatbot-suggestions">
+      <button type="button" class="chat-suggestion">Show thesis categories</button>
+      <button type="button" class="chat-suggestion">Where do students sign in?</button>
+      <button type="button" class="chat-suggestion">Browse departments</button>
+    </div>
+    <form class="ai-chatbot-form" id="aiChatForm">
+      <input class="ai-chatbot-input" id="aiChatInput" type="text" placeholder="Type your question..." aria-label="Chat message">
+      <button type="submit" class="ai-chatbot-send" aria-label="Send message">
+        <svg viewBox="0 0 24 24"><path d="M3.4 20.4 21 12 3.4 3.6 3 10.1l12 1.9-12 1.9z"/></svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<button type="button" class="ai-chatbot-fab" id="aiChatbotFab" aria-label="Open AI chatbot" aria-expanded="false" aria-controls="aiChatbotPanel">
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <path class="bot-fill" d="M32 11c-11.9 0-21.5 9.4-21.5 21v8.1c0 4.2 3.4 7.7 7.7 7.7h1.2c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.4-2.2-2.8-3.4-6.2-3.4-9.9 0-8.8 6.5-15.2 14.5-15.2s14.5 6.4 14.5 15.2V35h-3.2c-1 0-1.9.8-1.9 1.9v2.5c0 3.1-2.5 5.6-5.6 5.6h-7.6c-1.3 0-2.4 1.1-2.4 2.4v2.2c0 1.3 1.1 2.4 2.4 2.4h8.1c6.2 0 11.2-5 11.2-11.2v-.6h.8c4.2 0 7.7-3.4 7.7-7.7V32c0-11.6-9.6-21-21.5-21z"></path>
+    <rect class="bot-fill" x="7.5" y="27.5" width="7.8" height="18.7" rx="3.9"></rect>
+    <rect class="bot-fill" x="48.7" y="27.5" width="7.8" height="18.7" rx="3.9"></rect>
+    <path class="bot-fill" d="M24.6 25.6c2.4-1.5 4.8-2.1 7.4-2.1 2.7 0 5.2.7 7.7 2.2 1.5 1 2.3 2.8 2 4.6l-1.5 9c-.3 1.9-1.9 3.2-3.8 3.2H27.7c-1.9 0-3.5-1.4-3.8-3.2l-1.5-8.9c-.3-1.9.5-3.8 2.2-4.8z"></path>
+    <circle class="bot-cut" cx="27.7" cy="33.2" r="2.3"></circle>
+    <circle class="bot-cut" cx="36.3" cy="33.2" r="2.3"></circle>
+    <path class="bot-fill" d="M20.1 47.1c-.9 0-1.7-.7-1.7-1.7s.7-1.7 1.7-1.7h5.2c.9 0 1.7.7 1.7 1.7s-.7 1.7-1.7 1.7h-5.2z"></path>
+  </svg>
+</button>
+
 <script>
   // Theme toggle
   const toggle = document.getElementById('themeToggle');
@@ -1182,18 +1431,98 @@
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const aiChatbotFab = document.getElementById('aiChatbotFab');
+    const aiChatbotPanel = document.getElementById('aiChatbotPanel');
+    const aiChatbotClose = document.getElementById('aiChatbotClose');
+    const aiChatMessages = document.getElementById('aiChatMessages');
+    const aiChatForm = document.getElementById('aiChatForm');
+    const aiChatInput = document.getElementById('aiChatInput');
+    const chatSuggestions = document.querySelectorAll('.chat-suggestion');
+  
+    function setChatOpen(isOpen) {
+      aiChatbotPanel.classList.toggle('open', isOpen);
+      aiChatbotPanel.setAttribute('aria-hidden', String(!isOpen));
+      aiChatbotFab.setAttribute('aria-expanded', String(isOpen));
+  
+      if (isOpen) {
+        aiChatInput.focus();
+      }
+    }
+  
+    function appendMessage(text, type) {
+      const bubble = document.createElement('div');
+      bubble.className = `chat-bubble ${type}`;
+      bubble.textContent = text;
+      aiChatMessages.appendChild(bubble);
+      aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+    }
+  
+    function buildReply(message) {
+      const normalized = message.toLowerCase();
+  
+      if (normalized.includes('student') || normalized.includes('sign in') || normalized.includes('login')) {
+        return 'Students can use the Student button in the Ready to Access Our Thesis Collection section near the bottom of the page.';
+      }
+  
+      if (normalized.includes('category') || normalized.includes('categories') || normalized.includes('browse')) {
+        return 'You can browse topics like Web and Mobile Development, AI and ML, Cybersecurity, Data Science, Game Development, and more in the Browse by Category section.';
+      }
+  
+      if (normalized.includes('department') || normalized.includes('program')) {
+        return 'The homepage currently highlights Computer Science, Information Technology, and Information Systems in the Thesis by Department section.';
+      }
+  
+      return 'I can help you explore categories, departments, or where to sign in. Try asking about theses, programs, or access options.';
+    }
+  
+    function handleChat(message) {
+      const trimmedMessage = message.trim();
+  
+      if (!trimmedMessage) {
+        return;
+      }
+  
+      appendMessage(trimmedMessage, 'user');
+      window.setTimeout(() => {
+        appendMessage(buildReply(trimmedMessage), 'bot');
+      }, 320);
+    }
+  
+    aiChatbotFab.addEventListener('click', () => {
+      const isOpen = !aiChatbotPanel.classList.contains('open');
+      setChatOpen(isOpen);
+    });
+  
+    aiChatbotClose.addEventListener('click', () => setChatOpen(false));
+  
+    aiChatForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const message = aiChatInput.value;
+      aiChatInput.value = '';
+      handleChat(message);
+    });
+  
+    chatSuggestions.forEach((button) => {
+      button.addEventListener('click', () => handleChat(button.textContent || ''));
+    });
+  
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        setChatOpen(false);
+      }
+    });
+  
+    document.addEventListener('click', (event) => {
+      const clickedInsideChat = aiChatbotPanel.contains(event.target) || aiChatbotFab.contains(event.target);
+      if (!clickedInsideChat) {
+        setChatOpen(false);
+      }
+    });
+  });
+
   updateNavbarState();
 </script>
-<button type="button" class="ai-chatbot-fab" aria-label="Open AI chatbot">
-  <svg viewBox="0 0 64 64" aria-hidden="true">
-    <path class="bot-fill" d="M32 11c-11.9 0-21.5 9.4-21.5 21v8.1c0 4.2 3.4 7.7 7.7 7.7h1.2c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.4-2.2-2.8-3.4-6.2-3.4-9.9 0-8.8 6.5-15.2 14.5-15.2s14.5 6.4 14.5 15.2V35h-3.2c-1 0-1.9.8-1.9 1.9v2.5c0 3.1-2.5 5.6-5.6 5.6h-7.6c-1.3 0-2.4 1.1-2.4 2.4v2.2c0 1.3 1.1 2.4 2.4 2.4h8.1c6.2 0 11.2-5 11.2-11.2v-.6h.8c4.2 0 7.7-3.4 7.7-7.7V32c0-11.6-9.6-21-21.5-21z"></path>
-    <rect class="bot-fill" x="7.5" y="27.5" width="7.8" height="18.7" rx="3.9"></rect>
-    <rect class="bot-fill" x="48.7" y="27.5" width="7.8" height="18.7" rx="3.9"></rect>
-    <path class="bot-fill" d="M24.6 25.6c2.4-1.5 4.8-2.1 7.4-2.1 2.7 0 5.2.7 7.7 2.2 1.5 1 2.3 2.8 2 4.6l-1.5 9c-.3 1.9-1.9 3.2-3.8 3.2H27.7c-1.9 0-3.5-1.4-3.8-3.2l-1.5-8.9c-.3-1.9.5-3.8 2.2-4.8z"></path>
-    <circle class="bot-cut" cx="27.7" cy="33.2" r="2.3"></circle>
-    <circle class="bot-cut" cx="36.3" cy="33.2" r="2.3"></circle>
-    <path class="bot-fill" d="M20.1 47.1c-.9 0-1.7-.7-1.7-1.7s.7-1.7 1.7-1.7h5.2c.9 0 1.7.7 1.7 1.7s-.7 1.7-1.7 1.7h-5.2z"></path>
-  </svg>
-</button>
 </body>
 </html>

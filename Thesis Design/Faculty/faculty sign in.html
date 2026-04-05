@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Faculty Sign In ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Thesis Archive Management System</title>
+<title>Faculty Sign In - Thesis Archive Management System</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -480,67 +480,7 @@
     .showcase-stats { gap: 20px; }
   }
 
-  .ai-chatbot-fab {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    width: 64px;
-    height: 64px;
-    border: none;
-    border-radius: 20px;
-    background: linear-gradient(135deg, var(--maroon), var(--terracotta));
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 14px 30px rgba(139,35,50,0.22);
-    cursor: pointer;
-    z-index: 300;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-  }
-
-  .ai-chatbot-fab:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 18px 34px rgba(139,35,50,0.28);
-    filter: saturate(1.05);
-  }
-
-  .ai-chatbot-fab:focus-visible {
-    outline: 3px solid rgba(201,150,58,0.28);
-    outline-offset: 3px;
-  }
-
-  .ai-chatbot-fab svg {
-    width: 34px;
-    height: 34px;
-    display: block;
-  }
-
-  .ai-chatbot-fab .bot-fill {
-    fill: currentColor;
-  }
-
-  .ai-chatbot-fab .bot-cut {
-    fill: var(--bg-card, #fff);
-  }
-
-  [data-theme="dark"] .ai-chatbot-fab {
-    box-shadow: 0 16px 34px rgba(0,0,0,0.34);
-  }
-
   @media (max-width: 768px) {
-    .ai-chatbot-fab {
-      right: 18px;
-      bottom: 18px;
-      width: 58px;
-      height: 58px;
-      border-radius: 18px;
-    }
-
-    .ai-chatbot-fab svg {
-      width: 30px;
-      height: 30px;
-    }
   }
 </style>
 </head>
@@ -670,21 +610,10 @@
       eyeClosed.style.display = 'none';
     }
   });
+
 </script>
-<button type="button" class="ai-chatbot-fab" aria-label="Open AI chatbot">
-  <svg viewBox="0 0 64 64" aria-hidden="true">
-    <path class="bot-fill" d="M32 11c-11.9 0-21.5 9.4-21.5 21v8.1c0 4.2 3.4 7.7 7.7 7.7h1.2c1.2 0 2-.9 2-2 0-.5-.2-1-.5-1.4-2.2-2.8-3.4-6.2-3.4-9.9 0-8.8 6.5-15.2 14.5-15.2s14.5 6.4 14.5 15.2V35h-3.2c-1 0-1.9.8-1.9 1.9v2.5c0 3.1-2.5 5.6-5.6 5.6h-7.6c-1.3 0-2.4 1.1-2.4 2.4v2.2c0 1.3 1.1 2.4 2.4 2.4h8.1c6.2 0 11.2-5 11.2-11.2v-.6h.8c4.2 0 7.7-3.4 7.7-7.7V32c0-11.6-9.6-21-21.5-21z"></path>
-    <rect class="bot-fill" x="7.5" y="27.5" width="7.8" height="18.7" rx="3.9"></rect>
-    <rect class="bot-fill" x="48.7" y="27.5" width="7.8" height="18.7" rx="3.9"></rect>
-    <path class="bot-fill" d="M24.6 25.6c2.4-1.5 4.8-2.1 7.4-2.1 2.7 0 5.2.7 7.7 2.2 1.5 1 2.3 2.8 2 4.6l-1.5 9c-.3 1.9-1.9 3.2-3.8 3.2H27.7c-1.9 0-3.5-1.4-3.8-3.2l-1.5-8.9c-.3-1.9.5-3.8 2.2-4.8z"></path>
-    <circle class="bot-cut" cx="27.7" cy="33.2" r="2.3"></circle>
-    <circle class="bot-cut" cx="36.3" cy="33.2" r="2.3"></circle>
-    <path class="bot-fill" d="M20.1 47.1c-.9 0-1.7-.7-1.7-1.7s.7-1.7 1.7-1.7h5.2c.9 0 1.7.7 1.7 1.7s-.7 1.7-1.7 1.7h-5.2z"></path>
-  </svg>
-</button>
 </body>
 </html>
-
 
 
 
