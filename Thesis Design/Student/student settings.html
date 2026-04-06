@@ -3,249 +3,135 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Profile - Thesis Archive Management System</title>
+<title>Student Settings - Thesis Archive Management System</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/ai-chatbot.css">
 <style>
   :root {
-    --maroon: #8B2332;
+    --maroon: #8b2332;
     --maroon-dark: #6E1C28;
     --maroon-light: #B83A4E;
-    --terracotta: #C4654A;
+    --terracotta: #c4654a;
     --terracotta-light: #D4846E;
-    --gold: #C9963A;
-    --gold-light: #DABA5E;
-    --sage: #3D8B4A;
+    --sage: #3d8b4a;
     --sage-light: #5BAF68;
+    --gold: #c9963a;
+    --gold-light: #DABA5E;
     --sky: #4A8FB5;
     --sky-light: #7BB8D4;
-    --t: 0.3s;
-  }
-
-  [data-theme="light"] {
-    --bg-body: #F4EEE7;
-    --bg-sidebar: #FBF8F4;
-    --bg-main: #F7F2EC;
-    --bg-card: #FFFFFF;
-    --bg-card-alt: #FBF8F4;
-    --bg-input: #FFFFFF;
-
-    --text-primary: #2E1A1A;
-    --text-secondary: #5C4444;
-    --text-tertiary: #8F7A7A;
-    --text-accent: var(--maroon);
-
-    --border: rgba(139,35,50,0.08);
-    --border-strong: rgba(139,35,50,0.14);
+    --bg-body: #f4eee7;
+    --bg-sidebar: #fbf8f4;
+    --bg-main: #f7f2ec;
+    --bg-card: #fff;
+    --bg-card-alt: #fbf8f4;
+    --bg-soft: #fbf8f4;
+    --text: #2e1a1a;
+    --muted: #6f5858;
+    --soft: #8f7a7a;
+    --border: rgba(139, 35, 50, 0.1);
+    --hover: rgba(139, 35, 50, 0.05);
+    --active: rgba(139, 35, 50, 0.08);
+    --shadow: 0 8px 30px rgba(60, 30, 30, 0.08);
+    --topbar-bg: #ffffff;
     --input-border: rgba(139,35,50,0.12);
-
-    --sidebar-active-bg: rgba(139,35,50,0.07);
-    --sidebar-hover-bg: rgba(139,35,50,0.04);
-
-    --shadow-sm: 0 1px 3px rgba(60,30,30,0.05);
-    --shadow-md: 0 4px 14px rgba(60,30,30,0.07);
-    --shadow-lg: 0 8px 30px rgba(60,30,30,0.09);
-
+    --border-strong: rgba(139,35,50,0.14);
     --stat-maroon-bg: rgba(139,35,50,0.06);
     --stat-sky-bg: rgba(74,143,181,0.08);
     --stat-sage-bg: rgba(61,139,74,0.06);
     --stat-terracotta-bg: rgba(196,101,74,0.06);
-    --stat-gold-bg: rgba(201,150,58,0.07);
-
-    --rank-color: var(--maroon);
-    --topbar-bg: #FFFFFF;
   }
 
-  [data-theme="dark"] {
-    --bg-body: #14101A;
-    --bg-sidebar: #1C1620;
-    --bg-main: #1A1218;
-    --bg-card: #241C22;
-    --bg-card-alt: #2A2028;
-    --bg-input: #2A2028;
-
-    --text-primary: #F0E4E6;
-    --text-secondary: #B8A0A4;
-    --text-tertiary: #6A555A;
-    --text-accent: #D45068;
-
-    --border: rgba(200,160,170,0.08);
-    --border-strong: rgba(200,160,170,0.14);
-    --input-border: rgba(200,160,170,0.1);
-
-    --sidebar-active-bg: rgba(184,58,78,0.1);
-    --sidebar-hover-bg: rgba(184,58,78,0.05);
-
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.15);
-    --shadow-md: 0 4px 14px rgba(0,0,0,0.2);
-    --shadow-lg: 0 8px 30px rgba(0,0,0,0.25);
-
-    --maroon: #B83A4E;
-    --maroon-dark: #9B2E40;
-    --maroon-light: #D45068;
-    --terracotta: #D4846E;
-    --sage: #5BAF68;
-    --sky: #7BB8D4;
-    --gold: #DABA5E;
-
-    --stat-maroon-bg: rgba(184,58,78,0.1);
-    --stat-sky-bg: rgba(123,184,212,0.08);
-    --stat-sage-bg: rgba(91,175,104,0.08);
-    --stat-terracotta-bg: rgba(212,132,110,0.08);
-    --stat-gold-bg: rgba(218,186,94,0.08);
-
-    --rank-color: #D45068;
-    --topbar-bg: #1C1620;
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html { scroll-behavior: smooth; }
-
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    background: var(--bg-body);
-    color: var(--text-primary);
-    display: flex;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-    transition: background var(--t), color var(--t);
-  }
-
-  body.sidebar-collapsed .sidebar {
-    transform: translateX(-100%);
-  }
-
-  body.sidebar-collapsed .main {
-    margin-left: 0;
-  }
-
-  /* ===== SIDEBAR ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg-body); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; transition: background 0.3s ease, color 0.3s ease; }
+  body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+  body.sidebar-collapsed .main { margin-left: 0; }
+  a { color: inherit; }
   .sidebar {
-    width: 248px;
-    background: var(--bg-sidebar);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    padding: 24px 16px;
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-    z-index: 100;
-    transition: transform var(--t), background var(--t), border-color var(--t);
+    width: 248px; background: var(--bg-sidebar); border-right: 1px solid var(--border); position: fixed; inset: 0 auto 0 0;
+    padding: 24px 16px; display: flex; flex-direction: column; z-index: 100; transition: transform 0.3s ease;
   }
-
   .sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(26, 18, 24, 0.22);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--t);
-    z-index: 90;
+    position: fixed; inset: 0; background: rgba(26, 18, 24, 0.22); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 90;
   }
-
+  body.sidebar-open .sidebar-overlay { opacity: 1; pointer-events: auto; }
   .sidebar-brand {
-    display: flex; align-items: center; gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 4px 8px;
     margin-bottom: 32px;
     text-decoration: none;
   }
-
   .sidebar-logo {
-    width: 36px; height: 36px;
-    background: var(--maroon);
+    width: 36px;
+    height: 36px;
     border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    transition: background var(--t);
+    color: #fff;
+    background: var(--maroon);
   }
-
-  .sidebar-logo svg { width: 18px; height: 18px; fill: white; }
-
+  .sidebar-logo svg { width: 18px; height: 18px; fill: white; stroke: none; }
+  .nav-item svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
   .sidebar-brand-text {
     font-family: 'DM Serif Display', serif;
     font-size: 15px;
-    color: var(--text-primary);
-    transition: color var(--t);
+    color: var(--text);
   }
-
   .sidebar-brand-text span { color: var(--maroon); }
-
   .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-
   .nav-section-label {
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--text-tertiary);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--soft);
     padding: 16px 12px 8px;
-    transition: color var(--t);
   }
-
   .nav-item {
-    display: flex; align-items: center; gap: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     padding: 11px 14px;
-    border-radius: 10px;
     text-decoration: none;
-    font-size: 14px; font-weight: 500;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
-    cursor: pointer;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
     position: relative;
   }
-
-  .nav-item:hover { background: var(--sidebar-hover-bg); color: var(--text-primary); }
-
-  .nav-item.active {
-    background: var(--sidebar-active-bg);
-    color: var(--maroon);
-    font-weight: 600;
-  }
-
+  .nav-item:hover { background: var(--hover); color: var(--text); }
+  .nav-item.active { background: var(--active); color: var(--maroon); font-weight: 600; }
   .nav-item.active::before {
     content: '';
     position: absolute;
-    left: -16px; top: 8px; bottom: 8px;
+    left: -16px;
+    top: 8px;
+    bottom: 8px;
     width: 3px;
     background: var(--maroon);
     border-radius: 0 3px 3px 0;
   }
-
-  .nav-item svg {
-    width: 20px; height: 20px; flex-shrink: 0;
-    stroke: currentColor; fill: none;
-    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
-  }
-
-  .nav-item.active svg { stroke: var(--maroon); }
-
   .sidebar-footer {
-    display: flex; flex-direction: column; gap: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     padding-top: 16px;
     border-top: 1px solid var(--border);
     margin-top: 8px;
   }
-
   .sidebar-footer a {
-    font-size: 13px;
-    color: var(--text-tertiary);
     text-decoration: none;
     padding: 7px 14px;
     border-radius: 8px;
+    color: var(--soft);
+    font-size: 13px;
     transition: all 0.2s ease;
   }
-
-  .sidebar-footer a:hover { color: var(--text-secondary); background: var(--sidebar-hover-bg); }
-
-  /* ===== MAIN CONTENT ===== */
-  .main {
-    flex: 1;
-    margin-left: 248px;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    transition: margin-left var(--t);
-  }
-
-  /* ===== TOP BAR ===== */
+  .sidebar-footer a:hover { background: var(--hover); color: var(--muted); }
+  .main { margin-left: 248px; flex: 1; background: var(--bg-main); min-height: 100vh; transition: margin-left 0.3s ease; }
   .topbar {
     height: 64px;
     background: var(--topbar-bg);
@@ -257,16 +143,86 @@
     position: sticky;
     top: 0;
     z-index: 50;
-    transition: background var(--t), border-color var(--t);
+    transition: background 0.3s ease, border-color 0.3s ease;
   }
-
   .topbar-left {
     display: flex;
     align-items: center;
     gap: 14px;
     min-width: 0;
   }
-
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: #fff;
+    border: 1.5px solid var(--input-border);
+    border-radius: 12px;
+    padding: 0 16px;
+    width: 420px;
+    height: 42px;
+    transition: all 0.25s ease;
+  }
+  .search-bar:focus-within {
+    border-color: var(--maroon);
+    box-shadow: 0 0 0 3px rgba(139,35,50,0.08);
+  }
+  .search-bar svg {
+    width: 18px;
+    height: 18px;
+    color: var(--soft);
+    flex-shrink: 0;
+    margin-right: 10px;
+  }
+  .search-bar input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .search-bar input::placeholder { color: var(--soft); }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .topbar-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--soft);
+    margin-right: 8px;
+  }
+  .topbar-info-item { display: flex; align-items: center; gap: 5px; }
+  .topbar-info-item svg { width: 15px; height: 15px; }
+  .topbar-icon-btn {
+    width: 38px;
+    height: 38px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    color: var(--muted);
+  }
+  .topbar-icon-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .topbar-icon-btn:hover { border-color: var(--maroon); color: var(--maroon); }
   .hamburger-btn svg {
     width: 18px;
     height: 18px;
@@ -276,156 +232,64 @@
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-
-  .search-bar {
-    display: flex; align-items: center; gap: 0;
-    background: var(--bg-input);
-    border: 1.5px solid var(--input-border);
-    border-radius: 12px;
-    padding: 0 16px;
-    width: 420px;
-    height: 42px;
-    transition: all 0.25s ease;
-  }
-
-  .search-bar:focus-within {
-    border-color: var(--maroon);
-    box-shadow: 0 0 0 3px rgba(139,35,50,0.08);
-  }
-
-  .search-bar svg {
-    width: 18px; height: 18px;
-    color: var(--text-tertiary);
-    flex-shrink: 0;
-    margin-right: 10px;
-  }
-
-  .search-bar input {
-    flex: 1;
-    border: none; outline: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: 14px;
-    color: var(--text-primary);
-  }
-
-  .search-bar input::placeholder { color: var(--text-tertiary); }
-
-  .search-badge {
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 0.04em;
-    color: var(--maroon);
-    background: var(--stat-maroon-bg);
-    padding: 3px 10px;
-    border-radius: 6px;
-    white-space: nowrap;
-    margin-left: 8px;
-  }
-
-  .topbar-right {
-    display: flex; align-items: center; gap: 12px;
-  }
-
-  .topbar-info {
-    display: flex; align-items: center; gap: 16px;
-    font-size: 13px; color: var(--text-tertiary);
-    margin-right: 8px;
-    transition: color var(--t);
-  }
-
-  .topbar-info-item { display: flex; align-items: center; gap: 5px; }
-  .topbar-info-item svg { width: 15px; height: 15px; }
-
-  .topbar-icon-btn {
-    width: 38px; height: 38px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: 10px;
-    background: var(--bg-card);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    position: relative;
-    color: var(--text-secondary);
-  }
-
-  .topbar-icon-btn:hover { border-color: var(--maroon); color: var(--maroon); }
-  .topbar-icon-btn svg { width: 18px; height: 18px; }
-
   .notif-dot {
-    position: absolute; top: 6px; right: 6px;
-    width: 7px; height: 7px;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 7px;
+    height: 7px;
     background: var(--maroon);
     border-radius: 50%;
     border: 1.5px solid var(--bg-card);
   }
-
   .theme-toggle { color: var(--gold); }
-  [data-theme="dark"] .theme-toggle { color: var(--sky); }
-  .theme-toggle .sun-icon, .theme-toggle .moon-icon { width: 18px; height: 18px; }
-  [data-theme="light"] .theme-toggle .moon-icon { display: none; }
-  [data-theme="dark"] .theme-toggle .sun-icon { display: none; }
-
   .user-profile {
-    display: flex; align-items: center; gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     cursor: pointer;
     padding: 4px 8px 4px 4px;
     border-radius: 10px;
     transition: background 0.2s ease;
   }
-
-  .user-profile:hover { background: var(--sidebar-hover-bg); }
-
+  .user-profile:hover { background: var(--hover); }
   .user-avatar {
-    width: 36px; height: 36px;
+    width: 36px;
+    height: 36px;
     border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
     background: linear-gradient(135deg, var(--maroon), var(--terracotta));
-    display: flex; align-items: center; justify-content: center;
-    color: white; font-weight: 700; font-size: 14px;
   }
-
   .user-info { line-height: 1.2; }
-
-  .user-name {
-    font-size: 13px; font-weight: 700;
-    color: var(--text-primary);
-    transition: color var(--t);
-  }
-
-  .user-role {
-    font-size: 11px; color: var(--text-tertiary);
-    transition: color var(--t);
-  }
-
-  /* ===== TOPBAR DROPDOWNS ===== */
+  .user-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .user-role { font-size: 11px; color: var(--soft); }
   .topbar-dropdown {
     position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
   }
-
   .dropdown-panel {
     position: absolute;
     top: 54px;
     right: 0;
     width: 320px;
+    border-radius: 14px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow);
     opacity: 0;
-    transform: translateY(-6px);
     pointer-events: none;
+    transform: translateY(-6px);
     transition: all 0.2s ease;
     z-index: 80;
   }
-
-  .dropdown-panel.open {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-
+  .dropdown-panel.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
   .dropdown-header {
     display: flex;
     align-items: center;
@@ -433,265 +297,236 @@
     padding: 14px 16px 10px;
     border-bottom: 1px solid var(--border);
   }
-
-  .dropdown-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  .dropdown-link {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--maroon);
-    text-decoration: none;
-  }
-
+  .dropdown-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .dropdown-link { font-size: 11px; font-weight: 700; color: var(--maroon); text-decoration: none; }
   .dropdown-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding: 12px 14px 14px;
   }
-
   .dropdown-item {
     display: grid;
     grid-template-columns: 36px 1fr;
     gap: 10px;
     align-items: center;
-    background: var(--bg-card-alt);
+    background: var(--bg-soft);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 10px 12px;
-    transition: all 0.2s ease;
   }
-
-  .dropdown-item:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-  }
-
   .dropdown-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
   }
-
-  .dropdown-icon svg { width: 18px; height: 18px; }
-
+  .dropdown-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
   .di-maroon { background: var(--stat-maroon-bg); color: var(--maroon); }
   .di-sage { background: var(--stat-sage-bg); color: var(--sage); }
   .di-terracotta { background: var(--stat-terracotta-bg); color: var(--terracotta); }
-
-  .dropdown-text {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .dropdown-text strong {
-    font-size: 12px;
-    color: var(--text-primary);
-  }
-
-  .dropdown-text span {
-    font-size: 11px;
-    color: var(--text-tertiary);
-  }
-
+  .dropdown-text { display: flex; flex-direction: column; gap: 4px; }
+  .dropdown-text strong { font-size: 12px; color: var(--text); }
+  .dropdown-text span { font-size: 11px; color: var(--soft); }
   .profile-panel {
     width: 240px;
     padding: 10px;
   }
-
   .profile-card {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px;
     border-radius: 12px;
-    background: var(--bg-card-alt);
+    background: var(--bg-soft);
     border: 1px solid var(--border);
     margin-bottom: 10px;
   }
-
   .profile-card .user-avatar {
     width: 34px;
     height: 34px;
     border-radius: 9px;
     font-size: 13px;
   }
-
-  .profile-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
+  .profile-actions { display: flex; flex-direction: column; gap: 6px; }
   .profile-action {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 10px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-size: 12px;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; text-decoration: none; font-size: 12px; color: var(--muted);
   }
-
-  .profile-action:hover {
-    background: var(--sidebar-hover-bg);
-    color: var(--text-primary);
-  }
-
-  .profile-action svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-  }
-
-  .profile-action.signout {
-    color: var(--maroon);
-    font-weight: 700;
-  }
-
-  /* ===== CONTENT AREA ===== */
-  .content {
-    flex: 1;
-    padding: 28px 32px;
-    overflow-y: auto;
-  }
-
-  .page {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
-  .title {
+  .profile-action:hover { background: var(--hover); color: var(--text); }
+  .profile-action svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .profile-action.signout { color: var(--maroon); font-weight: 700; }
+  .theme-toggle .moon-icon { display: none; }
+  .content { padding: 28px 32px; overflow-y: auto; }
+  .content-shell { width: 100%; max-width: none; margin: 0; }
+  .student-settings-page { display: grid; gap: 24px; }
+  .student-settings-header h1 {
     font-family: 'DM Serif Display', serif;
-    font-size: 26px;
-    color: var(--text-primary);
-    margin-bottom: 4px;
+    font-size: 30px;
+    color: var(--text);
+    margin-bottom: 6px;
   }
-
-  .subtitle {
-    font-size: 14px; color: var(--text-secondary);
+  .student-settings-header p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
   }
-
-  .grid {
+  .student-settings-grid {
     display: grid;
-    grid-template-columns: 1.1fr 1.9fr;
+    grid-template-columns: 1.05fr 1.95fr;
     gap: 24px;
-    margin-top: 28px;
+    align-items: start;
   }
-
-  .card {
+  .student-settings-panel {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    box-shadow: var(--shadow-md);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
   }
-
-  .profile-card-block {
+  .student-settings-summary {
+    padding: 24px;
     display: grid;
     gap: 18px;
   }
-
-  .avatar {
-    width: 86px;
-    height: 86px;
-    border-radius: 20px;
-    background: linear-gradient(135deg, var(--maroon), var(--gold));
-    color: white;
+  .student-settings-avatar {
+    width: 88px;
+    height: 88px;
+    border-radius: 24px;
     display: grid;
     place-items: center;
-    font-weight: 700;
-    font-size: 24px;
+    background: linear-gradient(135deg, var(--maroon), var(--gold));
+    color: #fff;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
   }
-
-  .badge {
+  .student-settings-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .student-settings-role {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .student-settings-badge {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    width: fit-content;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(74,143,181,0.2);
     background: rgba(74,143,181,0.12);
     color: var(--sky);
-    border: 1px solid rgba(74,143,181,0.2);
-    padding: 6px 12px;
-    border-radius: 999px;
     font-size: 12px;
     font-weight: 700;
   }
-
-  .notice {
+  .student-settings-notice {
     padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px dashed rgba(139,35,50,0.3);
+    border-radius: 14px;
+    border: 1px dashed rgba(139,35,50,0.28);
     background: rgba(139,35,50,0.06);
     color: var(--maroon);
     font-size: 13px;
     font-weight: 600;
   }
-
-  .section-title {
-    font-weight: 700;
-    margin-bottom: 12px;
-    font-size: 12px;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+  .student-settings-details {
+    padding: 24px;
+    display: grid;
+    gap: 20px;
   }
-
-  .info-grid {
+  .student-settings-section {
+    display: grid;
+    gap: 14px;
+  }
+  .student-settings-section-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .student-settings-fields {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
   }
-
-  .field label {
+  .student-settings-field label {
     display: block;
-    font-size: 12px;
-    color: var(--text-tertiary);
     margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--soft);
+  }
+  .select, .input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card-alt);
+    color: var(--text);
+    font: inherit;
+    padding: 11px 13px;
+    height: 44px;
+  }
+  .toggle {
+    width: 54px; height: 32px; border: 0; border-radius: 999px; cursor: pointer; position: relative;
+    background: rgba(139,35,50,.18);
+  }
+  .toggle::after {
+    content: ''; width: 24px; height: 24px; border-radius: 999px; background: #fff; position: absolute; top: 4px; left: 4px; transition: transform .25s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .toggle.is-on { background: linear-gradient(135deg, var(--maroon), var(--terracotta)); }
+  .toggle.is-on::after { transform: translateX(22px); }
+  .setting-inline {
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card-alt);
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .setting-inline span {
+    font-size: 14px;
+    color: var(--text);
+  }
+  .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+  .btn {
+    border: 0; border-radius: 14px; padding: 12px 18px; font: inherit; font-weight: 700; cursor: pointer;
+  }
+  .btn.alt { background: var(--bg-soft); border: 1px solid var(--border); color: var(--muted); }
+  .btn.primary { background: linear-gradient(135deg, var(--maroon), var(--terracotta)); color: #fff; }
+  .note { margin-top: 14px; font-size: 12px; color: var(--soft); }
+  .student-settings-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .student-settings-meta span {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
     font-weight: 600;
   }
-
-  .field input {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg-card-alt);
-    color: var(--text-primary);
-    font-size: 14px;
+  .ai-chatbot-panel,
+  .ai-chatbot-fab {
+    --chatbot-bg-primary: #F7F2EC;
+    --chatbot-bg-secondary: #F0E8DE;
+    --chatbot-bg-card: #FBF8F4;
+    --chatbot-bg-card-hover: #FFFDF9;
+    --chatbot-text-primary: #2E1A1A;
+    --chatbot-text-secondary: #5C4444;
+    --chatbot-border: rgba(139,35,50,0.1);
+    --chatbot-border-hover: rgba(139,35,50,0.2);
+    --chatbot-shadow-sm: 0 1px 4px rgba(60,30,30,0.06);
+    --chatbot-shadow-xl: 0 20px 50px rgba(60,30,30,0.14);
   }
-
-  .footer-meta {
-    display: flex;
-    gap: 18px;
-    flex-wrap: wrap;
-    margin-top: 12px;
-    font-size: 12px;
-    color: var(--text-tertiary);
-  }
-
-  @media (max-width: 1100px) {
-    .search-bar { width: 280px; }
-  }
-
-  @media (max-width: 960px) {
-    .grid { grid-template-columns: 1fr; }
-    .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
-    .main { margin-left: 0; }
-    .topbar { position: static; }
-    .search-bar { width: 100%; max-width: 320px; }
-    body { flex-direction: column; }
-  }
-
   .ai-chatbot-fab {
     position: fixed;
     right: 24px;
@@ -710,250 +545,225 @@
     z-index: 300;
     transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
   }
-
   .ai-chatbot-fab:hover {
     transform: translateY(-2px);
     box-shadow: 0 18px 34px rgba(139,35,50,0.28);
     filter: saturate(1.05);
   }
-
   .ai-chatbot-fab:focus-visible {
     outline: 3px solid rgba(201,150,58,0.28);
     outline-offset: 3px;
   }
-
   .ai-chatbot-fab svg {
     width: 34px;
     height: 34px;
     display: block;
   }
-
   .ai-chatbot-fab .bot-fill {
     fill: currentColor;
   }
-
-  .ai-chatbot-fab .bot-cut {
-    fill: var(--bg-card, #fff);
-  }
-  .ai-chatbot-panel,
-  .ai-chatbot-fab {
-    --chatbot-bg-primary: #F7F2EC;
-    --chatbot-bg-secondary: #F0E8DE;
-    --chatbot-bg-card: #FBF8F4;
-    --chatbot-text-primary: #2E1A1A;
-    --chatbot-text-secondary: #5C4444;
-    --chatbot-border: rgba(139,35,50,0.1);
-    --chatbot-border-hover: rgba(139,35,50,0.2);
-    --chatbot-shadow-sm: 0 1px 4px rgba(60,30,30,0.06);
-    --chatbot-shadow-xl: 0 20px 50px rgba(60,30,30,0.14);
-  }
-
-  [data-theme="dark"] .ai-chatbot-panel,
-  [data-theme="dark"] .ai-chatbot-fab {
-    --chatbot-bg-primary: #1A1214;
-    --chatbot-bg-secondary: #221920;
-    --chatbot-bg-card: #261C22;
-    --chatbot-text-primary: #F0E4E6;
-    --chatbot-text-secondary: #B8A0A4;
-    --chatbot-border: rgba(200,160,170,0.08);
-    --chatbot-border-hover: rgba(200,160,170,0.18);
-    --chatbot-shadow-sm: 0 1px 4px rgba(0,0,0,0.2);
-    --chatbot-shadow-xl: 0 20px 50px rgba(0,0,0,0.4);
-  }
-
   .ai-chatbot-fab .bot-cut {
     fill: var(--chatbot-bg-card, #fff);
   }
-
   .ai-chatbot-panel {
+    position: fixed;
+    right: 24px;
+    bottom: 100px;
+    width: min(360px, calc(100vw - 32px));
     background: color-mix(in srgb, var(--chatbot-bg-card) 92%, white 8%);
     border: 1px solid var(--chatbot-border-hover);
+    border-radius: 24px;
     box-shadow: var(--chatbot-shadow-xl);
+    overflow: hidden;
+    z-index: 290;
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
   }
-
+  .ai-chatbot-panel.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .ai-chatbot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    background:
+      radial-gradient(circle at top left, rgba(255,255,255,0.2), transparent 45%),
+      linear-gradient(135deg, var(--maroon), var(--terracotta));
+    color: #fff;
+  }
+  .ai-chatbot-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ai-chatbot-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  .ai-chatbot-avatar svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+  }
+  .ai-chatbot-title h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .ai-chatbot-title p {
+    font-size: 12px;
+    opacity: 0.86;
+  }
+  .ai-chatbot-close {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .ai-chatbot-close:hover {
+    background: rgba(255,255,255,0.22);
+    transform: scale(1.04);
+  }
   .ai-chatbot-body {
+    padding: 18px;
     background:
       linear-gradient(180deg, rgba(139,35,50,0.04), transparent 30%),
       var(--chatbot-bg-card);
   }
-
+  .ai-chatbot-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 16px;
+  }
   .chat-bubble {
+    max-width: 88%;
+    padding: 12px 14px;
+    border-radius: 18px;
+    font-size: 13px;
+    line-height: 1.5;
     box-shadow: var(--chatbot-shadow-sm);
   }
-
   .chat-bubble.bot {
+    align-self: flex-start;
     background: var(--chatbot-bg-secondary);
     color: var(--chatbot-text-primary);
+    border-bottom-left-radius: 6px;
   }
-
+  .chat-bubble.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--maroon), var(--terracotta));
+    color: #fff;
+    border-bottom-right-radius: 6px;
+  }
+  .ai-chatbot-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
   .chat-suggestion {
     border: 1px solid var(--chatbot-border-hover);
     background: var(--chatbot-bg-primary);
     color: var(--chatbot-text-secondary);
-  }
-
-  .ai-chatbot-form {
-    background: var(--chatbot-bg-primary);
-    border: 1px solid var(--chatbot-border);
-  }
-
-  .ai-chatbot-input {
-    color: var(--chatbot-text-primary);
-  }
-
-  [data-theme="dark"] .ai-chatbot-fab {
-    box-shadow: 0 16px 34px rgba(0,0,0,0.34);
-  }
-
-  .student-profile-page {
-    display: grid;
-    gap: 24px;
-  }
-
-  .student-profile-header h1 {
-    font-family: 'DM Serif Display', serif;
-    font-size: 30px;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-  }
-
-  .student-profile-header p {
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
-
-  .student-profile-grid {
-    display: grid;
-    grid-template-columns: 1.05fr 1.95fr;
-    gap: 24px;
-    align-items: start;
-  }
-
-  .student-profile-panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: var(--shadow-md);
-  }
-
-  .student-profile-summary {
-    padding: 24px;
-    display: grid;
-    gap: 18px;
-  }
-
-  .student-profile-avatar {
-    width: 88px;
-    height: 88px;
-    border-radius: 24px;
-    display: grid;
-    place-items: center;
-    background: linear-gradient(135deg, var(--maroon), var(--gold));
-    color: #fff;
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-  }
-
-  .student-profile-name {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  .student-profile-role {
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin-top: 4px;
-  }
-
-  .student-profile-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    width: fit-content;
-    padding: 7px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(74,143,181,0.2);
-    background: rgba(74,143,181,0.12);
-    color: var(--sky);
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .student-profile-notice {
-    padding: 14px 16px;
-    border-radius: 14px;
-    border: 1px dashed rgba(139,35,50,0.28);
-    background: rgba(139,35,50,0.06);
-    color: var(--maroon);
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .student-profile-details {
-    padding: 24px;
-    display: grid;
-    gap: 20px;
-  }
-
-  .student-profile-section {
-    display: grid;
-    gap: 14px;
-  }
-
-  .student-profile-section-title {
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-  }
-
-  .student-profile-fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-
-  .student-profile-field label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-tertiary);
-  }
-
-  .student-profile-field input {
-    width: 100%;
-    height: 44px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-card-alt);
-    color: var(--text-primary);
-    padding: 0 12px;
-    font-size: 14px;
-  }
-
-  .student-profile-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .student-profile-meta span {
-    display: inline-flex;
-    align-items: center;
     padding: 8px 12px;
     border-radius: 999px;
-    background: var(--bg-card-alt);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
     font-size: 12px;
     font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-
-  @media (max-width: 768px) {
+  .chat-suggestion:hover {
+    border-color: rgba(139,35,50,0.3);
+    color: var(--maroon);
+    transform: translateY(-1px);
+  }
+  .ai-chatbot-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: var(--chatbot-bg-primary);
+    border: 1px solid var(--chatbot-border);
+    border-radius: 18px;
+    padding: 8px;
+  }
+  .ai-chatbot-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--chatbot-text-primary);
+    font: inherit;
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+  .ai-chatbot-send {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--maroon), var(--terracotta));
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ai-chatbot-send:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(139,35,50,0.2);
+  }
+  .ai-chatbot-send svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+  @media (max-width: 1024px) {
+    .sidebar { transform: translateX(-100%); }
+    body.sidebar-open .sidebar { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .student-settings-grid { grid-template-columns: 1fr; }
+    .topbar { padding: 0 16px; }
+    .search-bar { width: 200px; }
+    .topbar-info { display: none; }
+  }
+  @media (max-width: 720px) {
+    .content { padding: 20px 16px 32px; }
+    .topbar { height: auto; padding: 10px 16px; align-items: stretch; flex-direction: column; }
+    .topbar-left, .topbar-right { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .topbar-info { width: 100%; justify-content: space-between; }
+    .search-bar { width: 100%; }
+    .student-settings-fields { grid-template-columns: 1fr; }
+    .setting-inline { height: auto; min-height: 44px; }
+    .actions { flex-direction: column; }
+    .ai-chatbot-panel {
+      right: 16px;
+      bottom: 88px;
+      width: min(340px, calc(100vw - 20px));
+      border-radius: 22px;
+    }
     .ai-chatbot-fab {
       right: 18px;
       bottom: 18px;
@@ -961,22 +771,9 @@
       height: 58px;
       border-radius: 18px;
     }
-
     .ai-chatbot-fab svg {
       width: 30px;
       height: 30px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    .student-profile-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .student-profile-fields {
-      grid-template-columns: 1fr;
     }
   }
 </style>
@@ -989,34 +786,14 @@
     </a>
 
     <nav class="sidebar-nav">
-      <div class="nav-section-label">Main</div>
+    <div class="nav-section-label">Main</div>
+    <a href="student dashboard.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</a>
+    <a href="categories.html" class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Categories</a>
+    <a href="upload thesis.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Thesis</a>
 
-      <a href="student dashboard.html" class="nav-item">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Home
-      </a>
-
-      <a href="categories.html" class="nav-item">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Categories
-      </a>
-
-      <a href="upload thesis.html" class="nav-item">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Upload Thesis
-      </a>
-
-      <div class="nav-section-label" style="margin-top:8px;">Activity</div>
-
-      <a href="recently viewed.html" class="nav-item">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Recently Viewed
-      </a>
-
-      <a href="my submissions.html" class="nav-item">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        My Submissions
-      </a>
+    <div class="nav-section-label" style="margin-top:8px;">Activity</div>
+    <a href="recently viewed.html" class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Recently Viewed</a>
+    <a href="my submissions.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>My Submissions</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -1028,7 +805,7 @@
 
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-  <div class="main">
+  <main class="main">
     <header class="topbar">
       <div class="topbar-left">
         <button class="topbar-icon-btn hamburger-btn" id="sidebarToggle" aria-label="Open navigation menu" aria-expanded="true" aria-controls="sidebar">
@@ -1069,24 +846,24 @@
             </div>
             <div class="dropdown-list">
               <div class="dropdown-item">
-                <div class="dropdown-icon di-maroon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div>
+                <div class="dropdown-icon di-maroon"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div>
                 <div class="dropdown-text">
-                  <strong>Submission received</strong>
-                  <span>Thesis proposal - 1 hour ago</span>
+                  <strong>Preferences updated</strong>
+                  <span>Review your account settings and notification choices.</span>
                 </div>
               </div>
               <div class="dropdown-item">
-                <div class="dropdown-icon di-sage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+                <div class="dropdown-icon di-sage"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
                 <div class="dropdown-text">
-                  <strong>Adviser feedback posted</strong>
-                  <span>Check comments - Today</span>
+                  <strong>Submission reminder</strong>
+                  <span>Keep deadline notifications on while your thesis is under review.</span>
                 </div>
               </div>
               <div class="dropdown-item">
-                <div class="dropdown-icon di-terracotta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"/><path d="M12 3v18"/></svg></div>
+                <div class="dropdown-icon di-terracotta"><svg viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M12 3v18"/></svg></div>
                 <div class="dropdown-text">
-                  <strong>Deadline reminder</strong>
-                  <span>Final draft due Feb 15, 2026 - 2 days left</span>
+                  <strong>Archive tip</strong>
+                  <span>Use categories and recently viewed for faster navigation.</span>
                 </div>
               </div>
             </div>
@@ -1134,82 +911,70 @@
       </div>
     </header>
 
-    <div class="content">
-      <div class="student-profile-page">
-        <div class="student-profile-header">
-          <h1>Student Profile</h1>
-          <p>View your personal and thesis information. Profile updates are managed through your assigned faculty adviser.</p>
-        </div>
-
-        <div class="student-profile-grid">
-          <section class="student-profile-panel student-profile-summary">
-            <div class="student-profile-avatar" data-profile-initials>JV</div>
-            <div>
-              <div class="student-profile-name" data-profile-name>Julius Ceasar Visbal</div>
-              <div class="student-profile-role" data-profile-role-long>Student - BS Computer Science</div>
-            </div>
-            <div class="student-profile-badge">Student Account</div>
-            <div class="student-profile-notice">This profile is read-only. Changes can only be made by faculty.</div>
-          </section>
-
-          <section class="student-profile-panel student-profile-details">
-            <div class="student-profile-section">
-              <div class="student-profile-section-title">Personal Information</div>
-              <div class="student-profile-fields">
-                <div class="student-profile-field">
-                  <label>Student ID</label>
-                  <input type="text" value="TUPM-2026-0145" readonly>
-                </div>
-                <div class="student-profile-field">
-                  <label>Email</label>
-                  <input type="text" value="julius.visbal@tup.edu.ph" readonly>
-                </div>
-                <div class="student-profile-field">
-                  <label>Mobile</label>
-                  <input type="text" value="+63 917 555 0145" readonly>
-                </div>
-                <div class="student-profile-field">
-                  <label>Section</label>
-                  <input type="text" value="CS-4A" readonly>
-                </div>
-              </div>
-            </div>
-
-            <div class="student-profile-section">
-              <div class="student-profile-section-title">Thesis Information</div>
-              <div class="student-profile-fields">
-                <div class="student-profile-field">
-                  <label>Thesis Title</label>
-                  <input type="text" value="Campus Thesis Archive Finder" readonly>
-                </div>
-                <div class="student-profile-field">
-                  <label>Adviser</label>
-                  <input type="text" value="Engr. Paolo R. Cruz" readonly>
-                </div>
-                <div class="student-profile-field">
-                  <label>Defense Schedule</label>
-                  <input type="text" value="March 12, 2026" readonly>
-                </div>
-                <div class="student-profile-field">
-                  <label>Status</label>
-                  <input type="text" value="For Final Review" readonly>
-                </div>
-              </div>
-            </div>
-
-            <div class="student-profile-section">
-              <div class="student-profile-section-title">Access and Permissions</div>
-              <div class="student-profile-meta">
-                <span>Profile status: Read-only</span>
-                <span>Editable by: Faculty</span>
-                <span>Last updated: February 6, 2026</span>
-              </div>
-            </div>
-          </section>
-        </div>
+    <section class="content">
+      <div class="content-shell">
+      <div class="student-settings-page">
+      <div class="student-settings-header">
+        <h1>Student Settings</h1>
+        <p>Manage the necessary notification and account preferences for your student account. Official profile and thesis details remain protected in your profile page.</p>
       </div>
-    </div>
-  </div>
+
+      <div class="student-settings-grid">
+        <section class="student-settings-panel student-settings-summary">
+          <div class="student-settings-avatar">JV</div>
+          <div>
+            <div class="student-settings-name">Student Settings</div>
+            <div class="student-settings-role">Essential account preferences</div>
+          </div>
+          <div class="student-settings-badge">Student Controls</div>
+          <div class="student-settings-notice">Only necessary student preferences can be changed here. Academic records and profile details stay faculty-managed.</div>
+        </section>
+
+        <section class="student-settings-panel student-settings-details">
+          <div class="student-settings-section">
+            <div class="student-settings-section-title">Notifications</div>
+            <div class="student-settings-fields">
+              <div class="student-settings-field">
+                <label>Thesis Status Updates</label>
+                <div class="setting-inline">
+                  <span>Receive updates when submission status changes</span>
+                  <button class="toggle is-on" type="button" id="statusUpdatesToggle" aria-label="Toggle thesis status updates"></button>
+                </div>
+              </div>
+              <div class="student-settings-field">
+                <label>Deadline Reminders</label>
+                <div class="setting-inline">
+                  <span>Get reminder alerts before important due dates</span>
+                  <button class="toggle is-on" type="button" id="deadlineToggle" aria-label="Toggle deadline reminders"></button>
+                </div>
+              </div>
+              <div class="student-settings-field">
+                <label>Adviser Messages</label>
+                <div class="setting-inline">
+                  <span>Notify me when my adviser sends a message</span>
+                  <button class="toggle is-on" type="button" id="adviserToggle" aria-label="Toggle adviser message notifications"></button>
+                </div>
+              </div>
+              <div class="student-settings-field">
+                <label>Notification Frequency</label>
+                <select class="select" id="frequency">
+                  <option selected>Real-time</option>
+                  <option>Daily digest</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn alt" type="button" id="resetBtn">Reset</button>
+            <button class="btn primary" type="button" id="saveBtn">Save Changes</button>
+          </div>
+          <div class="note" id="saveNote">Prototype page: changes are stored only in this browser session.</div>
+        </section>
+      </div>
+      </div>
+    </section>
+  </main>
 
 <script>
   const studentProfile = {
@@ -1235,13 +1000,27 @@
     el.textContent = studentProfile.roleLong;
   });
 
-  // Theme toggle
+  document.querySelectorAll('.toggle').forEach((toggle) => {
+    toggle.addEventListener('click', () => toggle.classList.toggle('is-on'));
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    document.getElementById('saveNote').textContent = 'Settings saved locally for this prototype view.';
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    document.getElementById('statusUpdatesToggle').classList.add('is-on');
+    document.getElementById('deadlineToggle').classList.add('is-on');
+    document.getElementById('adviserToggle').classList.add('is-on');
+    document.getElementById('frequency').value = 'Real-time';
+    document.getElementById('saveNote').textContent = 'Prototype settings reset to defaults.';
+  });
+
   document.getElementById('themeToggle').addEventListener('click', () => {
     const html = document.documentElement;
     html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
   });
 
-  // Live time & date
   function updateDateTime() {
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -1389,8 +1168,3 @@
 <script src="../shared/ai-chatbot.js"></script>
 </body>
 </html>
-
-
-
-
-
