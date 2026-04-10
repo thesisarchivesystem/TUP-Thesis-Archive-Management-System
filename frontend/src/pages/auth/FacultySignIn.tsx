@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/authService';
+import RoleSignInLayout from './RoleSignInLayout';
 
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+function FacultyBadgeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
 
 export default function FacultySignIn() {
   const navigate = useNavigate();
@@ -19,154 +21,57 @@ export default function FacultySignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const response = await authService.login(data.email, data.password);
-      if (response.user.role !== 'faculty') {
-        setError('This login is for faculty only');
-        return;
-      }
-      setAuth(response.user, response.token);
-      navigate('/faculty/dashboard', { replace: true });
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div style={{ position: 'relative' }} className="tup-building-bg min-h-screen flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(28,69,96,0.74)_0%,rgba(74,143,181,0.56)_42%,rgba(13,29,41,0.8)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.2),transparent_30%),radial-gradient(circle_at_78%_0%,rgba(255,255,255,0.16),transparent_28%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:40px_40px] opacity-40" />
-
-      <div className="relative w-full max-w-[500px]">
-        <button
-          onClick={() => navigate('/')}
-          className="mb-8 flex items-center gap-2 text-sm font-semibold text-white transition hover:opacity-75"
-        >
-          Back to Home
-        </button>
-
-        <div
-          style={{
-            backgroundColor: 'rgba(251, 248, 244, 0.92)',
-            borderColor: 'rgba(255,255,255,0.42)',
-          }}
-          className="rounded-3xl border p-10 shadow-[0_28px_70px_rgba(13,29,41,0.24)] backdrop-blur-md"
-        >
-          <div className="mb-8">
-            <div
-              style={{
-                backgroundColor: 'rgba(74,143,181,0.15)',
-                color: 'var(--sky)',
-              }}
-              className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl text-xl font-bold tracking-[0.2em]"
-            >
-              FA
-            </div>
-            <h1 style={{ color: 'var(--sky)' }} className="mb-2 text-4xl font-serif font-bold">
-              Faculty Login
-            </h1>
-            <p style={{ color: 'var(--text-tertiary)' }} className="text-sm">
-              TUP Manila Thesis Archive Management System
-            </p>
-          </div>
-
-          {error && (
-            <div
-              style={{
-                backgroundColor: 'rgba(184,58,78,0.1)',
-                borderColor: 'var(--maroon)',
-                color: 'var(--maroon)',
-              }}
-              className="mb-6 rounded-xl border p-4 text-sm"
-            >
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <label style={{ color: 'var(--text-secondary)' }} className="mb-3 block text-sm font-semibold">
-                Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="adviser@tup.edu.ph"
-                {...register('email')}
-                style={{
-                  backgroundColor: 'rgba(247, 242, 236, 0.9)',
-                  borderColor: 'rgba(139,35,50,0.12)',
-                  color: 'var(--text-primary)',
-                }}
-                className="w-full rounded-xl border px-4 py-3 transition focus:border-sky focus:ring-2 focus:ring-offset-0"
-              />
-              {errors.email && (
-                <span style={{ color: 'var(--maroon)' }} className="mt-2 block text-xs">
-                  {errors.email.message}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label style={{ color: 'var(--text-secondary)' }} className="mb-3 block text-sm font-semibold">
-                Password
-              </label>
-              <input
-                type="password"
-                placeholder="Enter your password"
-                {...register('password')}
-                style={{
-                  backgroundColor: 'rgba(247, 242, 236, 0.9)',
-                  borderColor: 'rgba(139,35,50,0.12)',
-                  color: 'var(--text-primary)',
-                }}
-                className="w-full rounded-xl border px-4 py-3 transition focus:border-sky focus:ring-2 focus:ring-offset-0"
-              />
-              {errors.password && (
-                <span style={{ color: 'var(--maroon)' }} className="mt-2 block text-xs">
-                  {errors.password.message}
-                </span>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              style={{
-                backgroundColor: 'var(--sky)',
-                color: 'white',
-              }}
-              className="w-full rounded-xl py-3 font-semibold transition hover:opacity-90 disabled:opacity-50"
-            >
-              {isLoading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-
-          <div
-            style={{
-              borderTopColor: 'rgba(139,35,50,0.1)',
-              color: 'var(--text-tertiary)',
-            }}
-            className="mt-8 border-t pt-6 text-center text-xs"
-          >
-            Demo credentials: adviser@tup.edu.ph / password
-          </div>
-        </div>
-      </div>
-    </div>
+    <RoleSignInLayout
+      pageTitle="Faculty Sign In - Thesis Archive Management System"
+      heading="Faculty Sign In"
+      description="Enter your faculty credentials to access the thesis archive and review research submissions."
+      showcaseHeading={
+        <>
+          Welcome to the
+          <br />
+          Thesis <em>Archive</em>
+        </>
+      }
+      showcaseDescription="Access faculty tools for reviewing thesis documents, submissions, and research works from the Computer Studies Department at TUP Manila."
+      roleBadgeText="Faculty Account"
+      roleBadgeIcon={<FacultyBadgeIcon />}
+      showcaseStats={[
+        { value: '500+', label: 'Documents' },
+        { value: '3', label: 'Programs' },
+        { value: '10+', label: 'Years' },
+      ]}
+      identifierLabel="Faculty ID"
+      identifierPlaceholder="e.g. TUPM-F-2024-001"
+      roleSwitchLinks={[
+        { label: 'Student', to: '/sign-in/student' },
+        { label: 'VPAA', to: '/sign-in/vpaa' },
+      ]}
+      accent={{
+        successBgLight: 'rgba(74,143,181,0.1)',
+        successTextLight: '#4A8FB5',
+        successBgDark: 'rgba(123,184,212,0.12)',
+        successTextDark: '#7BB8D4',
+      }}
+      error={error}
+      isLoading={isLoading}
+      onSubmit={async ({ email, password }) => {
+        setIsLoading(true);
+        setError('');
+        try {
+          const response = await authService.login(email, password);
+          if (response.user.role !== 'faculty') {
+            setError('This login is for faculty only');
+            return;
+          }
+          setAuth(response.user, response.token);
+          navigate('/faculty/dashboard', { replace: true });
+        } catch (err: any) {
+          setError(err.response?.data?.message || 'Login failed');
+        } finally {
+          setIsLoading(false);
+        }
+      }}
+    />
   );
 }
