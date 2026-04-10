@@ -47,57 +47,37 @@ export default function FacultySignIn() {
   };
 
   return (
-    <div
-      style={{
-        backgroundImage: 'linear-gradient(135deg, rgba(74,143,181,0.9) 0%, rgba(123,184,212,0.7) 100%)',
-        position: 'relative',
-      }}
-      className="min-h-screen flex items-center justify-center p-4"
-    >
-      {/* Background pattern */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-          opacity: 0.3,
-        }}
-      />
+    <div style={{ position: 'relative' }} className="tup-building-bg min-h-screen flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(28,69,96,0.74)_0%,rgba(74,143,181,0.56)_42%,rgba(13,29,41,0.8)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.2),transparent_30%),radial-gradient(circle_at_78%_0%,rgba(255,255,255,0.16),transparent_28%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:40px_40px] opacity-40" />
 
-      {/* Content */}
       <div className="relative w-full max-w-[500px]">
-        {/* Back button */}
         <button
           onClick={() => navigate('/')}
-          style={{
-            color: 'white',
-          }}
-          className="mb-8 flex items-center gap-2 hover:opacity-75 transition"
+          className="mb-8 flex items-center gap-2 text-sm font-semibold text-white transition hover:opacity-75"
         >
-          ← Back to Home
+          Back to Home
         </button>
 
-        {/* Login card */}
         <div
           style={{
-            backgroundColor: 'var(--bg-card)',
-            borderColor: 'var(--border)',
+            backgroundColor: 'rgba(251, 248, 244, 0.92)',
+            borderColor: 'rgba(255,255,255,0.42)',
           }}
-          className="border rounded-3xl p-10 backdrop-blur-sm"
+          className="rounded-3xl border p-10 shadow-[0_28px_70px_rgba(13,29,41,0.24)] backdrop-blur-md"
         >
-          {/* Header */}
           <div className="mb-8">
             <div
               style={{
                 backgroundColor: 'rgba(74,143,181,0.15)',
                 color: 'var(--sky)',
               }}
-              className="w-20 h-20 rounded-2xl flex items-center justify-center mb-4 text-4xl"
+              className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl text-xl font-bold tracking-[0.2em]"
             >
-              👨‍🏫
+              FA
             </div>
-            <h1 style={{ color: 'var(--sky)' }} className="text-4xl font-serif font-bold mb-2">
+            <h1 style={{ color: 'var(--sky)' }} className="mb-2 text-4xl font-serif font-bold">
               Faculty Login
             </h1>
             <p style={{ color: 'var(--text-tertiary)' }} className="text-sm">
@@ -105,7 +85,6 @@ export default function FacultySignIn() {
             </p>
           </div>
 
-          {/* Error message */}
           {error && (
             <div
               style={{
@@ -113,16 +92,15 @@ export default function FacultySignIn() {
                 borderColor: 'var(--maroon)',
                 color: 'var(--maroon)',
               }}
-              className="border rounded-xl p-4 mb-6 text-sm"
+              className="mb-6 rounded-xl border p-4 text-sm"
             >
               {error}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
-              <label style={{ color: 'var(--text-secondary)' }} className="block text-sm font-semibold mb-3">
+              <label style={{ color: 'var(--text-secondary)' }} className="mb-3 block text-sm font-semibold">
                 Email Address
               </label>
               <input
@@ -130,36 +108,36 @@ export default function FacultySignIn() {
                 placeholder="adviser@tup.edu.ph"
                 {...register('email')}
                 style={{
-                  backgroundColor: 'var(--bg-primary)',
-                  borderColor: 'var(--border)',
+                  backgroundColor: 'rgba(247, 242, 236, 0.9)',
+                  borderColor: 'rgba(139,35,50,0.12)',
                   color: 'var(--text-primary)',
                 }}
-                className="w-full px-4 py-3 rounded-xl border transition focus:border-sky focus:ring-2 focus:ring-offset-0"
+                className="w-full rounded-xl border px-4 py-3 transition focus:border-sky focus:ring-2 focus:ring-offset-0"
               />
               {errors.email && (
-                <span style={{ color: 'var(--maroon)' }} className="text-xs mt-2 block">
+                <span style={{ color: 'var(--maroon)' }} className="mt-2 block text-xs">
                   {errors.email.message}
                 </span>
               )}
             </div>
 
             <div>
-              <label style={{ color: 'var(--text-secondary)' }} className="block text-sm font-semibold mb-3">
+              <label style={{ color: 'var(--text-secondary)' }} className="mb-3 block text-sm font-semibold">
                 Password
               </label>
               <input
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 {...register('password')}
                 style={{
-                  backgroundColor: 'var(--bg-primary)',
-                  borderColor: 'var(--border)',
+                  backgroundColor: 'rgba(247, 242, 236, 0.9)',
+                  borderColor: 'rgba(139,35,50,0.12)',
                   color: 'var(--text-primary)',
                 }}
-                className="w-full px-4 py-3 rounded-xl border transition focus:border-sky focus:ring-2 focus:ring-offset-0"
+                className="w-full rounded-xl border px-4 py-3 transition focus:border-sky focus:ring-2 focus:ring-offset-0"
               />
               {errors.password && (
-                <span style={{ color: 'var(--maroon)' }} className="text-xs mt-2 block">
+                <span style={{ color: 'var(--maroon)' }} className="mt-2 block text-xs">
                   {errors.password.message}
                 </span>
               )}
@@ -172,19 +150,18 @@ export default function FacultySignIn() {
                 backgroundColor: 'var(--sky)',
                 color: 'white',
               }}
-              className="w-full py-3 rounded-xl font-semibold disabled:opacity-50 hover:opacity-90 transition"
+              className="w-full rounded-xl py-3 font-semibold transition hover:opacity-90 disabled:opacity-50"
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
-          {/* Footer */}
           <div
             style={{
-              borderTopColor: 'var(--border)',
+              borderTopColor: 'rgba(139,35,50,0.1)',
               color: 'var(--text-tertiary)',
             }}
-            className="border-t mt-8 pt-6 text-center text-xs"
+            className="mt-8 border-t pt-6 text-center text-xs"
           >
             Demo credentials: adviser@tup.edu.ph / password
           </div>

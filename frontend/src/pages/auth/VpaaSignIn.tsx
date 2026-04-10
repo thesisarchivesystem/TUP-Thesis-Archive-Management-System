@@ -43,57 +43,37 @@ export default function VpaaSignIn() {
   };
 
   return (
-    <div
-      style={{
-        backgroundImage: 'var(--cta-bg)',
-        position: 'relative',
-      }}
-      className="min-h-screen flex items-center justify-center p-4"
-    >
-      {/* Background pattern */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-          opacity: 0.3,
-        }}
-      />
+    <div style={{ position: 'relative' }} className="tup-building-bg min-h-screen flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(107,24,37,0.78)_0%,rgba(139,35,50,0.56)_42%,rgba(27,11,14,0.84)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_82%_0%,rgba(255,255,255,0.14),transparent_28%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:40px_40px] opacity-40" />
 
-      {/* Content */}
       <div className="relative w-full max-w-[500px]">
-        {/* Back button */}
         <button
           onClick={() => navigate('/')}
-          style={{
-            color: 'white',
-          }}
-          className="mb-8 flex items-center gap-2 hover:opacity-75 transition"
+          className="mb-8 flex items-center gap-2 text-sm font-semibold text-white transition hover:opacity-75"
         >
-          ← Back to Home
+          Back to Home
         </button>
 
-        {/* Login card */}
         <div
           style={{
-            backgroundColor: 'var(--bg-card)',
-            borderColor: 'var(--border)',
+            backgroundColor: 'rgba(251, 248, 244, 0.92)',
+            borderColor: 'rgba(255,255,255,0.42)',
           }}
-          className="border rounded-3xl p-10 backdrop-blur-sm"
+          className="rounded-3xl border p-10 shadow-[0_28px_70px_rgba(27,11,14,0.26)] backdrop-blur-md"
         >
-          {/* Header */}
           <div className="mb-8">
             <div
               style={{
                 backgroundColor: 'rgba(139,35,50,0.15)',
                 color: 'var(--maroon)',
               }}
-              className="w-20 h-20 rounded-2xl flex items-center justify-center mb-4 text-4xl"
+              className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl text-xl font-bold tracking-[0.2em]"
             >
-              👔
+              VP
             </div>
-            <h1 style={{ color: 'var(--maroon)' }} className="text-4xl font-serif font-bold mb-2">
+            <h1 style={{ color: 'var(--maroon)' }} className="mb-2 text-4xl font-serif font-bold">
               VPAA Login
             </h1>
             <p style={{ color: 'var(--text-tertiary)' }} className="text-sm">
@@ -101,7 +81,6 @@ export default function VpaaSignIn() {
             </p>
           </div>
 
-          {/* Error message */}
           {error && (
             <div
               style={{
@@ -109,16 +88,15 @@ export default function VpaaSignIn() {
                 borderColor: 'var(--maroon)',
                 color: 'var(--maroon)',
               }}
-              className="border rounded-xl p-4 mb-6 text-sm"
+              className="mb-6 rounded-xl border p-4 text-sm"
             >
               {error}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
-              <label style={{ color: 'var(--text-secondary)' }} className="block text-sm font-semibold mb-3">
+              <label style={{ color: 'var(--text-secondary)' }} className="mb-3 block text-sm font-semibold">
                 Email Address
               </label>
               <input
@@ -126,36 +104,36 @@ export default function VpaaSignIn() {
                 placeholder="vpaa@tup.edu.ph"
                 {...register('email')}
                 style={{
-                  backgroundColor: 'var(--bg-primary)',
-                  borderColor: 'var(--border)',
+                  backgroundColor: 'rgba(247, 242, 236, 0.9)',
+                  borderColor: 'rgba(139,35,50,0.12)',
                   color: 'var(--text-primary)',
                 }}
-                className="w-full px-4 py-3 rounded-xl border transition focus:border-maroon focus:ring-2 focus:ring-offset-0"
+                className="w-full rounded-xl border px-4 py-3 transition focus:border-maroon focus:ring-2 focus:ring-offset-0"
               />
               {errors.email && (
-                <span style={{ color: 'var(--maroon)' }} className="text-xs mt-2 block">
+                <span style={{ color: 'var(--maroon)' }} className="mt-2 block text-xs">
                   {errors.email.message}
                 </span>
               )}
             </div>
 
             <div>
-              <label style={{ color: 'var(--text-secondary)' }} className="block text-sm font-semibold mb-3">
+              <label style={{ color: 'var(--text-secondary)' }} className="mb-3 block text-sm font-semibold">
                 Password
               </label>
               <input
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 {...register('password')}
                 style={{
-                  backgroundColor: 'var(--bg-primary)',
-                  borderColor: 'var(--border)',
+                  backgroundColor: 'rgba(247, 242, 236, 0.9)',
+                  borderColor: 'rgba(139,35,50,0.12)',
                   color: 'var(--text-primary)',
                 }}
-                className="w-full px-4 py-3 rounded-xl border transition focus:border-maroon focus:ring-2 focus:ring-offset-0"
+                className="w-full rounded-xl border px-4 py-3 transition focus:border-maroon focus:ring-2 focus:ring-offset-0"
               />
               {errors.password && (
-                <span style={{ color: 'var(--maroon)' }} className="text-xs mt-2 block">
+                <span style={{ color: 'var(--maroon)' }} className="mt-2 block text-xs">
                   {errors.password.message}
                 </span>
               )}
@@ -168,19 +146,18 @@ export default function VpaaSignIn() {
                 backgroundColor: 'var(--maroon)',
                 color: 'white',
               }}
-              className="w-full py-3 rounded-xl font-semibold disabled:opacity-50 hover:opacity-90 transition"
+              className="w-full rounded-xl py-3 font-semibold transition hover:opacity-90 disabled:opacity-50"
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
-          {/* Footer */}
           <div
             style={{
-              borderTopColor: 'var(--border)',
+              borderTopColor: 'rgba(139,35,50,0.1)',
               color: 'var(--text-tertiary)',
             }}
-            className="border-t mt-8 pt-6 text-center text-xs"
+            className="mt-8 border-t pt-6 text-center text-xs"
           >
             Demo credentials: vpaa@tup.edu.ph / password
           </div>
