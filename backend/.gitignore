@@ -1,0 +1,12 @@
+/node_modules
+/vendor
+/.env
+/.env.local
+/.idea
+/.vscode
+/storage
+/bootstrap/cache
+.DS_Store
+thumbs.db
+*.log
+.phpunit.result.cache
