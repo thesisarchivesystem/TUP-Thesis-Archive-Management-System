@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Thesis;
+use App\Models\Category;
 use App\Models\Notification;
 use App\Models\RecentlyViewed;
 use App\Services\AblyService;
@@ -20,7 +21,7 @@ class ThesisController extends Controller
     public function index(): JsonResponse
     {
         $theses = Thesis::where('status', 'approved')
-            ->with('submitter:id,name')
+            ->with('submitter:id,name', 'category:id,name,slug')
             ->orderByDesc('approved_at')
             ->paginate(20);
 
@@ -36,6 +37,7 @@ class ThesisController extends Controller
             'keywords.*'  => 'string|max:100',
             'department'  => 'required|string',
             'program'     => 'nullable|string',
+            'category_id' => 'required|uuid|exists:categories,id',
             'school_year' => 'required|string',
             'authors'     => 'nullable|array',
             'authors.*'   => 'string|max:255',
@@ -50,6 +52,7 @@ class ThesisController extends Controller
             'keywords'     => $request->keywords ?? [],
             'department'   => $request->department,
             'program'      => $request->program,
+            'category_id'  => $request->category_id,
             'school_year'  => $request->school_year,
             'authors'      => $request->authors ?? [],
             'file_url'     => $request->file_url,
@@ -64,7 +67,7 @@ class ThesisController extends Controller
 
     public function show(string $id): JsonResponse
     {
-        $thesis = Thesis::with('submitter:id,name', 'adviser:id,name')->findOrFail($id);
+        $thesis = Thesis::with('submitter:id,name', 'adviser:id,name', 'category:id,name,slug')->findOrFail($id);
 
         // Track view if authenticated as student
         if (auth()->check() && auth()->user()->role === 'student') {
@@ -89,8 +92,21 @@ class ThesisController extends Controller
             return response()->json(['error' => 'Cannot update submitted theses'], 403);
         }
 
+        $request->validate([
+            'title' => 'sometimes|required|string|max:500',
+            'abstract' => 'nullable|string',
+            'keywords' => 'nullable|array',
+            'keywords.*' => 'string|max:100',
+            'department' => 'sometimes|required|string',
+            'program' => 'nullable|string',
+            'category_id' => 'sometimes|required|uuid|exists:categories,id',
+            'school_year' => 'sometimes|required|string',
+            'authors' => 'nullable|array',
+            'authors.*' => 'string|max:255',
+        ]);
+
         $thesis->update($request->only([
-            'title', 'abstract', 'keywords', 'department', 'program', 'school_year', 'authors',
+            'title', 'abstract', 'keywords', 'department', 'program', 'category_id', 'school_year', 'authors',
         ]));
 
         return response()->json(['data' => $thesis]);
@@ -177,7 +193,7 @@ class ThesisController extends Controller
     public function approved(Request $request): JsonResponse
     {
         $theses = Thesis::where('status', 'approved')
-            ->with('submitter:id,name')
+            ->with('submitter:id,name', 'category:id,name,slug')
             ->orderByDesc('approved_at')
             ->paginate(20);
 
@@ -187,6 +203,7 @@ class ThesisController extends Controller
     public function mySubmissions(Request $request): JsonResponse
     {
         $theses = Thesis::where('submitted_by', $request->user()->id)
+            ->with('category:id,name,slug')
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -201,5 +218,52 @@ class ThesisController extends Controller
             ->paginate(20);
 
         return response()->json($theses);
+    }
+
+    public function categories(): JsonResponse
+    {
+        $categories = Category::query()
+            ->where('is_active', true)
+            ->with(['theses' => function ($query) {
+                $query->where('status', 'approved')
+                    ->with('submitter:id,name')
+                    ->orderByDesc('approved_at');
+            }])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $data = $categories->map(function (Category $category) {
+            $theses = $category->theses->values();
+            $latestUpdate = $theses->first()?->approved_at;
+
+            return [
+                'id' => $category->id,
+                'slug' => $category->slug,
+                'label' => $category->name,
+                'description' => $category->description,
+                'document_count' => $theses->count(),
+                'updated_at' => optional($latestUpdate)?->toISOString(),
+                'theses' => $theses->take(6)->map(function (Thesis $thesis) {
+                    return [
+                        'id' => $thesis->id,
+                        'title' => $thesis->title,
+                        'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+                        'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
+                        'department' => $thesis->department,
+                        'program' => $thesis->program,
+                        'school_year' => $thesis->school_year,
+                        'keywords' => collect($thesis->keywords ?? [])->filter()->take(2)->values()->all(),
+                        'approved_at' => optional($thesis->approved_at)?->toISOString(),
+                    ];
+                })->all(),
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => [
+                'categories' => $data,
+            ],
+        ]);
     }
 }

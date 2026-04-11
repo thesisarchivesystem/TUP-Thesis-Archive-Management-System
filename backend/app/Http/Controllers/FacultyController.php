@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class FacultyController extends Controller
@@ -78,28 +79,30 @@ class FacultyController extends Controller
             'notes'            => 'nullable|string',
         ]);
 
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->temporary_password),
-            'role'     => 'faculty',
-            'is_active' => true,
-        ]);
+        $facultyProfile = DB::transaction(function () use ($request) {
+            $user = User::create([
+                'name'      => $request->name,
+                'email'     => $request->email,
+                'password'  => Hash::make($request->temporary_password),
+                'role'      => 'faculty',
+                'is_active' => true,
+            ]);
 
-        FacultyProfile::create([
-            'user_id'          => $user->id,
-            'faculty_id'       => $request->faculty_id,
-            'department'       => $request->department,
-            'rank'             => $request->rank,
-            'faculty_role'     => $request->faculty_role,
-            'assigned_chair_id' => $request->assigned_chair_id,
-            'notes'            => $request->notes,
-            'created_by'       => $request->user()->id,
-        ]);
+            return FacultyProfile::create([
+                'user_id'           => $user->id,
+                'faculty_id'        => $request->faculty_id,
+                'department'        => $request->department,
+                'rank'              => $request->rank,
+                'faculty_role'      => $request->faculty_role,
+                'assigned_chair_id' => $request->assigned_chair_id,
+                'notes'             => $request->notes,
+                'created_by'        => $request->user()->id,
+            ]);
+        });
 
-        $this->logger->log($request->user(), 'faculty.created', 'user', $user->id);
+        $this->logger->log($request->user(), 'faculty.created', 'user', $facultyProfile->user_id);
 
-        return response()->json(['data' => $user->load('faculty')], 201);
+        return response()->json(['data' => $facultyProfile->load('user')], 201);
     }
 
     public function show(string $id): JsonResponse

@@ -18,6 +18,7 @@ class Thesis extends Model
         'keywords',
         'department',
         'program',
+        'category_id',
         'school_year',
         'authors',
         'file_url',
@@ -50,6 +51,11 @@ class Thesis extends Model
     public function adviser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'adviser_id');
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function recentlyViewed(): HasMany

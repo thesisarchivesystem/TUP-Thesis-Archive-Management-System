@@ -15,6 +15,8 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, HasUuids, Notifiable;
 
     protected $fillable = [
+        'first_name',
+        'last_name',
         'name',
         'email',
         'password',
@@ -33,6 +35,18 @@ class User extends Authenticatable
         'is_active' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            $first = trim((string) ($user->first_name ?? ''));
+            $last = trim((string) ($user->last_name ?? ''));
+
+            if ($first !== '' || $last !== '') {
+                $user->name = trim($first . ' ' . $last);
+            }
+        });
+    }
+
     public function faculty(): HasOne
     {
         return $this->hasOne(FacultyProfile::class, 'user_id');
@@ -41,6 +55,11 @@ class User extends Authenticatable
     public function student(): HasOne
     {
         return $this->hasOne(StudentProfile::class, 'user_id');
+    }
+
+    public function vpaaProfile(): HasOne
+    {
+        return $this->hasOne(VpaaProfile::class, 'user_id');
     }
 
     public function theses(): HasMany

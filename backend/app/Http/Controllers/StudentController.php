@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
@@ -67,23 +68,27 @@ class StudentController extends Controller
             'year_level'         => 'nullable|integer',
         ]);
 
-        $user = User::create([
-            'name'      => $request->name,
-            'email'     => $request->email,
-            'password'  => Hash::make($request->temporary_password),
-            'role'      => 'student',
-            'is_active' => true,
-        ]);
+        $user = DB::transaction(function () use ($request) {
+            $user = User::create([
+                'name'      => $request->name,
+                'email'     => $request->email,
+                'password'  => Hash::make($request->temporary_password),
+                'role'      => 'student',
+                'is_active' => true,
+            ]);
 
-        StudentProfile::create([
-            'user_id'       => $user->id,
-            'student_id'    => $request->student_id,
-            'department'    => $request->department,
-            'program'       => $request->program,
-            'year_level'    => $request->year_level,
-            'adviser_id'    => $request->user()->id,
-            'created_by'    => $request->user()->id,
-        ]);
+            StudentProfile::create([
+                'user_id'    => $user->id,
+                'student_id' => $request->student_id,
+                'department' => $request->department,
+                'program'    => $request->program,
+                'year_level' => $request->year_level,
+                'adviser_id' => $request->user()->id,
+                'created_by' => $request->user()->id,
+            ]);
+
+            return $user;
+        });
 
         $this->logger->log($request->user(), 'student.created', 'user', $user->id);
 

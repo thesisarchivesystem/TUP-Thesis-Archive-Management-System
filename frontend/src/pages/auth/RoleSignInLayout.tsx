@@ -22,6 +22,7 @@ type RoleSignInLayoutProps = {
   identifierPlaceholder: string;
   identifierAutoComplete?: string;
   roleSwitchLinks: RoleLink[];
+  forgotPasswordTo?: string;
   footerLabel?: string;
   accent: {
     successBgLight: string;
@@ -31,7 +32,7 @@ type RoleSignInLayoutProps = {
   };
   error?: string;
   isLoading?: boolean;
-  onSubmit: (values: { email: string; password: string }) => Promise<void> | void;
+  onSubmit: (values: { identifier: string; password: string }) => Promise<void> | void;
 };
 
 function LogoIcon() {
@@ -611,6 +612,7 @@ export default function RoleSignInLayout({
   identifierPlaceholder,
   identifierAutoComplete = 'username',
   roleSwitchLinks,
+  forgotPasswordTo = '/forgot-password',
   footerLabel = 'TUP Manila',
   accent,
   error,
@@ -618,7 +620,7 @@ export default function RoleSignInLayout({
   onSubmit,
 }: RoleSignInLayoutProps) {
   const { theme, toggle } = useTheme();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -699,7 +701,7 @@ export default function RoleSignInLayout({
           className="auth-form"
           onSubmit={async (event) => {
             event.preventDefault();
-            await onSubmit({ email, password });
+            await onSubmit({ identifier, password });
           }}
         >
           <div className="auth-form-group">
@@ -710,8 +712,8 @@ export default function RoleSignInLayout({
                 type="text"
                 placeholder={identifierPlaceholder}
                 autoComplete={identifierAutoComplete}
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                value={identifier}
+                onChange={(event) => setIdentifier(event.target.value)}
               />
               <div className="auth-input-icon">{roleBadgeIcon}</div>
             </div>
@@ -747,9 +749,9 @@ export default function RoleSignInLayout({
               <input id={`${heading}-remember`} type="checkbox" checked={remember} onChange={() => setRemember((current) => !current)} />
               <label htmlFor={`${heading}-remember`}>Remember me</label>
             </div>
-            <a href="#" className="auth-forgot-link">
+            <Link to={forgotPasswordTo} className="auth-forgot-link">
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           <button className="auth-submit" type="submit" disabled={isLoading}>

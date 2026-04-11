@@ -250,8 +250,8 @@ const FacultyDashboard: React.FC = () => {
             className="p-6 rounded-xl bg-white dark:bg-card-bg border border-text-tertiary/20 hover:border-primary-sky/40 hover:shadow-md transition-all group"
           >
             <Users className="text-primary-sky mb-3 group-hover:scale-110 transition-transform" size={24} />
-            <h3 className="font-semibold text-text-primary mb-1">My Students</h3>
-            <p className="text-sm text-text-secondary">View and manage your assigned students</p>
+            <h3 className="font-semibold text-text-primary mb-1">Create Students</h3>
+            <p className="text-sm text-text-secondary">Create and manage student accounts assigned to you</p>
           </a>
 
           <a

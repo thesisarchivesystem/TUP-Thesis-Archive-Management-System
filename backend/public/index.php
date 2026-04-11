@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Contracts\Http\Kernel;
-use Symfony\Component\HttpFoundation\Request;
+use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
@@ -16,7 +16,7 @@ $app = require_once __DIR__.'/../bootstrap/app.php';
 $kernel = $app->make(Kernel::class);
 
 $response = $kernel->handle(
-    $request = Request::createFromGlobals()
+    $request = Request::capture()
 )->send();
 
 $kernel->terminate($request, $response);

@@ -9,6 +9,7 @@ export interface Thesis {
   keywords: string[];
   department: string;
   program?: string;
+  category_id?: string;
   school_year: string;
   authors: string[];
   file_url?: string;
@@ -26,4 +27,9 @@ export interface Thesis {
   created_at: string;
   submitter?: User;
   adviser?: User;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
 }

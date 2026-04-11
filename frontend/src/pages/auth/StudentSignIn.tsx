@@ -26,9 +26,9 @@ export default function StudentSignIn() {
       description="Enter your student credentials to access the thesis archive and browse research documents."
       showcaseHeading={
         <>
-          Welcome to the
+          Student
           <br />
-          Thesis <em>Archive</em>
+          Portal <em>Access</em>
         </>
       }
       showcaseDescription="Access hundreds of thesis documents, research papers, and scholarly works from the Computer Studies Department at TUP Manila."
@@ -53,11 +53,11 @@ export default function StudentSignIn() {
       }}
       error={error}
       isLoading={isLoading}
-      onSubmit={async ({ email, password }) => {
+      onSubmit={async ({ identifier, password }) => {
         setIsLoading(true);
         setError('');
         try {
-          const response = await authService.login(email, password);
+          const response = await authService.login(identifier, password);
           if (response.user.role !== 'student') {
             setError('This login is for students only');
             return;
@@ -65,7 +65,7 @@ export default function StudentSignIn() {
           setAuth(response.user, response.token);
           navigate('/student/dashboard', { replace: true });
         } catch (err: any) {
-          setError(err.response?.data?.message || 'Login failed');
+          setError(err.response?.data?.errors?.identifier?.[0] || err.response?.data?.message || 'Login failed');
         } finally {
           setIsLoading(false);
         }

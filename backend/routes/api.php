@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/messages/{conversationId}', [MessageController::class, 'show']);
     Route::post('/messages', [MessageController::class, 'store']);
     Route::post('/ai/chat', [AiChatbotController::class, 'chat']);
+    Route::get('/categories', [ThesisController::class, 'categories']);
 
     // Thesis (shared for all roles)
     Route::apiResource('thesis', ThesisController::class)->except(['destroy']);
@@ -41,7 +42,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── VPAA ───────────────────────────────────────────────
     Route::middleware('role:vpaa')->prefix('vpaa')->group(function () {
         Route::get('/dashboard', [VpaaController::class, 'dashboard']);
+        Route::get('/profile', [VpaaController::class, 'profile']);
+        Route::put('/profile', [VpaaController::class, 'updateProfile']);
+        Route::get('/categories', [VpaaController::class, 'categories']);
         Route::get('/activity-log', [VpaaController::class, 'activityLog']);
+        Route::get('/daily-quote', [VpaaController::class, 'dailyQuote']);
         Route::apiResource('faculty', FacultyController::class);
         Route::patch('/faculty/{id}/status', [FacultyController::class, 'updateStatus']);
         Route::get('/faculty/export', [FacultyController::class, 'export']);

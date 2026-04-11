@@ -1,13 +1,5 @@
 import api from './api';
 
-export interface VpaaDashboardStats {
-  totalFaculty: number;
-  departmentChairs: number;
-  roleChanges: number;
-  newAccounts: number;
-  onLeave: number;
-}
-
 export interface ActivityLogEntry {
   id: string;
   userId: string;
@@ -16,12 +8,72 @@ export interface ActivityLogEntry {
   timestamp: string;
   user?: {
     name: string;
-    email: string;
+    avatar_url?: string | null;
   };
 }
 
+export interface VpaaActivitySummary {
+  actions_today: number;
+  approvals: number;
+  files_shared: number;
+  notes_added: number;
+  last_activity: string;
+}
+
+export interface VpaaActivityRow {
+  id: string;
+  badge: string;
+  tone: 'maroon' | 'sky' | 'sage' | 'terracotta' | 'gold';
+  request_record: string;
+  account: string;
+  department: string;
+  time: string;
+  timestamp: string;
+  action: string;
+}
+
+export interface VpaaActivityLogResponse {
+  summary: VpaaActivitySummary;
+  logs: VpaaActivityRow[];
+}
+
+export interface VpaaDashboardStats {
+  total_faculty: number;
+  department_chairs: number;
+  role_changes_this_month: number;
+  new_accounts_this_month: number;
+  on_leave: number;
+}
+
+export interface VpaaDashboardThesis {
+  id: string;
+  title: string;
+  author: string;
+  year: string | null;
+  department: string;
+  program?: string | null;
+  category?: string | null;
+  view_count: number;
+  approved_at?: string | null;
+}
+
+export interface DailyQuote {
+  id: string;
+  body: string;
+  author: string;
+  quote_date: string;
+  is_active: boolean;
+}
+
+export interface VpaaDashboardResponse {
+  stats: VpaaDashboardStats;
+  recent_activity: ActivityLogEntry[];
+  recent_theses: VpaaDashboardThesis[];
+  top_searches: VpaaDashboardThesis[];
+}
+
 export const vpaaDashboardService = {
-  async getDashboard(): Promise<VpaaDashboardStats> {
+  async getDashboard(): Promise<VpaaDashboardResponse> {
     try {
       const response = await api.get('/vpaa/dashboard');
       return response.data.data || response.data;
@@ -31,12 +83,22 @@ export const vpaaDashboardService = {
     }
   },
 
-  async getActivityLog(): Promise<ActivityLogEntry[]> {
+  async getActivityLog(): Promise<VpaaActivityLogResponse> {
     try {
       const response = await api.get('/vpaa/activity-log');
-      return response.data.data || response.data || [];
+      return response.data.data || response.data;
     } catch (error) {
       console.error('Failed to fetch activity log:', error);
+      throw error;
+    }
+  },
+
+  async getDailyQuote(): Promise<DailyQuote | null> {
+    try {
+      const response = await api.get('/vpaa/daily-quote');
+      return response.data.data ?? null;
+    } catch (error) {
+      console.error('Failed to fetch daily quote:', error);
       throw error;
     }
   },

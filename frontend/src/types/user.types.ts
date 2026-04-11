@@ -2,12 +2,31 @@ export type UserRole = 'vpaa' | 'faculty' | 'student';
 
 export interface User {
   id: string;
+  first_name?: string | null;
+  last_name?: string | null;
   name: string;
   email: string;
   role: UserRole;
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
+  vpaaProfile?: VpaaProfile;
+}
+
+export interface VpaaProfile {
+  id: string;
+  employee_id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  mobile?: string | null;
+  office?: string | null;
+  full_name: string;
+  role_title?: string | null;
+  supervised_units?: string | null;
+  office_hours?: string | null;
+  signature_title?: string | null;
+  updated_at?: string | null;
 }
 
 export interface FacultyProfile {

@@ -20,15 +20,37 @@ class MessageController extends Controller
     public function conversations(Request $request): JsonResponse
     {
         $user  = $request->user();
-        $field = $user->role === 'student' ? 'student_id' : 'faculty_id';
-
-        $conversations = Conversation::where($field, $user->id)
-            ->with(['student:id,name,avatar_url', 'faculty:id,name,avatar_url'])
-            ->withCount(['messages as unread_count' => fn($q) =>
-                $q->where('receiver_id', $user->id)->where('is_read', false)
+        $query = Conversation::query()
+            ->with([
+                'student:id,name,email,avatar_url',
+                'faculty:id,name,email,avatar_url',
+                'latestMessage.sender:id,name,avatar_url',
             ])
-            ->orderByDesc('last_message_at')
-            ->get();
+            ->orderByDesc('last_message_at');
+
+        if ($user->role === 'student') {
+            $query->where('student_id', $user->id)
+                ->withCount(['messages as unread_count' => fn($q) =>
+                    $q->where('receiver_id', $user->id)->where('is_read', false)
+                ]);
+        } elseif ($user->role === 'faculty') {
+            $query->where('faculty_id', $user->id)
+                ->withCount(['messages as unread_count' => fn($q) =>
+                    $q->where('receiver_id', $user->id)->where('is_read', false)
+                ]);
+        } else {
+            $query->withCount(['messages as unread_count' => fn($q) =>
+                $q->where('receiver_id', $user->id)->where('is_read', false)
+            ]);
+        }
+
+        $conversations = $query->get()->map(function (Conversation $conversation) {
+            $payload = $conversation->toArray();
+            $payload['last_message'] = $conversation->latestMessage?->toArray();
+            unset($payload['latest_message']);
+
+            return $payload;
+        });
 
         return response()->json(['data' => $conversations]);
     }

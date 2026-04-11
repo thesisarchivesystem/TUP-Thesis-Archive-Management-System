@@ -28,9 +28,9 @@ export default function FacultySignIn() {
       description="Enter your faculty credentials to access the thesis archive and review research submissions."
       showcaseHeading={
         <>
-          Welcome to the
+          Faculty
           <br />
-          Thesis <em>Archive</em>
+          Portal <em>Access</em>
         </>
       }
       showcaseDescription="Access faculty tools for reviewing thesis documents, submissions, and research works from the Computer Studies Department at TUP Manila."
@@ -55,11 +55,11 @@ export default function FacultySignIn() {
       }}
       error={error}
       isLoading={isLoading}
-      onSubmit={async ({ email, password }) => {
+      onSubmit={async ({ identifier, password }) => {
         setIsLoading(true);
         setError('');
         try {
-          const response = await authService.login(email, password);
+          const response = await authService.login(identifier, password);
           if (response.user.role !== 'faculty') {
             setError('This login is for faculty only');
             return;
@@ -67,7 +67,7 @@ export default function FacultySignIn() {
           setAuth(response.user, response.token);
           navigate('/faculty/dashboard', { replace: true });
         } catch (err: any) {
-          setError(err.response?.data?.message || 'Login failed');
+          setError(err.response?.data?.errors?.identifier?.[0] || err.response?.data?.message || 'Login failed');
         } finally {
           setIsLoading(false);
         }
