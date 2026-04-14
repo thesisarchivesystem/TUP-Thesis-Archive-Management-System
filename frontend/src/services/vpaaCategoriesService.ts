@@ -1,4 +1,5 @@
 import api from './api';
+import type { UserRole } from '../types/user.types';
 
 export interface VpaaCategoryThesis {
   id: string;
@@ -22,9 +23,33 @@ export interface VpaaCategory {
   theses: VpaaCategoryThesis[];
 }
 
+const mapCategoriesResponse = (response: { data: { data?: { categories?: VpaaCategory[] } | VpaaCategory[]; categories?: VpaaCategory[] } }) => {
+  const nestedData = response.data.data;
+
+  if (Array.isArray(nestedData)) {
+    return nestedData;
+  }
+
+  return nestedData?.categories ?? response.data.categories ?? [];
+};
+
 export const vpaaCategoriesService = {
-  async list(): Promise<VpaaCategory[]> {
-    const response = await api.get('/categories');
-    return response.data.data?.categories ?? response.data.categories ?? [];
+  async list(role?: UserRole | null): Promise<VpaaCategory[]> {
+    const endpoints = role === 'vpaa'
+      ? ['/vpaa/categories', '/categories']
+      : ['/categories'];
+
+    let lastError: unknown;
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await api.get(endpoint);
+        return mapCategoriesResponse(response);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
   },
 };

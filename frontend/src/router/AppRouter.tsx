@@ -23,10 +23,12 @@ import VpaaSettingsPage from '../pages/vpaa/VpaaSettingsPage';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import FacultyCategoriesPage from '../pages/faculty/FacultyCategoriesPage';
 import FacultyMessagesPage from '../pages/faculty/FacultyMessagesPage';
+import FacultySupportPage from '../pages/faculty/FacultySupportPage';
 import StudentManagementPage from '../pages/faculty/StudentManagementPage';
 import StudentCategoriesPage from '../pages/student/StudentCategoriesPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentMessagesPage from '../pages/student/StudentMessagesPage';
+import StudentSupportPage from '../pages/student/StudentSupportPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -67,6 +69,7 @@ export default function AppRouter() {
           <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
           <Route path="/faculty/categories" element={<FacultyCategoriesPage />} />
           <Route path="/faculty/messages" element={<FacultyMessagesPage />} />
+          <Route path="/faculty/support" element={<FacultySupportPage />} />
           <Route path="/faculty/students" element={<StudentManagementPage />} />
           <Route path="/faculty/*" element={<Navigate to="/faculty/dashboard" replace />} />
         </Route>
@@ -76,6 +79,7 @@ export default function AppRouter() {
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/categories" element={<StudentCategoriesPage />} />
           <Route path="/student/messages" element={<StudentMessagesPage />} />
+          <Route path="/student/support" element={<StudentSupportPage />} />
           <Route path="/student/*" element={<Navigate to="/student/dashboard" replace />} />
         </Route>
 

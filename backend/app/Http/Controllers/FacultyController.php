@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DailyQuote;
 use App\Models\FacultyProfile;
 use App\Models\StudentProfile;
+use App\Models\Thesis;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -20,22 +23,96 @@ class FacultyController extends Controller
         $user = $request->user();
 
         $assignedStudents = StudentProfile::where('adviser_id', $user->id)->count();
-        $pendingReviews = \App\Models\Thesis::whereIn('status', ['pending', 'under_review'])
+        $pendingReviews = Thesis::whereIn('status', ['pending', 'under_review'])
             ->where('adviser_id', $user->id)
             ->count();
-        $approvedThesis = \App\Models\Thesis::where('status', 'approved')
+        $approvedThesis = Thesis::where('status', 'approved')
             ->where('adviser_id', $user->id)
             ->count();
-        $totalSubmissions = \App\Models\Thesis::where('adviser_id', $user->id)->count();
+        $rejectedThesis = Thesis::where('status', 'rejected')
+            ->where('adviser_id', $user->id)
+            ->count();
+        $totalSubmissions = Thesis::where('adviser_id', $user->id)->count();
+
+        $recentTheses = Thesis::query()
+            ->where('status', 'approved')
+            ->where('adviser_id', $user->id)
+            ->with(['submitter:id,name', 'category:id,name'])
+            ->orderByDesc('approved_at')
+            ->orderByDesc('created_at')
+            ->limit(4)
+            ->get()
+            ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
+
+        $topSearches = Thesis::query()
+            ->where('status', 'approved')
+            ->where('adviser_id', $user->id)
+            ->with(['submitter:id,name', 'category:id,name'])
+            ->orderByDesc('view_count')
+            ->orderByDesc('approved_at')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get()
+            ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
+
+        $quotes = DailyQuote::query()
+            ->where('is_active', true)
+            ->orderBy('quote_date')
+            ->orderBy('created_at')
+            ->get();
+
+        $quote = null;
+        if ($quotes->isNotEmpty()) {
+            $dayIndex = now()->startOfDay()->diffInDays(now()->startOfDay()->copy()->startOfYear());
+            $quote = $quotes[$dayIndex % $quotes->count()];
+        }
 
         return response()->json([
             'stats' => [
                 'assigned_students' => $assignedStudents,
                 'pending_reviews' => $pendingReviews,
                 'approved_thesis' => $approvedThesis,
+                'rejected_thesis' => $rejectedThesis,
                 'total_submissions' => $totalSubmissions,
             ],
+            'recent_theses' => $recentTheses,
+            'top_searches' => $topSearches,
+            'daily_quote' => $quote,
         ]);
+    }
+
+    private function formatDashboardThesis(Thesis $thesis): array
+    {
+        return [
+            'id' => $thesis->id,
+            'title' => $thesis->title,
+            'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+            'submitter_name' => $thesis->submitter?->name,
+            'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
+            'department' => $thesis->department,
+            'program' => $thesis->program,
+            'category' => $thesis->category?->name,
+            'view_count' => (int) $thesis->view_count,
+            'approved_at' => $this->formatIsoTimestamp($thesis->approved_at),
+            'created_at' => $this->formatIsoTimestamp($thesis->created_at),
+        ];
+    }
+
+    private function formatIsoTimestamp(mixed $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            return $value->toISOString();
+        }
+
+        try {
+            return Carbon::parse($value)->toISOString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function index(Request $request): JsonResponse

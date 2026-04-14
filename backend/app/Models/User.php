@@ -92,6 +92,11 @@ class User extends Authenticatable
         return $this->hasMany(ActivityLog::class, 'user_id');
     }
 
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'user_id');
+    }
+
     public function getRouteKeyName(): string
     {
         return 'id';

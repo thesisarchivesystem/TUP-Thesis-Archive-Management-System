@@ -7,7 +7,7 @@ export default function VpaaCategoriesPage() {
       title="Explore by Category"
       description="Select a category to view the latest thesis titles and related research themes."
     >
-      <SharedCategoriesView />
+      <SharedCategoriesView role="vpaa" />
     </VpaaLayout>
   );
 }

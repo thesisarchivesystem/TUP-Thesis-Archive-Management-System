@@ -10,6 +10,7 @@ use App\Services\AblyService;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class ThesisController extends Controller
 {
@@ -224,27 +225,45 @@ class ThesisController extends Controller
     {
         $categories = Category::query()
             ->where('is_active', true)
-            ->with(['theses' => function ($query) {
-                $query->where('status', 'approved')
-                    ->with('submitter:id,name')
-                    ->orderByDesc('approved_at');
+            ->withCount(['theses as document_count' => function ($query) {
+                $query->where('status', 'approved');
             }])
+            ->withMax(['theses as latest_approved_at' => function ($query) {
+                $query->where('status', 'approved');
+            }], 'approved_at')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
         $data = $categories->map(function (Category $category) {
-            $theses = $category->theses->values();
-            $latestUpdate = $theses->first()?->approved_at;
+            $theses = Thesis::query()
+                ->where('category_id', $category->id)
+                ->where('status', 'approved')
+                ->select([
+                    'id',
+                    'title',
+                    'authors',
+                    'department',
+                    'program',
+                    'school_year',
+                    'keywords',
+                    'approved_at',
+                    'created_at',
+                    'submitted_by',
+                ])
+                ->with('submitter:id,name')
+                ->orderByDesc('approved_at')
+                ->limit(6)
+                ->get();
 
             return [
                 'id' => $category->id,
                 'slug' => $category->slug,
                 'label' => $category->name,
                 'description' => $category->description,
-                'document_count' => $theses->count(),
-                'updated_at' => optional($latestUpdate)?->toISOString(),
-                'theses' => $theses->take(6)->map(function (Thesis $thesis) {
+                'document_count' => (int) $category->document_count,
+                'updated_at' => $this->formatIsoTimestamp($category->latest_approved_at),
+                'theses' => $theses->map(function (Thesis $thesis) {
                     return [
                         'id' => $thesis->id,
                         'title' => $thesis->title,
@@ -265,5 +284,22 @@ class ThesisController extends Controller
                 'categories' => $data,
             ],
         ]);
+    }
+
+    private function formatIsoTimestamp(mixed $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            return $value->toISOString();
+        }
+
+        try {
+            return Carbon::parse($value)->toISOString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

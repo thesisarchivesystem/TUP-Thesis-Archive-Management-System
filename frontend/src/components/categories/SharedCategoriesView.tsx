@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Blocks, Brain, ChevronRight, Cpu, Database, Globe, Shield, Smartphone, Users2 } from 'lucide-react';
 import { vpaaCategoriesService, type VpaaCategory } from '../../services/vpaaCategoriesService';
+import type { UserRole } from '../../types/user.types';
 
 const categoryIcons = [Globe, Brain, Shield, Cpu, Database, Users2, Smartphone, Blocks];
 
@@ -13,7 +14,11 @@ const formatUpdatedAt = (value?: string | null) => {
   return `Updated ${date.toLocaleString('en-US', { month: 'short', year: 'numeric' })}`;
 };
 
-export default function SharedCategoriesView() {
+interface SharedCategoriesViewProps {
+  role?: UserRole | null;
+}
+
+export default function SharedCategoriesView({ role = null }: SharedCategoriesViewProps) {
   const [categories, setCategories] = useState<VpaaCategory[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -28,7 +33,7 @@ export default function SharedCategoriesView() {
   useEffect(() => {
     let isMounted = true;
 
-    void vpaaCategoriesService.list()
+    void vpaaCategoriesService.list(role)
       .then((response) => {
         if (!isMounted) return;
         setCategories(response);
@@ -46,7 +51,7 @@ export default function SharedCategoriesView() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [role]);
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.slug === selectedSlug) ?? categories[0] ?? null,

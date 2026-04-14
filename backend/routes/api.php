@@ -10,6 +10,7 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\AiChatbotController;
+use App\Http\Controllers\SupportTicketController;
 use Illuminate\Support\Facades\Route;
 
 // ── Public ──────────────────────────────────────────────────
@@ -34,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/messages', [MessageController::class, 'store']);
     Route::post('/ai/chat', [AiChatbotController::class, 'chat']);
     Route::get('/categories', [ThesisController::class, 'categories']);
+    Route::post('/support-tickets', [SupportTicketController::class, 'store']);
 
     // Thesis (shared for all roles)
     Route::apiResource('thesis', ThesisController::class)->except(['destroy']);

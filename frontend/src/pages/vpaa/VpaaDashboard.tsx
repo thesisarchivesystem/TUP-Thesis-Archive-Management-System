@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, CheckCircle2, Clock3, Users, XCircle } from 'lucide-react';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
-import { vpaaDashboardService, type DailyQuote, type VpaaDashboardStats, type VpaaDashboardThesis } from '../../services/vpaaDashboardService';
+import { vpaaDashboardService, type DailyQuote, type VpaaDashboardThesis } from '../../services/vpaaDashboardService';
 
 const fallbackQuote = {
   body: "There is more treasure in books than in all the pirate's loot on Treasure Island.",
@@ -9,18 +8,15 @@ const fallbackQuote = {
 };
 
 export default function VpaaDashboard() {
-  const [stats, setStats] = useState<VpaaDashboardStats | null>(null);
   const [recentTheses, setRecentTheses] = useState<VpaaDashboardThesis[]>([]);
   const [topSearches, setTopSearches] = useState<VpaaDashboardThesis[]>([]);
   const [quote, setQuote] = useState<DailyQuote | null>(null);
 
   useEffect(() => {
     void vpaaDashboardService.getDashboard().then((dashboardResponse) => {
-      setStats(dashboardResponse.stats);
       setRecentTheses(dashboardResponse.recent_theses ?? []);
       setTopSearches(dashboardResponse.top_searches ?? []);
     }).catch(() => {
-      setStats(null);
       setRecentTheses([]);
       setTopSearches([]);
     });
@@ -29,14 +25,6 @@ export default function VpaaDashboard() {
   useEffect(() => {
     void vpaaDashboardService.getDailyQuote().then(setQuote).catch(() => setQuote(null));
   }, []);
-
-  const statCards = [
-    { label: 'Total Faculty', value: stats?.total_faculty ?? 0, icon: <Users size={20} />, tone: 'si-sky' },
-    { label: 'Department Chairs', value: stats?.department_chairs ?? 0, icon: <CheckCircle2 size={20} />, tone: 'si-sage' },
-    { label: 'Role Changes', value: stats?.role_changes_this_month ?? 0, icon: <XCircle size={20} />, tone: 'si-maroon' },
-    { label: 'New Accounts', value: stats?.new_accounts_this_month ?? 0, icon: <Clock3 size={20} />, tone: 'si-gold' },
-    { label: 'On Leave', value: stats?.on_leave ?? 0, icon: <BookOpen size={20} />, tone: 'si-terracotta' },
-  ];
 
   const recentCards = useMemo(() => recentTheses.slice(0, 8), [recentTheses]);
   const topSearchCards = useMemo(() => topSearches.slice(0, 8), [topSearches]);
@@ -65,18 +53,6 @@ export default function VpaaDashboard() {
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="vpaa-grid-5" style={{ marginBottom: 24 }}>
-        {statCards.map((card) => (
-          <div className="vpaa-card vpaa-stat-card" key={card.label}>
-            <div>
-              <div className="vpaa-stat-label">{card.label}</div>
-              <div className="vpaa-stat-value">{card.value}</div>
-            </div>
-            <div className={`vpaa-stat-icon ${card.tone}`}>{card.icon}</div>
-          </div>
-        ))}
       </div>
 
       <div className="vpaa-card">
