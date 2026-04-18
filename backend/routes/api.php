@@ -57,6 +57,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Faculty ────────────────────────────────────────────
     Route::middleware('role:faculty')->prefix('faculty')->group(function () {
         Route::get('/dashboard', [FacultyController::class, 'dashboard']);
+        Route::get('/profile', [FacultyController::class, 'profile']);
+        Route::get('/activity-log', [FacultyController::class, 'activityLog']);
+        Route::get('/advisees', [FacultyController::class, 'advisees']);
+        Route::get('/library-items', [FacultyController::class, 'libraryIndex']);
+        Route::post('/library-items', [FacultyController::class, 'storeLibraryItem']);
+        Route::post('/theses', [FacultyController::class, 'storeManagedThesis']);
         Route::apiResource('students', StudentController::class);
         Route::get('/thesis-submissions', [ThesisController::class, 'pendingReview']);
         Route::patch('/thesis/{id}/review', [ThesisController::class, 'review']);

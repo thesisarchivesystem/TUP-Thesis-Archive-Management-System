@@ -24,7 +24,16 @@ import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import FacultyCategoriesPage from '../pages/faculty/FacultyCategoriesPage';
 import FacultyMessagesPage from '../pages/faculty/FacultyMessagesPage';
 import FacultySupportPage from '../pages/faculty/FacultySupportPage';
-import StudentManagementPage from '../pages/faculty/StudentManagementPage';
+import FacultyAboutPage from '../pages/faculty/FacultyAboutPage';
+import FacultyFileSharingPage from '../pages/faculty/FacultyFileSharingPage';
+import FacultyAddThesisPage from '../pages/faculty/FacultyAddThesisPage';
+import FacultyApprovedThesesPage from '../pages/faculty/FacultyApprovedThesesPage';
+import FacultyReviewSubmissionsPage from '../pages/faculty/FacultyReviewSubmissionsPage';
+import FacultyActivityLogPage from '../pages/faculty/FacultyActivityLogPage';
+import FacultyAdviseesPage from '../pages/faculty/FacultyAdviseesPage';
+import FacultyTermsPage from '../pages/faculty/FacultyTermsPage';
+import FacultyProfilePage from '../pages/faculty/FacultyProfilePage';
+import FacultySettingsPage from '../pages/faculty/FacultySettingsPage';
 import StudentCategoriesPage from '../pages/student/StudentCategoriesPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentMessagesPage from '../pages/student/StudentMessagesPage';
@@ -68,9 +77,18 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute allowedRoles={['faculty']} />}>
           <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
           <Route path="/faculty/categories" element={<FacultyCategoriesPage />} />
+          <Route path="/faculty/activity-log" element={<FacultyActivityLogPage />} />
           <Route path="/faculty/messages" element={<FacultyMessagesPage />} />
+          <Route path="/faculty/profile" element={<FacultyProfilePage />} />
+          <Route path="/faculty/settings" element={<FacultySettingsPage />} />
+          <Route path="/faculty/about" element={<FacultyAboutPage />} />
           <Route path="/faculty/support" element={<FacultySupportPage />} />
-          <Route path="/faculty/students" element={<StudentManagementPage />} />
+          <Route path="/faculty/terms" element={<FacultyTermsPage />} />
+          <Route path="/faculty/my-advisees" element={<FacultyAdviseesPage />} />
+          <Route path="/faculty/students" element={<FacultyFileSharingPage />} />
+          <Route path="/faculty/manage-thesis/add" element={<FacultyAddThesisPage />} />
+          <Route path="/faculty/manage-thesis/approved" element={<FacultyApprovedThesesPage />} />
+          <Route path="/faculty/manage-thesis/review" element={<FacultyReviewSubmissionsPage />} />
           <Route path="/faculty/*" element={<Navigate to="/faculty/dashboard" replace />} />
         </Route>
 

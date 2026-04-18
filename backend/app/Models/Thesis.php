@@ -24,6 +24,9 @@ class Thesis extends Model
         'file_url',
         'file_name',
         'file_size',
+        'cover_file_url',
+        'cover_file_name',
+        'supplementary_files',
         'status',
         'submitted_by',
         'adviser_id',
@@ -38,6 +41,7 @@ class Thesis extends Model
     protected $casts = [
         'keywords' => 'array',
         'authors' => 'array',
+        'supplementary_files' => 'array',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'approved_at' => 'datetime',

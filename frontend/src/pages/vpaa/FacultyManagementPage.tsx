@@ -3,16 +3,34 @@ import { Briefcase, Mail, ShieldCheck, UserRoundPlus, Users } from 'lucide-react
 import { facultyManagementService, type FacultyAccountPayload } from '../../services/facultyManagementService';
 import type { FacultyProfile } from '../../types/user.types';
 
+const generateTemporaryPassword = () => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  return Array.from({ length: 10 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+};
+
+const generateNextFacultyId = (faculty: FacultyProfile[]) => {
+  const yearCode = new Date().getFullYear().toString().slice(-2);
+  const prefix = `FAC-${yearCode}-`;
+  const maxSequence = faculty.reduce((highest, member) => {
+    const match = member.faculty_id.match(/(\d+)$/);
+    if (!match) return highest;
+    const numericPart = Number(match[1]);
+    return Number.isFinite(numericPart) ? Math.max(highest, numericPart) : highest;
+  }, 0);
+
+  return `${prefix}${String(maxSequence + 1).padStart(4, '0')}`;
+};
+
 const initialForm: FacultyAccountPayload = {
-  name: '',
+  first_name: '',
+  last_name: '',
   email: '',
-  temporary_password: '',
+  temporary_password: generateTemporaryPassword(),
   faculty_id: '',
   department: '',
   rank: '',
   faculty_role: 'Adviser',
   assigned_chair_id: '',
-  notes: '',
 };
 
 const statusLabel: Record<FacultyProfile['status'], string> = {
@@ -51,9 +69,13 @@ export default function FacultyManagementPage() {
     () => faculty.filter((member) => member.faculty_role === 'Department Chair' && member.status === 'active'),
     [faculty],
   );
+  const nextFacultyId = useMemo(() => generateNextFacultyId(faculty), [faculty]);
 
   const resetForm = () => {
-    setForm(initialForm);
+    setForm({
+      ...initialForm,
+      temporary_password: generateTemporaryPassword(),
+    });
     setEditingId(null);
   };
 
@@ -66,18 +88,25 @@ export default function FacultyManagementPage() {
     try {
       if (editingId) {
         await facultyManagementService.updateFacultyAccount(editingId, {
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          email: form.email.trim(),
+          temporary_password: form.temporary_password.trim() || undefined,
+          faculty_id: form.faculty_id ?? '',
+          department: form.department.trim(),
           rank: form.rank || undefined,
           faculty_role: form.faculty_role,
           assigned_chair_id: form.assigned_chair_id || undefined,
-          notes: form.notes || undefined,
         });
         setSuccess('Faculty account updated.');
       } else {
         await facultyManagementService.createFacultyAccount({
           ...form,
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          faculty_id: nextFacultyId,
           rank: form.rank || undefined,
           assigned_chair_id: form.assigned_chair_id || undefined,
-          notes: form.notes || undefined,
         });
         setSuccess('Faculty account created in Supabase.');
       }
@@ -99,8 +128,10 @@ export default function FacultyManagementPage() {
     setEditingId(member.id);
     setSuccess('');
     setError('');
+    const [firstName = '', ...lastNameParts] = member.user.name.split(' ');
     setForm({
-      name: member.user.name,
+      first_name: firstName,
+      last_name: lastNameParts.join(' '),
       email: member.user.email,
       temporary_password: '',
       faculty_id: member.faculty_id,
@@ -108,7 +139,6 @@ export default function FacultyManagementPage() {
       rank: member.rank || '',
       faculty_role: member.faculty_role || 'Adviser',
       assigned_chair_id: member.assigned_chair_id || '',
-      notes: member.notes || '',
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -146,12 +176,18 @@ export default function FacultyManagementPage() {
           {success ? <div className="mb-4 rounded-2xl bg-[rgba(61,139,74,0.12)] px-4 py-3 text-sm font-medium text-[var(--sage)]">{success}</div> : null}
 
           <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Faculty full name" disabled={!!editingId || submitting} required />
-            <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Faculty email" type="email" disabled={!!editingId || submitting} required />
-            <input value={form.faculty_id} onChange={(e) => setForm({ ...form, faculty_id: e.target.value })} placeholder="Faculty ID" disabled={!!editingId || submitting} required />
-            <input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Department" disabled={!!editingId || submitting} required />
+            <input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} placeholder="First name" disabled={submitting} required />
+            <input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} placeholder="Last name" disabled={submitting} required />
+            <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Faculty email" type="email" disabled={submitting} required />
+            <input value={editingId ? form.faculty_id : nextFacultyId} onChange={(e) => setForm({ ...form, faculty_id: e.target.value })} placeholder="Faculty ID" disabled={submitting || !editingId} />
+            <input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Department" disabled={submitting} required />
             <input value={form.rank} onChange={(e) => setForm({ ...form, rank: e.target.value })} placeholder="Academic rank" disabled={submitting} />
-            <input value={form.temporary_password} onChange={(e) => setForm({ ...form, temporary_password: e.target.value })} placeholder={editingId ? 'Password only changes on create' : 'Temporary password'} type="password" disabled={!!editingId || submitting} required={!editingId} />
+            <div className="flex gap-3">
+              <input value={form.temporary_password} onChange={(e) => setForm({ ...form, temporary_password: e.target.value })} placeholder={editingId ? 'Leave blank to keep the current password' : 'Temporary password'} type="text" disabled={submitting} required={!editingId} />
+              <button className="rounded-2xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-text-secondary" type="button" onClick={() => setForm({ ...form, temporary_password: generateTemporaryPassword() })}>
+                Generate
+              </button>
+            </div>
             <select value={form.faculty_role} onChange={(e) => setForm({ ...form, faculty_role: e.target.value })} disabled={submitting}>
               <option value="Department Chair">Department Chair</option>
               <option value="Adviser">Adviser</option>
@@ -165,14 +201,6 @@ export default function FacultyManagementPage() {
                 </option>
               ))}
             </select>
-            <textarea
-              className="md:col-span-2"
-              rows={4}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Notes about responsibilities or scope"
-              disabled={submitting}
-            />
             <div className="md:col-span-2 flex flex-wrap gap-3">
               <button className="rounded-2xl bg-[var(--maroon)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-70" type="submit" disabled={submitting}>
                 {submitting ? 'Saving...' : editingId ? 'Save Faculty Changes' : 'Create Faculty Account'}
@@ -217,7 +245,6 @@ export default function FacultyManagementPage() {
                         <span className="inline-flex items-center gap-2"><ShieldCheck size={14} />{member.rank || 'No rank set'}</span>
                       </div>
                       <p className="text-sm text-text-secondary">Faculty ID: {member.faculty_id}</p>
-                      {member.notes ? <p className="text-sm text-text-secondary">{member.notes}</p> : null}
                     </div>
 
                     <div className="flex flex-wrap gap-2">

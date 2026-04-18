@@ -2,22 +2,27 @@ import api from './api';
 import type { FacultyProfile } from '../types/user.types';
 
 export interface FacultyAccountPayload {
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   temporary_password: string;
+  faculty_id?: string;
+  department: string;
+  rank?: string;
+  faculty_role: string;
+  assigned_chair_id?: string;
+}
+
+export interface FacultyUpdatePayload {
+  first_name: string;
+  last_name: string;
+  email: string;
+  temporary_password?: string;
   faculty_id: string;
   department: string;
   rank?: string;
   faculty_role: string;
   assigned_chair_id?: string;
-  notes?: string;
-}
-
-export interface FacultyUpdatePayload {
-  rank?: string;
-  faculty_role?: string;
-  assigned_chair_id?: string;
-  notes?: string;
 }
 
 export interface FacultyStatusPayload {

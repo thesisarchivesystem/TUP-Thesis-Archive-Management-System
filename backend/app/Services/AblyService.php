@@ -7,11 +7,18 @@ use Illuminate\Support\Facades\Log;
 
 class AblyService
 {
-    private AblyRest $client;
+    private ?AblyRest $client = null;
 
     public function __construct()
     {
-        $this->client = new AblyRest(config('services.ably.key'));
+        $key = config('services.ably.key');
+
+        if (!is_string($key) || trim($key) === '') {
+            Log::warning('Ably is not configured. Realtime events are disabled.');
+            return;
+        }
+
+        $this->client = new AblyRest($key);
     }
 
     /**
@@ -20,6 +27,10 @@ class AblyService
      */
     public function publishMessage(string $conversationId, array $messageData): void
     {
+        if (!$this->client) {
+            return;
+        }
+
         try {
             $channel = $this->client->channel('private:conversation.' . $conversationId);
             $channel->publish('message.new', $messageData);
@@ -34,6 +45,10 @@ class AblyService
      */
     public function publishNotification(string $userId, string $event, array $data): void
     {
+        if (!$this->client) {
+            return;
+        }
+
         try {
             $channel = $this->client->channel('private:notifications.' . $userId);
             $channel->publish($event, $data);
@@ -47,6 +62,10 @@ class AblyService
      */
     public function publishTyping(string $conversationId, string $senderId, bool $isTyping): void
     {
+        if (!$this->client) {
+            return;
+        }
+
         try {
             $channel = $this->client->channel('private:conversation.' . $conversationId);
             $channel->publish('typing', [
