@@ -273,12 +273,12 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
                 setProfileOpen((current) => !current);
                 setNotifOpen(false);
               }}>
-                <span className="vpaa-user-avatar">{initials}</span>
+                <span className="vpaa-user-avatar avatar-tone-vpaa">{initials}</span>
                 <span className="vpaa-user-info"><strong className="vpaa-user-name">{user?.name || 'VPAA User'}</strong><span className="vpaa-user-role">VPAA</span></span>
               </button>
               <div className={`vpaa-dropdown-panel vpaa-profile-panel ${profileOpen ? 'open' : ''}`}>
                 <div className="vpaa-profile-card">
-                  <span className="vpaa-user-avatar small">{initials}</span>
+                  <span className="vpaa-user-avatar avatar-tone-vpaa small">{initials}</span>
                   <div className="vpaa-user-info"><strong className="vpaa-user-name">{user?.name || 'VPAA User'}</strong><span className="vpaa-user-role">{user?.email || 'Vice President for Academic Affairs'}</span></div>
                 </div>
                 <div className="vpaa-profile-actions">

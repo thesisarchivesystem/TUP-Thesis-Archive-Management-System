@@ -88,7 +88,7 @@ export default function FacultyProfilePage() {
         {!isLoading ? (
           <div className="vpaa-profile-page-grid">
             <section className="vpaa-profile-page-panel vpaa-profile-summary-card">
-              <div className="vpaa-profile-hero-avatar">{initials || 'FA'}</div>
+              <div className="vpaa-profile-hero-avatar avatar-tone-faculty">{initials || 'FA'}</div>
               <div>
                 <div className="vpaa-profile-display-name">{profile.full_name || user?.name || 'Faculty User'}</div>
                 <div className="vpaa-profile-display-role">{withFallback(profile.role_title)}, {withFallback(profile.department)}</div>

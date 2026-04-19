@@ -247,7 +247,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
                   setProfileOpen((current) => !current);
                 }}
               >
-                <span className="vpaa-user-avatar vpaa-user-avatar-student">{initials}</span>
+                <span className="vpaa-user-avatar avatar-tone-student">{initials}</span>
                 <span className="vpaa-user-info">
                   <strong className="vpaa-user-name">{user?.name || 'Student User'}</strong>
                   <span className="vpaa-user-role">Student</span>
@@ -256,7 +256,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
 
               <div className={`vpaa-dropdown-panel vpaa-profile-panel ${profileOpen ? 'open' : ''}`}>
                 <div className="vpaa-profile-card">
-                  <span className="vpaa-user-avatar vpaa-user-avatar-student small">{initials}</span>
+                  <span className="vpaa-user-avatar avatar-tone-student small">{initials}</span>
                   <div className="vpaa-user-info">
                     <strong className="vpaa-user-name">{user?.name || 'Student User'}</strong>
                     <span className="vpaa-user-role">{user?.email || 'Student account'}</span>

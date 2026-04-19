@@ -257,7 +257,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
                   setProfileOpen((current) => !current);
                 }}
               >
-                <span className="vpaa-user-avatar">{initials}</span>
+                <span className="vpaa-user-avatar avatar-tone-faculty">{initials}</span>
                 <span className="vpaa-user-info">
                   <strong className="vpaa-user-name">{user?.name || 'Faculty User'}</strong>
                   <span className="vpaa-user-role">Faculty</span>
@@ -266,7 +266,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
 
               <div className={`vpaa-dropdown-panel vpaa-profile-panel ${profileOpen ? 'open' : ''}`}>
                 <div className="vpaa-profile-card">
-                  <span className="vpaa-user-avatar small">{initials}</span>
+                  <span className="vpaa-user-avatar avatar-tone-faculty small">{initials}</span>
                   <div className="vpaa-user-info">
                     <strong className="vpaa-user-name">{user?.name || 'Faculty User'}</strong>
                     <span className="vpaa-user-role">{user?.email || 'Faculty account'}</span>

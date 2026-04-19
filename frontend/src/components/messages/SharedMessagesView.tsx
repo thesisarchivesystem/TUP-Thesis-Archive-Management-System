@@ -82,6 +82,12 @@ const formatRoleLabel = (role?: User['role']) => {
   return role === 'vpaa' ? 'VPAA' : role.charAt(0).toUpperCase() + role.slice(1);
 };
 
+const getAvatarToneClass = (role?: User['role']) => {
+  if (role === 'student') return 'student';
+  if (role === 'faculty') return 'faculty';
+  return 'vpaa';
+};
+
 const getAttachmentLabel = (url?: string) => {
   if (!url) return 'FILE';
 
@@ -401,7 +407,7 @@ export default function SharedMessagesView() {
                 className={`vpaa-contact-item${conversation.id === activeConversationId ? ' active' : ''}`}
                 onClick={() => setActiveConversationId(conversation.id)}
               >
-                <div className="vpaa-contact-avatar">{getInitials(contact?.name)}</div>
+                <div className={`vpaa-contact-avatar avatar-tone-${getAvatarToneClass(contact?.role)}`}>{getInitials(contact?.name)}</div>
 
                 <div className="vpaa-contact-main">
                   <div className="vpaa-contact-name-row">
@@ -447,7 +453,7 @@ export default function SharedMessagesView() {
                   onClick={() => void handleOpenContact(contact)}
                   disabled={isStarting}
                 >
-                  <div className="vpaa-contact-avatar">{getInitials(contact.name)}</div>
+                  <div className={`vpaa-contact-avatar avatar-tone-${getAvatarToneClass(contact.role)}`}>{getInitials(contact.name)}</div>
 
                   <div className="vpaa-contact-main">
                     <div className="vpaa-contact-name-row">
@@ -470,7 +476,7 @@ export default function SharedMessagesView() {
         <section className="vpaa-conversation-panel">
           <div className="vpaa-chat-header">
             <div className="vpaa-chat-person">
-              <div className="vpaa-chat-avatar">{activeHeaderInitials}</div>
+              <div className={`vpaa-chat-avatar avatar-tone-${getAvatarToneClass(activeHeaderRole)}`}>{activeHeaderInitials}</div>
               <div>
                 <div className="vpaa-chat-name-row">
                   <div className="vpaa-chat-name">{activeHeaderName}</div>
@@ -512,12 +518,13 @@ export default function SharedMessagesView() {
                       const message = group.message;
                       const isMine = message.sender_id === user?.id;
                       const messageSender = isMine ? user : message.sender;
+                      const messageSenderRole = isMine ? user?.role : message.sender?.role;
                       const hasAttachment = Boolean(message.attachment_url);
                       const attachmentLabel = message.attachment_url?.split('/').pop() || 'Attachment';
 
                       return (
                         <div key={group.key} className={`vpaa-bubble-row${isMine ? ' mine' : ''}`}>
-                          {!isMine ? <div className="vpaa-bubble-avatar">{getInitials(messageSender?.name)}</div> : null}
+                          {!isMine ? <div className={`vpaa-bubble-avatar avatar-tone-${getAvatarToneClass(messageSenderRole)}`}>{getInitials(messageSender?.name)}</div> : null}
 
                           <div className={`vpaa-bubble${hasAttachment ? ' file-bubble' : ''}`}>
                             {message.body ? <span>{message.body}</span> : null}
@@ -529,7 +536,7 @@ export default function SharedMessagesView() {
                             ) : null}
                           </div>
 
-                          {isMine ? <div className="vpaa-bubble-avatar">{getInitials(messageSender?.name)}</div> : null}
+                          {isMine ? <div className={`vpaa-bubble-avatar avatar-tone-${getAvatarToneClass(messageSenderRole)}`}>{getInitials(messageSender?.name)}</div> : null}
                         </div>
                       );
                     })}
@@ -561,7 +568,7 @@ export default function SharedMessagesView() {
 
         <aside className={`vpaa-chat-details${detailsOpen ? ' open' : ''}`} aria-hidden={!detailsOpen}>
             <div className="vpaa-chat-details-hero">
-              <div className="vpaa-chat-details-avatar">{activeHeaderInitials}</div>
+              <div className={`vpaa-chat-details-avatar avatar-tone-${getAvatarToneClass(activeHeaderRole)}`}>{activeHeaderInitials}</div>
               <h3>{activeHeaderName}</h3>
               <p>{formatRoleLabel(activeHeaderRole)}</p>
             </div>

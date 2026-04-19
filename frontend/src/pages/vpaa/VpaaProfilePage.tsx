@@ -143,7 +143,7 @@ export default function VpaaProfilePage() {
         {!isLoading ? (
         <div className="vpaa-profile-page-grid">
           <section className="vpaa-profile-page-panel vpaa-profile-summary-card">
-            <div className="vpaa-profile-hero-avatar">{initials || 'VP'}</div>
+            <div className="vpaa-profile-hero-avatar avatar-tone-vpaa">{initials || 'VP'}</div>
             <div>
               <div className="vpaa-profile-display-name">{form.fullName}</div>
               <div className="vpaa-profile-display-role">{form.role}</div>

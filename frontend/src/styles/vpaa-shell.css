@@ -3004,7 +3004,18 @@
   width: 48px;
   height: 48px;
   font-size: 15px;
-  background: linear-gradient(135deg, var(--sky), var(--maroon));
+}
+
+.avatar-tone-student {
+  background: linear-gradient(135deg, #cd5c4f 0%, #ef8b3a 100%);
+}
+
+.avatar-tone-vpaa {
+  background: linear-gradient(135deg, #6798c8 0%, #a13e59 100%);
+}
+
+.avatar-tone-faculty {
+  background: linear-gradient(135deg, #ff5779 0%, #d63b8c 45%, #8d0551 100%);
 }
 
 .vpaa-contact-main {
@@ -3109,7 +3120,6 @@
   width: 52px;
   height: 52px;
   font-size: 18px;
-  background: linear-gradient(135deg, var(--sky), var(--maroon));
 }
 
 .vpaa-chat-name-row {
@@ -3196,7 +3206,6 @@
   height: 28px;
   font-size: 11px;
   margin-bottom: 2px;
-  background: linear-gradient(135deg, var(--maroon), var(--gold));
 }
 
 .vpaa-bubble {
@@ -3289,7 +3298,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--sky), var(--maroon));
   color: white;
   font-size: 42px;
   font-weight: 800;
@@ -3551,6 +3559,18 @@
 
 .vpaa-profile-hero-avatar {
   background: linear-gradient(135deg, var(--sky), var(--maroon));
+}
+
+.vpaa-profile-hero-avatar.avatar-tone-student {
+  background: linear-gradient(135deg, #cd5c4f 0%, #ef8b3a 100%);
+}
+
+.vpaa-profile-hero-avatar.avatar-tone-vpaa {
+  background: linear-gradient(135deg, #6798c8 0%, #a13e59 100%);
+}
+
+.vpaa-profile-hero-avatar.avatar-tone-faculty {
+  background: linear-gradient(135deg, #ff5779 0%, #d63b8c 45%, #8d0551 100%);
 }
 
 .vpaa-settings-hero-avatar {
