@@ -238,21 +238,18 @@ class VpaaController extends Controller
 
     public function dailyQuote(Request $request): JsonResponse
     {
-        $quotes = DailyQuote::query()
+        $quote = DailyQuote::query()
             ->where('is_active', true)
-            ->orderBy('quote_date')
-            ->orderBy('created_at')
-            ->get();
+            ->whereDate('quote_date', now()->toDateString())
+            ->orderByDesc('created_at')
+            ->first();
 
-        if ($quotes->isEmpty()) {
+        if (!$quote) {
             return response()->json([
                 'data' => null,
                 'message' => 'No daily quote available.',
             ]);
         }
-
-        $dayIndex = now()->startOfDay()->diffInDays(now()->startOfDay()->copy()->startOfYear());
-        $quote = $quotes[$dayIndex % $quotes->count()];
 
         return response()->json(['data' => $quote]);
     }

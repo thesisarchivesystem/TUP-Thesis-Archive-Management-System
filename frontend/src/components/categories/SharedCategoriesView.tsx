@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Blocks, Brain, ChevronRight, Cpu, Database, Globe, Shield, Smartphone, Users2 } from 'lucide-react';
 import { vpaaCategoriesService, type VpaaCategory } from '../../services/vpaaCategoriesService';
 import type { UserRole } from '../../types/user.types';
@@ -24,6 +24,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [revealed, setRevealed] = useState(false);
+  const browserRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setRevealed(true));
@@ -58,6 +59,15 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
     [categories, selectedSlug],
   );
 
+  useEffect(() => {
+    if (!selectedSlug) return;
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }, [selectedSlug]);
+
   if (error) return <div className="vpaa-banner-error">{error}</div>;
 
   if (isLoading) return <div className="vpaa-card">Loading thesis categories from the archive...</div>;
@@ -65,7 +75,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
   if (!categories.length) return <div className="vpaa-card">No thesis categories are available yet.</div>;
 
   return (
-    <div className="vpaa-category-browser">
+    <div className="vpaa-category-browser" ref={browserRef}>
       <div className="vpaa-category-list">
         {categories.map((category, index) => {
           const Icon = categoryIcons[index % categoryIcons.length];
@@ -95,42 +105,44 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
       </div>
 
       <section className="vpaa-category-panel">
-        <div className="vpaa-category-panel-header">
-          <div>
-            <h2>{selectedCategory?.label}</h2>
-            <p>Highlighted category - {formatDocumentCount(selectedCategory?.document_count ?? 0)}</p>
+        <div className="vpaa-category-panel-content" key={selectedCategory?.slug ?? 'empty'}>
+          <div className="vpaa-category-panel-header">
+            <div>
+              <h2>{selectedCategory?.label}</h2>
+              <p>Highlighted category - {formatDocumentCount(selectedCategory?.document_count ?? 0)}</p>
+            </div>
+            <span>{formatUpdatedAt(selectedCategory?.updated_at)}</span>
           </div>
-          <span>{formatUpdatedAt(selectedCategory?.updated_at)}</span>
-        </div>
 
-        {!selectedCategory?.theses.length ? (
-          <div className="vpaa-card">No thesis has been assigned to this category yet.</div>
-        ) : (
-          <div className="vpaa-category-thesis-grid">
-            {selectedCategory.theses.map((thesis) => (
-              <article className="vpaa-category-thesis-card" key={thesis.id}>
-                <div className="vpaa-cover vpaa-category-thesis-cover">
-                  <div className="vpaa-cover-meta">Technological University of the Philippines</div>
-                  <div className="vpaa-cover-meta">{thesis.department}</div>
-                  <div className="vpaa-cover-title">{thesis.title}</div>
-                </div>
-
-                <div className="vpaa-category-thesis-body">
-                  <h3>{thesis.title}</h3>
-                  <p>{thesis.author}{thesis.year ? ` - ${thesis.year}` : ''}</p>
-                  <div className="vpaa-category-tags">
-                    {(thesis.keywords.length ? thesis.keywords : [thesis.program || thesis.school_year || thesis.department])
-                      .filter(Boolean)
-                      .slice(0, 2)
-                      .map((tag) => (
-                        <span className="vpaa-pill vpaa-category-tag" key={tag}>{tag}</span>
-                      ))}
+          {!selectedCategory?.theses.length ? (
+            <div className="vpaa-card">No thesis has been assigned to this category yet.</div>
+          ) : (
+            <div className="vpaa-category-thesis-grid">
+              {selectedCategory.theses.map((thesis) => (
+                <article className="vpaa-category-thesis-card" key={thesis.id}>
+                  <div className="vpaa-cover vpaa-category-thesis-cover">
+                    <div className="vpaa-cover-meta">Technological University of the Philippines</div>
+                    <div className="vpaa-cover-meta">{thesis.department}</div>
+                    <div className="vpaa-cover-title">{thesis.title}</div>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+
+                  <div className="vpaa-category-thesis-body">
+                    <h3>{thesis.title}</h3>
+                    <p>{thesis.author}{thesis.year ? ` - ${thesis.year}` : ''}</p>
+                    <div className="vpaa-category-tags">
+                      {(thesis.keywords.length ? thesis.keywords : [thesis.program || thesis.school_year || thesis.department])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((tag) => (
+                          <span className="vpaa-pill vpaa-category-tag" key={tag}>{tag}</span>
+                        ))}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );

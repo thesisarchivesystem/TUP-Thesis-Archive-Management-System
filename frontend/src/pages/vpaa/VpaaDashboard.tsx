@@ -2,11 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
 import { vpaaDashboardService, type DailyQuote, type VpaaDashboardThesis } from '../../services/vpaaDashboardService';
 
-const fallbackQuote = {
-  body: "There is more treasure in books than in all the pirate's loot on Treasure Island.",
-  author: 'Walt Disney',
-};
-
 export default function VpaaDashboard() {
   const [recentTheses, setRecentTheses] = useState<VpaaDashboardThesis[]>([]);
   const [topSearches, setTopSearches] = useState<VpaaDashboardThesis[]>([]);
@@ -36,9 +31,15 @@ export default function VpaaDashboard() {
     >
       <div className="vpaa-hero-row">
         <div className="vpaa-quote-banner">
-          <div>Today&apos;s Quote</div>
-          <p className="vpaa-quote-body">&quot;{quote?.body || fallbackQuote.body}&quot;</p>
-          <span>- {quote?.author || fallbackQuote.author}</span>
+          <div className="vpaa-quote-title">Today&apos;s Quote</div>
+          {quote ? (
+            <>
+              <p className="vpaa-quote-body">&quot;{quote.body}&quot;</p>
+              <span>- {quote.author}</span>
+            </>
+          ) : (
+            <p className="vpaa-quote-body">No quote available.</p>
+          )}
         </div>
 
         <div className="vpaa-cover-strip">

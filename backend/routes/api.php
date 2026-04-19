@@ -30,7 +30,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::get('/messages/contacts', [MessageController::class, 'contacts']);
     Route::get('/messages/conversations', [MessageController::class, 'conversations']);
+    Route::post('/messages/conversations', [MessageController::class, 'startConversation']);
     Route::get('/messages/{conversationId}', [MessageController::class, 'show']);
     Route::post('/messages', [MessageController::class, 'store']);
     Route::post('/ai/chat', [AiChatbotController::class, 'chat']);

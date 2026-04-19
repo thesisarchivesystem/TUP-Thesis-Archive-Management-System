@@ -37,7 +37,12 @@ import FacultySettingsPage from '../pages/faculty/FacultySettingsPage';
 import StudentCategoriesPage from '../pages/student/StudentCategoriesPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentMessagesPage from '../pages/student/StudentMessagesPage';
+import StudentMySubmissionsPage from '../pages/student/StudentMySubmissionsPage';
+import StudentRecentlyViewedPage from '../pages/student/StudentRecentlyViewedPage';
+import StudentAboutPage from '../pages/student/StudentAboutPage';
 import StudentSupportPage from '../pages/student/StudentSupportPage';
+import StudentTermsPage from '../pages/student/StudentTermsPage';
+import StudentUploadThesisPage from '../pages/student/StudentUploadThesisPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -96,8 +101,13 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute allowedRoles={['student']} />}>
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/categories" element={<StudentCategoriesPage />} />
+          <Route path="/student/my-submissions" element={<StudentMySubmissionsPage />} />
+          <Route path="/student/recently-viewed" element={<StudentRecentlyViewedPage />} />
+          <Route path="/student/upload-thesis" element={<StudentUploadThesisPage />} />
           <Route path="/student/messages" element={<StudentMessagesPage />} />
+          <Route path="/student/about" element={<StudentAboutPage />} />
           <Route path="/student/support" element={<StudentSupportPage />} />
+          <Route path="/student/terms" element={<StudentTermsPage />} />
           <Route path="/student/*" element={<Navigate to="/student/dashboard" replace />} />
         </Route>
 

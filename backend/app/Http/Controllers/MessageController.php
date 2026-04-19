@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Models\Notification;
+use App\Models\StudentProfile;
+use App\Models\User;
 use App\Services\AblyService;
 use App\Services\ActivityLogService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,32 +19,50 @@ class MessageController extends Controller
         private ActivityLogService $logger,
     ) {}
 
+    public function contacts(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $contacts = $this->allowedContactsQuery($user)
+            ->get()
+            ->map(function (User $contact) use ($user) {
+                $conversation = $this->findConversationBetween($user->id, $contact->id);
+
+                return [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'email' => $contact->email,
+                    'role' => $contact->role,
+                    'avatar_url' => $contact->avatar_url,
+                    'conversation_id' => $conversation?->id,
+                ];
+            })
+            ->values();
+
+        return response()->json(['data' => $contacts]);
+    }
+
     public function conversations(Request $request): JsonResponse
     {
-        $user  = $request->user();
+        $user = $request->user();
+
         $query = Conversation::query()
             ->with([
-                'student:id,name,email,avatar_url',
-                'faculty:id,name,email,avatar_url',
+                'student:id,name,email,avatar_url,role',
+                'faculty:id,name,email,avatar_url,role',
+                'participantOne:id,name,email,avatar_url,role',
+                'participantTwo:id,name,email,avatar_url,role',
                 'latestMessage.sender:id,name,avatar_url',
             ])
-            ->orderByDesc('last_message_at');
-
-        if ($user->role === 'student') {
-            $query->where('student_id', $user->id)
-                ->withCount(['messages as unread_count' => fn($q) =>
-                    $q->where('receiver_id', $user->id)->where('is_read', false)
-                ]);
-        } elseif ($user->role === 'faculty') {
-            $query->where('faculty_id', $user->id)
-                ->withCount(['messages as unread_count' => fn($q) =>
-                    $q->where('receiver_id', $user->id)->where('is_read', false)
-                ]);
-        } else {
-            $query->withCount(['messages as unread_count' => fn($q) =>
+            ->where(function (Builder $conversationQuery) use ($user) {
+                $conversationQuery
+                    ->where('participant_one_id', $user->id)
+                    ->orWhere('participant_two_id', $user->id);
+            })
+            ->withCount(['messages as unread_count' => fn($q) =>
                 $q->where('receiver_id', $user->id)->where('is_read', false)
-            ]);
-        }
+            ])
+            ->orderByDesc('last_message_at');
 
         $conversations = $query->get()->map(function (Conversation $conversation) {
             $payload = $conversation->toArray();
@@ -55,16 +75,47 @@ class MessageController extends Controller
         return response()->json(['data' => $conversations]);
     }
 
+    public function startConversation(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'contact_id' => 'required|uuid|exists:users,id',
+        ]);
+
+        $user = $request->user();
+        $contact = User::query()->findOrFail($validated['contact_id']);
+
+        abort_unless($this->canChatWith($user, $contact), 403, 'You cannot start a conversation with this user.');
+
+        $conversation = $this->findConversationBetween($user->id, $contact->id)
+            ?? Conversation::create($this->conversationPayloadForParticipants($user, $contact));
+
+        $conversation->load([
+            'student:id,name,email,avatar_url,role',
+            'faculty:id,name,email,avatar_url,role',
+            'participantOne:id,name,email,avatar_url,role',
+            'participantTwo:id,name,email,avatar_url,role',
+            'latestMessage.sender:id,name,avatar_url',
+        ]);
+
+        $data = $conversation->toArray();
+        $data['last_message'] = $conversation->latestMessage?->toArray();
+        unset($data['latest_message']);
+
+        return response()->json(['data' => $data], 201);
+    }
+
     public function show(string $conversationId): JsonResponse
     {
+        $user = request()->user();
+        abort_unless($this->userCanAccessConversation($user, $conversationId), 403, 'You do not have access to this conversation.');
+
         $messages = Message::where('conversation_id', $conversationId)
             ->with('sender:id,name,avatar_url')
             ->orderBy('created_at')
             ->get();
 
-        // Mark received messages as read
         Message::where('conversation_id', $conversationId)
-            ->where('receiver_id', request()->user()->id)
+            ->where('receiver_id', $user->id)
             ->where('is_read', false)
             ->update(['is_read' => true]);
 
@@ -75,35 +126,104 @@ class MessageController extends Controller
     {
         $request->validate([
             'conversation_id' => 'required|uuid|exists:conversations,id',
-            'receiver_id'     => 'required|uuid|exists:users,id',
-            'body'            => 'required_without:attachment_url|nullable|string|max:5000',
-            'attachment_url'  => 'nullable|url',
+            'receiver_id' => 'required|uuid|exists:users,id',
+            'body' => 'required_without:attachment_url|nullable|string|max:5000',
+            'attachment_url' => 'nullable|url',
         ]);
+
+        $sender = $request->user();
+        $receiver = User::query()->findOrFail($request->receiver_id);
+        $conversation = Conversation::query()->findOrFail($request->conversation_id);
+
+        abort_unless($this->userCanAccessConversation($sender, $conversation->id), 403, 'You do not have access to this conversation.');
+        abort_unless($this->conversationHasParticipant($conversation, $receiver->id), 422, 'Receiver must belong to the selected conversation.');
+        abort_unless($this->canChatWith($sender, $receiver), 403, 'You cannot send messages to this user.');
 
         $message = Message::create([
-            'conversation_id' => $request->conversation_id,
-            'sender_id'       => $request->user()->id,
-            'receiver_id'     => $request->receiver_id,
-            'body'            => $request->body,
-            'attachment_url'  => $request->attachment_url,
+            'conversation_id' => $conversation->id,
+            'sender_id' => $sender->id,
+            'receiver_id' => $receiver->id,
+            'body' => $request->body,
+            'attachment_url' => $request->attachment_url,
         ]);
 
-        // Update conversation timestamp
-        Conversation::where('id', $request->conversation_id)
-            ->update(['last_message_at' => now()]);
+        $conversation->update(['last_message_at' => now()]);
 
         $message->load('sender:id,name,avatar_url');
 
-        // ── Publish to Ably ─────────────────────────────────────
-        $this->ably->publishMessage($request->conversation_id, $message->toArray());
-
-        // Also push a notification event to the receiver's channel
-        $this->ably->publishNotification($request->receiver_id, 'notification.new', [
-            'type'  => 'new_message',
-            'title' => 'New message from ' . $request->user()->name,
-            'body'  => substr($request->body ?? 'Sent an attachment', 0, 80),
+        $this->ably->publishMessage($conversation->id, $message->toArray());
+        $this->ably->publishNotification($receiver->id, 'notification.new', [
+            'type' => 'new_message',
+            'title' => 'New message from ' . $sender->name,
+            'body' => substr($request->body ?? 'Sent an attachment', 0, 80),
         ]);
 
         return response()->json(['data' => $message], 201);
+    }
+
+    private function allowedContactsQuery(User $user): Builder
+    {
+        $query = User::query()
+            ->where('id', '!=', $user->id)
+            ->where('is_active', true);
+
+        return match ($user->role) {
+            'student' => $query->where('role', 'faculty')->orderBy('name'),
+            'faculty' => $query->where(function (Builder $nested) {
+                $nested->where('role', 'student')->orWhere('role', 'vpaa');
+            })->orderBy('name'),
+            'vpaa' => $query->where('role', 'faculty')->orderBy('name'),
+            default => $query->whereRaw('1 = 0'),
+        };
+    }
+
+    private function canChatWith(User $user, User $contact): bool
+    {
+        return match ($user->role) {
+            'student' => $contact->role === 'faculty',
+            'faculty' => in_array($contact->role, ['student', 'vpaa'], true),
+            'vpaa' => $contact->role === 'faculty',
+            default => false,
+        };
+    }
+
+    private function conversationPayloadForParticipants(User $first, User $second): array
+    {
+        $participants = collect([$first->id, $second->id])->sort()->values();
+        $pair = collect([$first, $second]);
+
+        return [
+            'participant_one_id' => $participants->get(0),
+            'participant_two_id' => $participants->get(1),
+            'student_id' => $pair->firstWhere('role', 'student')?->id,
+            'faculty_id' => $pair->firstWhere('role', 'faculty')?->id,
+            'last_message_at' => null,
+        ];
+    }
+
+    private function findConversationBetween(string $firstUserId, string $secondUserId): ?Conversation
+    {
+        $participants = collect([$firstUserId, $secondUserId])->sort()->values();
+
+        return Conversation::query()
+            ->where('participant_one_id', $participants->get(0))
+            ->where('participant_two_id', $participants->get(1))
+            ->first();
+    }
+
+    private function userCanAccessConversation(User $user, string $conversationId): bool
+    {
+        return Conversation::query()
+            ->where('id', $conversationId)
+            ->where(function (Builder $query) use ($user) {
+                $query->where('participant_one_id', $user->id)
+                    ->orWhere('participant_two_id', $user->id);
+            })
+            ->exists();
+    }
+
+    private function conversationHasParticipant(Conversation $conversation, string $userId): bool
+    {
+        return $conversation->participant_one_id === $userId || $conversation->participant_two_id === $userId;
     }
 }

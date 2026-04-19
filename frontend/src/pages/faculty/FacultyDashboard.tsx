@@ -43,11 +43,15 @@ export default function FacultyDashboard() {
 
       <div className="vpaa-hero-row">
         <div className="vpaa-quote-banner">
-          <div>Today&apos;s Quote</div>
-          <p className="vpaa-quote-body">
-            &quot;{quote?.body || 'No daily quote is available yet.'}&quot;
-          </p>
-          <span>- {quote?.author || 'TUP Thesis Archive'}</span>
+          <div className="vpaa-quote-title">Today&apos;s Quote</div>
+          {quote ? (
+            <>
+              <p className="vpaa-quote-body">&quot;{quote.body}&quot;</p>
+              <span>- {quote.author}</span>
+            </>
+          ) : (
+            <p className="vpaa-quote-body">No quote available.</p>
+          )}
         </div>
 
         <div className="vpaa-cover-strip">

@@ -14,6 +14,7 @@ const defaultProgramOptions = [
 ];
 
 const EDIT_PANEL_CLOSE_DELAY = 280;
+const EDIT_PANEL_SHELL_CLOSE_DELAY = 180;
 
 const initialForm: StudentAccountPayload = {
   first_name: '',
@@ -72,6 +73,7 @@ export default function FacultyAdviseesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [editShellOpen, setEditShellOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [programFilter, setProgramFilter] = useState('All Programs');
   const [statusFilter, setStatusFilter] = useState('All Status');
@@ -86,8 +88,10 @@ export default function FacultyAdviseesPage() {
   const editPanelRef = useRef<HTMLDivElement | null>(null);
   const editCloseTimeoutRef = useRef<number | null>(null);
 
-  const loadAdvisees = async () => {
-    setLoading(true);
+  const loadAdvisees = async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoading(true);
+    }
     try {
       const response = await facultyAdviseesService.getAdvisees();
       setAdviseesData(response);
@@ -99,7 +103,9 @@ export default function FacultyAdviseesPage() {
     } catch {
       setError('Unable to load advisees right now.');
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -167,13 +173,17 @@ export default function FacultyAdviseesPage() {
     setEditOpen(false);
 
     editCloseTimeoutRef.current = window.setTimeout(() => {
-      setEditForm({
-        ...initialForm,
-        temporary_password: generateTemporaryPassword(),
-        department: adviseesData?.department || '',
-      });
-      setEditingId(null);
-      editCloseTimeoutRef.current = null;
+      setEditShellOpen(false);
+
+      editCloseTimeoutRef.current = window.setTimeout(() => {
+        setEditForm({
+          ...initialForm,
+          temporary_password: generateTemporaryPassword(),
+          department: adviseesData?.department || '',
+        });
+        setEditingId(null);
+        editCloseTimeoutRef.current = null;
+      }, EDIT_PANEL_SHELL_CLOSE_DELAY);
     }, EDIT_PANEL_CLOSE_DELAY);
   };
 
@@ -186,7 +196,7 @@ export default function FacultyAdviseesPage() {
     const [fallbackFirstName = '', ...restName] = advisee.student_name.split(' ').filter(Boolean);
 
     setEditingId(advisee.id);
-    setEditOpen(true);
+    setEditShellOpen(true);
     setEditSuccess('');
     setEditError('');
     setEditForm({
@@ -198,6 +208,10 @@ export default function FacultyAdviseesPage() {
       department: advisee.department || adviseesData?.department || '',
       program: advisee.program || '',
       year_level: advisee.year_level ?? 4,
+    });
+
+    window.requestAnimationFrame(() => {
+      setEditOpen(true);
     });
   };
 
@@ -225,7 +239,7 @@ export default function FacultyAdviseesPage() {
       });
       setCreateOpen(false);
       setListOpen(true);
-      await loadAdvisees();
+      await loadAdvisees({ silent: true });
     } catch (err: any) {
       const validationErrors = err.response?.data?.errors;
       const firstValidationMessage = validationErrors
@@ -258,7 +272,7 @@ export default function FacultyAdviseesPage() {
         temporary_password: editForm.temporary_password.trim(),
       });
       setEditSuccess('Student account updated successfully.');
-      await loadAdvisees();
+      await loadAdvisees({ silent: true });
       editCloseTimeoutRef.current = window.setTimeout(() => {
         resetEditForm();
       }, 1400);
@@ -462,7 +476,7 @@ export default function FacultyAdviseesPage() {
         </div>
 
         {editingId ? (
-          <>
+          <div className={`edit-panel-shell${editShellOpen ? ' open' : ''}`}>
             <div className="section-spacer" />
 
             <div className="review-panel" ref={editPanelRef}>
@@ -551,7 +565,7 @@ export default function FacultyAdviseesPage() {
               </div>
             </div>
             </div>
-          </>
+          </div>
         ) : null}
       </div>
     </FacultyLayout>

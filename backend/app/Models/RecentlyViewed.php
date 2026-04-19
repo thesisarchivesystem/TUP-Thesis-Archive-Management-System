@@ -11,6 +11,8 @@ class RecentlyViewed extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $table = 'recently_viewed';
+
     protected $fillable = [
         'user_id',
         'thesis_id',
