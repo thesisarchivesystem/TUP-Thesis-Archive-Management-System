@@ -14,6 +14,8 @@ class Conversation extends Model
     protected $fillable = [
         'student_id',
         'faculty_id',
+        'participant_one_id',
+        'participant_two_id',
         'last_message_at',
     ];
 
@@ -29,6 +31,16 @@ class Conversation extends Model
     public function faculty(): BelongsTo
     {
         return $this->belongsTo(User::class, 'faculty_id');
+    }
+
+    public function participantOne(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'participant_one_id');
+    }
+
+    public function participantTwo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'participant_two_id');
     }
 
     public function messages()

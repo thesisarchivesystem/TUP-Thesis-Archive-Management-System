@@ -1,8 +1,20 @@
 import api from './api';
 
 export const messageService = {
+  async getContacts() {
+    const { data } = await api.get('/messages/contacts');
+    return data;
+  },
+
   async getConversations() {
     const { data } = await api.get('/messages/conversations');
+    return data;
+  },
+
+  async startConversation(contactId: string) {
+    const { data } = await api.post('/messages/conversations', {
+      contact_id: contactId,
+    });
     return data;
   },
 

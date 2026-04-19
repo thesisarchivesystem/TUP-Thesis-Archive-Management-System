@@ -9,8 +9,10 @@ use App\Models\RecentlyViewed;
 use App\Services\AblyService;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class ThesisController extends Controller
 {
@@ -31,6 +33,14 @@ class ThesisController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $keywords = $this->normalizeArrayField($request->input('keywords'));
+        $authors = $this->normalizeArrayField($request->input('authors'));
+
+        $request->merge([
+            'keywords' => $keywords,
+            'authors' => $authors,
+        ]);
+
         $request->validate([
             'title'       => 'required|string|max:500',
             'abstract'    => 'nullable|string',
@@ -42,23 +52,29 @@ class ThesisController extends Controller
             'school_year' => 'required|string',
             'authors'     => 'nullable|array',
             'authors.*'   => 'string|max:255',
+            'manuscript'  => 'nullable|file|mimes:pdf|max:20480',
+            'supplementary_files' => 'nullable|array',
+            'supplementary_files.*' => 'file|max:20480',
             'file_url'    => 'nullable|url',
             'file_name'   => 'nullable|string',
             'file_size'   => 'nullable|integer',
         ]);
 
+        $manuscript = $request->file('manuscript');
+        $manuscriptUpload = $manuscript ? $this->uploadToSupabase($manuscript, 'manuscripts') : null;
+
         $thesis = Thesis::create([
             'title'        => $request->title,
             'abstract'     => $request->abstract,
-            'keywords'     => $request->keywords ?? [],
+            'keywords'     => $keywords,
             'department'   => $request->department,
             'program'      => $request->program,
             'category_id'  => $request->category_id,
             'school_year'  => $request->school_year,
-            'authors'      => $request->authors ?? [],
-            'file_url'     => $request->file_url,
-            'file_name'    => $request->file_name,
-            'file_size'    => $request->file_size,
+            'authors'      => $authors,
+            'file_url'     => $manuscriptUpload['url'] ?? $request->file_url,
+            'file_name'    => $manuscriptUpload['name'] ?? $request->file_name,
+            'file_size'    => $manuscriptUpload['size'] ?? $request->file_size,
             'status'       => 'draft',
             'submitted_by' => $request->user()->id,
         ]);
@@ -215,7 +231,7 @@ class ThesisController extends Controller
     {
         $theses = RecentlyViewed::where('user_id', $request->user()->id)
             ->orderByDesc('viewed_at')
-            ->with('thesis')
+            ->with('thesis.submitter:id,name', 'thesis.category:id,name,slug')
             ->paginate(20);
 
         return response()->json($theses);
@@ -301,5 +317,62 @@ class ThesisController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function normalizeArrayField(mixed $value): array
+    {
+        if (is_array($value)) {
+            return collect($value)->map(fn ($item) => is_string($item) ? trim($item) : $item)->filter()->values()->all();
+        }
+
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return collect($decoded)->map(fn ($item) => is_string($item) ? trim($item) : $item)->filter()->values()->all();
+        }
+
+        return collect(explode(',', $value))->map(fn (string $item) => trim($item))->filter()->values()->all();
+    }
+
+    private function uploadToSupabase(\Illuminate\Http\UploadedFile $file, string $folder): array
+    {
+        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
+        $serviceKey = (string) config('services.supabase.service_key');
+        $bucket = (string) config('services.supabase.bucket');
+
+        if ($supabaseUrl === '' || $serviceKey === '' || $bucket === '') {
+            throw new \RuntimeException('Supabase storage is not configured.');
+        }
+
+        $path = sprintf(
+            'student-theses/%s/%s/%s-%s',
+            $folder,
+            now()->format('Y/m'),
+            (string) Str::uuid(),
+            preg_replace('/[^A-Za-z0-9.\-_]/', '-', $file->getClientOriginalName())
+        );
+
+        $response = Http::withHeaders([
+            'apikey' => $serviceKey,
+            'Authorization' => 'Bearer ' . $serviceKey,
+            'x-upsert' => 'true',
+            'Content-Type' => $file->getMimeType() ?: 'application/octet-stream',
+        ])->withBody(file_get_contents($file->getRealPath()), $file->getMimeType() ?: 'application/octet-stream')
+            ->post("{$supabaseUrl}/storage/v1/object/{$bucket}/{$path}");
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Failed to upload file to storage.');
+        }
+
+        return [
+            'name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'path' => $path,
+            'url' => "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$path}",
+        ];
     }
 }

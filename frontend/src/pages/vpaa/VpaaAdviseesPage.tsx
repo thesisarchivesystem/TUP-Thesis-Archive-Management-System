@@ -9,6 +9,9 @@ const generateTemporaryPassword = () => {
   return Array.from({ length: 10 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
 };
 
+const EDIT_PANEL_CLOSE_DELAY = 280;
+const EDIT_PANEL_SHELL_CLOSE_DELAY = 180;
+
 const generateNextFacultyId = (faculty: FacultyProfile[]) => {
   const yearCode = new Date().getFullYear().toString().slice(-2);
   const prefix = `FAC-${yearCode}-`;
@@ -74,6 +77,7 @@ export default function VpaaAdviseesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [editShellOpen, setEditShellOpen] = useState(false);
   const editPanelRef = useRef<HTMLDivElement | null>(null);
   const editCloseTimeoutRef = useRef<number | null>(null);
 
@@ -123,13 +127,21 @@ export default function VpaaAdviseesPage() {
       editCloseTimeoutRef.current = null;
     }
 
-    setEditForm({
-      ...initialForm,
-      temporary_password: generateTemporaryPassword(),
-      faculty_id: '',
-    });
-    setEditingId(null);
     setEditOpen(false);
+
+    editCloseTimeoutRef.current = window.setTimeout(() => {
+      setEditShellOpen(false);
+
+      editCloseTimeoutRef.current = window.setTimeout(() => {
+        setEditForm({
+          ...initialForm,
+          temporary_password: generateTemporaryPassword(),
+          faculty_id: '',
+        });
+        setEditingId(null);
+        editCloseTimeoutRef.current = null;
+      }, EDIT_PANEL_SHELL_CLOSE_DELAY);
+    }, EDIT_PANEL_CLOSE_DELAY);
   };
 
   const startEdit = (member: FacultyProfile) => {
@@ -139,7 +151,7 @@ export default function VpaaAdviseesPage() {
     }
 
     setEditingId(member.id);
-    setEditOpen(true);
+    setEditShellOpen(true);
     setEditSuccess('');
     setEditError('');
     setEditForm({
@@ -152,6 +164,10 @@ export default function VpaaAdviseesPage() {
       rank: member.rank || '',
       faculty_role: member.faculty_role || 'Adviser',
       assigned_chair_id: member.assigned_chair_id || '',
+    });
+
+    window.requestAnimationFrame(() => {
+      setEditOpen(true);
     });
   };
 
@@ -422,7 +438,7 @@ export default function VpaaAdviseesPage() {
       </div>
 
       {editingId ? (
-        <>
+        <div className={`edit-panel-shell${editShellOpen ? ' open' : ''}`}>
           <div className="section-spacer" />
 
           <div className="review-panel" ref={editPanelRef}>
@@ -515,7 +531,7 @@ export default function VpaaAdviseesPage() {
               </div>
             </div>
           </div>
-        </>
+        </div>
       ) : null}
     </VpaaLayout>
   );

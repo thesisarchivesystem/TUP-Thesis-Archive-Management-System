@@ -345,17 +345,11 @@ class FacultyController extends Controller
             ->get()
             ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
 
-        $quotes = DailyQuote::query()
+        $quote = DailyQuote::query()
             ->where('is_active', true)
-            ->orderBy('quote_date')
-            ->orderBy('created_at')
-            ->get();
-
-        $quote = null;
-        if ($quotes->isNotEmpty()) {
-            $dayIndex = now()->startOfDay()->diffInDays(now()->startOfDay()->copy()->startOfYear());
-            $quote = $quotes[$dayIndex % $quotes->count()];
-        }
+            ->whereDate('quote_date', now()->toDateString())
+            ->orderByDesc('created_at')
+            ->first();
 
         return response()->json([
             'stats' => [

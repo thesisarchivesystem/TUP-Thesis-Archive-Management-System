@@ -1,5 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FileText, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, Upload, User, Users } from 'lucide-react';
+import {
+  Bell,
+  ChevronRight,
+  Clock3,
+  FileText,
+  GraduationCap,
+  Home,
+  LogOut,
+  Menu,
+  MessageSquare,
+  Moon,
+  Search,
+  Settings,
+  Shapes,
+  Sun,
+  Upload,
+  User,
+  History,
+  FolderOpen,
+} from 'lucide-react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -39,20 +58,20 @@ function HeadsetIcon() {
   );
 }
 
-const prompts = ['How do I review submissions?', 'Where can I manage theses?', 'How do I contact support?'];
+const prompts = ['How do I upload my thesis?', 'Where can I check my submissions?', 'How do I find thesis categories?'];
 
 const buildReply = (message: string) => {
   const normalized = message.toLowerCase();
-  if (normalized.includes('review') || normalized.includes('submission')) {
-    return 'Open Review Submissions to check pending work, provide feedback, and track student revisions.';
+  if (normalized.includes('upload') || normalized.includes('submit')) {
+    return 'Use the Upload Thesis page to send your manuscript, then monitor review progress from My Submissions.';
   }
-  if (normalized.includes('manage') || normalized.includes('thesis') || normalized.includes('approved')) {
-    return 'The Manage Thesis section lets you add new records, review submissions, and browse approved theses.';
+  if (normalized.includes('submission') || normalized.includes('status')) {
+    return 'Open My Submissions to review your uploaded files, approval status, and recent updates from advisers.';
   }
-  if (normalized.includes('support') || normalized.includes('contact') || normalized.includes('help')) {
-    return 'Use the Support page for quick contacts, FAQs, and ticket requests related to archive workflows.';
+  if (normalized.includes('categor') || normalized.includes('find') || normalized.includes('search')) {
+    return 'The Categories page helps you browse thesis collections by topic so you can find related studies faster.';
   }
-  return 'I can help with faculty submission review, thesis management, and archive support guidance.';
+  return 'I can help with uploads, submissions, categories, and general archive guidance for students.';
 };
 
 type Props = {
@@ -68,18 +87,17 @@ const formatTime = (date: Date) =>
 const formatDate = (date: Date) =>
   `${String(date.getDate()).padStart(2, '0')}-${['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][date.getMonth()]}-${date.getFullYear()}`;
 
-export default function FacultyLayout({ title, description, children, hidePageIntro = false }: Props) {
+export default function StudentLayout({ title, description, children, hidePageIntro = false }: Props) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [manageThesisOpen, setManageThesisOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: 'bot-1', type: 'bot', text: 'Hi! I can help with thesis review, faculty workflows, and archive support questions.' },
+    { id: 'bot-1', type: 'bot', text: 'Hi! I can help with thesis uploads, archive browsing, and student support questions.' },
     { id: 'bot-2', type: 'bot', text: 'Try one of the quick prompts below.' },
   ]);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
@@ -123,14 +141,8 @@ export default function FacultyLayout({ title, description, children, hidePageIn
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  useEffect(() => {
-    setManageThesisOpen(location.pathname.startsWith('/faculty/manage-thesis'));
-  }, [location.pathname]);
-
-  const isManageThesisRoute = location.pathname.startsWith('/faculty/manage-thesis');
-
   const initials = useMemo(() => {
-    if (!user?.name) return 'FA';
+    if (!user?.name) return 'ST';
 
     return user.name
       .split(' ')
@@ -174,48 +186,26 @@ export default function FacultyLayout({ title, description, children, hidePageIn
       <div className="vpaa-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
 
       <aside className="vpaa-sidebar" onClick={(event) => event.stopPropagation()}>
-        <Link className="vpaa-sidebar-brand" to="/faculty/dashboard">
+        <Link className="vpaa-sidebar-brand" to="/student/dashboard">
           <span className="vpaa-sidebar-logo"><GraduationCap size={18} /></span>
           <span className="vpaa-sidebar-brand-text">Thesis <span>Archive</span></span>
         </Link>
 
         <nav className="vpaa-sidebar-nav">
           <span className="vpaa-nav-section-label">Main</span>
-          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/dashboard"><Home size={20} /><span>Home</span></NavLink>
-          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/categories"><Shapes size={20} /><span>Categories</span></NavLink>
-          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/students"><Upload size={20} /><span>Add Files</span></NavLink>
-          <div className={`vpaa-nav-group${manageThesisOpen ? ' open' : ''}`}>
-            <button
-              type="button"
-              className={`vpaa-nav-item vpaa-nav-group-toggle${manageThesisOpen && !isManageThesisRoute ? ' active' : ''}`}
-              onClick={() => setManageThesisOpen((current) => !current)}
-              aria-expanded={manageThesisOpen}
-              aria-controls="faculty-manage-thesis-submenu"
-            >
-              <FilePlus2 size={20} />
-              <span>Manage Thesis</span>
-              <ChevronDown className="vpaa-nav-group-arrow" size={16} />
-            </button>
-
-            <div
-              id="faculty-manage-thesis-submenu"
-              className={`vpaa-nav-submenu${manageThesisOpen ? ' open' : ''}`}
-            >
-              <NavLink className={({ isActive }) => `vpaa-nav-subitem${isActive ? ' active' : ''}`} to="/faculty/manage-thesis/add">Add Thesis</NavLink>
-              <NavLink className={({ isActive }) => `vpaa-nav-subitem${isActive ? ' active' : ''}`} to="/faculty/manage-thesis/approved">Approved Theses</NavLink>
-              <NavLink className={({ isActive }) => `vpaa-nav-subitem${isActive ? ' active' : ''}`} to="/faculty/manage-thesis/review">Review Submissions</NavLink>
-            </div>
-          </div>
+          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/student/dashboard"><Home size={20} /><span>Home</span></NavLink>
+          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/student/categories"><Shapes size={20} /><span>Categories</span></NavLink>
+          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/student/upload-thesis"><Upload size={20} /><span>Upload Thesis</span></NavLink>
 
           <span className="vpaa-nav-section-label">Activity</span>
-          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/activity-log"><FileClock size={20} /><span>Activity Log</span></NavLink>
-          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/my-advisees"><Users size={20} /><span>My Advisees</span></NavLink>
+          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/student/recently-viewed"><History size={20} /><span>Recently Viewed</span></NavLink>
+          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/student/my-submissions"><FolderOpen size={20} /><span>My Submissions</span></NavLink>
         </nav>
 
         <div className="vpaa-sidebar-footer">
-          <NavLink to="/faculty/about">About</NavLink>
-          <NavLink to="/faculty/support">Support</NavLink>
-          <NavLink to="/faculty/terms">Terms & Conditions</NavLink>
+          <NavLink to="/student/about">About</NavLink>
+          <NavLink to="/student/support">Support</NavLink>
+          <NavLink to="/student/terms">Terms & Conditions</NavLink>
         </div>
       </aside>
 
@@ -237,7 +227,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
               <span className="vpaa-topbar-info-item"><FileText size={15} /><span>{currentDate}</span></span>
             </div>
 
-            <Link to="/faculty/messages" className="vpaa-topbar-icon-btn" aria-label="Messages">
+            <Link to="/student/messages" className="vpaa-topbar-icon-btn" aria-label="Messages">
               <MessageSquare size={18} />
             </Link>
             <button type="button" className="vpaa-topbar-icon-btn" aria-label="Notifications">
@@ -251,31 +241,31 @@ export default function FacultyLayout({ title, description, children, hidePageIn
             <div className="vpaa-topbar-dropdown">
               <button
                 type="button"
-                className="vpaa-user-profile"
+                className="vpaa-user-profile vpaa-user-profile-student"
                 onClick={(event) => {
                   event.stopPropagation();
                   setProfileOpen((current) => !current);
                 }}
               >
-                <span className="vpaa-user-avatar">{initials}</span>
+                <span className="vpaa-user-avatar vpaa-user-avatar-student">{initials}</span>
                 <span className="vpaa-user-info">
-                  <strong className="vpaa-user-name">{user?.name || 'Faculty User'}</strong>
-                  <span className="vpaa-user-role">Faculty</span>
+                  <strong className="vpaa-user-name">{user?.name || 'Student User'}</strong>
+                  <span className="vpaa-user-role">Student</span>
                 </span>
               </button>
 
               <div className={`vpaa-dropdown-panel vpaa-profile-panel ${profileOpen ? 'open' : ''}`}>
                 <div className="vpaa-profile-card">
-                  <span className="vpaa-user-avatar small">{initials}</span>
+                  <span className="vpaa-user-avatar vpaa-user-avatar-student small">{initials}</span>
                   <div className="vpaa-user-info">
-                    <strong className="vpaa-user-name">{user?.name || 'Faculty User'}</strong>
-                    <span className="vpaa-user-role">{user?.email || 'Faculty account'}</span>
+                    <strong className="vpaa-user-name">{user?.name || 'Student User'}</strong>
+                    <span className="vpaa-user-role">{user?.email || 'Student account'}</span>
                   </div>
                 </div>
 
                 <div className="vpaa-profile-actions">
-                  <Link className="vpaa-profile-action" to="/faculty/profile"><User size={16} /><span>Profile</span></Link>
-                  <Link className="vpaa-profile-action" to="/faculty/settings"><Settings size={16} /><span>Settings</span></Link>
+                  <Link className="vpaa-profile-action" to="/student/dashboard"><User size={16} /><span>Profile</span></Link>
+                  <Link className="vpaa-profile-action" to="/student/dashboard"><Settings size={16} /><span>Settings</span></Link>
                   <button type="button" className="vpaa-profile-action signout" onClick={logout}><LogOut size={16} /><span>Sign Out</span></button>
                 </div>
               </div>
@@ -298,7 +288,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
         <div className="vpaa-ai-chatbot-header">
           <div className="vpaa-ai-chatbot-title">
             <div className="vpaa-ai-chatbot-avatar"><HeadsetIcon /></div>
-            <div><h3>Archive Assistant</h3><p>Ask about reviews, faculty workflows, and support.</p></div>
+            <div><h3>Archive Assistant</h3><p>Ask about uploads, submissions, and archive access.</p></div>
           </div>
           <button type="button" className="vpaa-ai-chatbot-close" onClick={() => setChatOpen(false)} aria-label="Close AI chatbot">&times;</button>
         </div>

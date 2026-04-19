@@ -14,11 +14,24 @@ export interface Message {
 
 export interface Conversation {
   id: string;
-  student_id: string;
-  faculty_id: string;
+  student_id?: string | null;
+  faculty_id?: string | null;
+  participant_one_id?: string | null;
+  participant_two_id?: string | null;
   last_message_at?: string;
   unread_count?: number;
   student?: User;
   faculty?: User;
+  participant_one?: User;
+  participant_two?: User;
   last_message?: Message;
+}
+
+export interface MessageContact {
+  id: string;
+  name: string;
+  email: string;
+  role: User['role'];
+  avatar_url?: string;
+  conversation_id?: string | null;
 }

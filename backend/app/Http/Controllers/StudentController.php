@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Conversation;
+use App\Models\DailyQuote;
 use App\Models\StudentProfile;
+use App\Models\Thesis;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,14 +22,39 @@ class StudentController extends Controller
     {
         $user = $request->user();
 
-        $mySubmissions = \App\Models\Thesis::where('submitted_by', $user->id)->count();
-        $totalViews = \App\Models\Thesis::where('submitted_by', $user->id)->sum('view_count');
-        $pendingReview = \App\Models\Thesis::where('submitted_by', $user->id)
+        $mySubmissions = Thesis::where('submitted_by', $user->id)->count();
+        $totalViews = Thesis::where('submitted_by', $user->id)->sum('view_count');
+        $pendingReview = Thesis::where('submitted_by', $user->id)
             ->whereIn('status', ['pending', 'under_review'])
             ->count();
-        $approved = \App\Models\Thesis::where('submitted_by', $user->id)
+        $approved = Thesis::where('submitted_by', $user->id)
             ->where('status', 'approved')
             ->count();
+
+        $recentTheses = Thesis::query()
+            ->where('status', 'approved')
+            ->with(['submitter:id,name', 'category:id,name'])
+            ->orderByDesc('approved_at')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get()
+            ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
+
+        $topSearches = Thesis::query()
+            ->where('status', 'approved')
+            ->with(['submitter:id,name', 'category:id,name'])
+            ->orderByDesc('view_count')
+            ->orderByDesc('approved_at')
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get()
+            ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
+
+        $quote = DailyQuote::query()
+            ->where('is_active', true)
+            ->whereDate('quote_date', now()->toDateString())
+            ->orderByDesc('created_at')
+            ->first();
 
         return response()->json([
             'stats' => [
@@ -34,7 +63,44 @@ class StudentController extends Controller
                 'pending_review' => $pendingReview,
                 'approved' => $approved,
             ],
+            'recent_theses' => $recentTheses,
+            'top_searches' => $topSearches,
+            'daily_quote' => $quote,
         ]);
+    }
+
+    private function formatDashboardThesis(Thesis $thesis): array
+    {
+        return [
+            'id' => $thesis->id,
+            'title' => $thesis->title,
+            'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+            'submitter_name' => $thesis->submitter?->name,
+            'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
+            'department' => $thesis->department,
+            'program' => $thesis->program,
+            'category' => $thesis->category?->name,
+            'view_count' => (int) $thesis->view_count,
+            'approved_at' => $this->formatIsoTimestamp($thesis->approved_at),
+            'created_at' => $this->formatIsoTimestamp($thesis->created_at),
+        ];
+    }
+
+    private function formatIsoTimestamp(mixed $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            return $value->toISOString();
+        }
+
+        try {
+            return Carbon::parse($value)->toISOString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function index(Request $request): JsonResponse
@@ -88,7 +154,7 @@ class StudentController extends Controller
                 'is_active' => true,
             ]);
 
-            return StudentProfile::create([
+            $profile = StudentProfile::create([
                 'user_id'    => $user->id,
                 'student_id' => $studentId,
                 'department' => $request->department,
@@ -97,6 +163,16 @@ class StudentController extends Controller
                 'adviser_id' => $request->user()->id,
                 'created_by' => $request->user()->id,
             ]);
+
+            Conversation::firstOrCreate(
+                $this->sortedParticipantAttributes($user->id, $request->user()->id),
+                [
+                    'student_id' => $user->id,
+                    'faculty_id' => $request->user()->id,
+                ],
+            );
+
+            return $profile;
         });
 
         $this->logger->log($request->user(), 'student.created', 'user', $studentProfile->user_id);
@@ -182,5 +258,15 @@ class StudentController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'Student deleted']);
+    }
+
+    private function sortedParticipantAttributes(string $firstUserId, string $secondUserId): array
+    {
+        $participants = collect([$firstUserId, $secondUserId])->sort()->values();
+
+        return [
+            'participant_one_id' => $participants->get(0),
+            'participant_two_id' => $participants->get(1),
+        ];
     }
 }

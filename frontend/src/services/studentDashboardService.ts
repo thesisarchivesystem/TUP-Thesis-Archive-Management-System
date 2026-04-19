@@ -1,10 +1,31 @@
 import api from './api';
 
-export interface StudentDashboardStats {
-  mySubmissions: number;
-  totalViews: number;
-  pendingReview: number;
-  approved: number;
+export interface StudentDashboardThesis {
+  id: string;
+  title: string;
+  author: string;
+  submitter_name?: string | null;
+  year: string | null;
+  department: string;
+  program?: string | null;
+  category?: string | null;
+  view_count: number;
+  approved_at?: string | null;
+  created_at?: string | null;
+}
+
+export interface StudentDailyQuote {
+  id: string;
+  body: string;
+  author: string;
+  quote_date: string;
+  is_active: boolean;
+}
+
+export interface StudentDashboardResponse {
+  recent_theses?: StudentDashboardThesis[];
+  top_searches?: StudentDashboardThesis[];
+  daily_quote?: StudentDailyQuote | null;
 }
 
 export interface MySubmission {
@@ -22,10 +43,10 @@ export interface MySubmission {
 }
 
 export const studentDashboardService = {
-  async getDashboard(): Promise<StudentDashboardStats> {
+  async getDashboard(): Promise<StudentDashboardResponse> {
     try {
-      const response = await api.get('/student/dashboard');
-      return response.data.data || response.data;
+      const response = await api.get<StudentDashboardResponse>('/student/dashboard');
+      return response.data;
     } catch (error) {
       console.error('Failed to fetch student dashboard:', error);
       throw error;
