@@ -291,7 +291,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
           </div>
         </header>
 
-        <section className="vpaa-content">
+        <section className={`vpaa-content${hidePageIntro ? ' vpaa-content-workspace' : ''}`}>
           {!hidePageIntro ? (
             <div className="vpaa-page-intro">
               <h1>{title}</h1>

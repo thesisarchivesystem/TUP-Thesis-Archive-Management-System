@@ -75,29 +75,30 @@ export default function FacultyDashboard() {
         </div>
       </div>
 
-      <div className="vpaa-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <h3 style={{ margin: 0 }}>Top Searches</h3>
-          <span style={{ color: 'var(--maroon)', fontWeight: 700 }}>Show All -&gt;</span>
+      <div className="vpaa-card vpaa-dashboard-panel">
+        <div className="vpaa-dashboard-head">
+          <h3>Top Searches</h3>
+          <span>Show All -&gt;</span>
         </div>
-        <div className="vpaa-grid-4">
-          {topSearchCards.map((item) => (
-            <div className="vpaa-list-card" key={item.id}>
-              <div className="vpaa-cover" style={{ width: '100%', minWidth: 'unset', height: 220 }}>
-                <div className="vpaa-cover-meta">Technological University of the Philippines</div>
-                <div className="vpaa-cover-meta">{item.author || item.submitter_name || 'Assigned Advisee'}</div>
-                <div className="vpaa-cover-title">{item.title}</div>
+        {topSearchCards.length ? (
+          <div className="vpaa-grid-4">
+            {topSearchCards.map((item) => (
+              <div className="vpaa-list-card" key={item.id}>
+                <div className="vpaa-cover vpaa-cover-wide">
+                  <div className="vpaa-cover-meta">Technological University of the Philippines</div>
+                  <div className="vpaa-cover-meta">{item.author || item.submitter_name || 'Assigned Advisee'}</div>
+                  <div className="vpaa-cover-title">{item.title}</div>
+                </div>
+                <div style={{ marginTop: 10, fontWeight: 700 }}>{item.title}</div>
+                <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>
+                  {item.author || item.submitter_name || 'Student'}, {item.department}
+                </div>
               </div>
-              <div style={{ marginTop: 10, fontWeight: 700 }}>{item.title}</div>
-              <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>
-                {item.author || item.submitter_name || 'Student'}, {item.department}
-              </div>
-            </div>
-          ))}
-        </div>
-        {!topSearchCards.length ? (
-          <div className="vpaa-card" style={{ marginTop: 16 }}>No recent submissions are available yet.</div>
-        ) : null}
+            ))}
+          </div>
+        ) : (
+          <div className="vpaa-dashboard-empty">No recent submissions are available yet.</div>
+        )}
       </div>
     </FacultyLayout>
   );

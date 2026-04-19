@@ -11,6 +11,8 @@ use App\Services\ActivityLogService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class MessageController extends Controller
 {
@@ -52,7 +54,7 @@ class MessageController extends Controller
                 'faculty:id,name,email,avatar_url,role',
                 'participantOne:id,name,email,avatar_url,role',
                 'participantTwo:id,name,email,avatar_url,role',
-                'latestMessage.sender:id,name,avatar_url',
+                'latestMessage.sender:id,name,email,avatar_url,role',
             ])
             ->where(function (Builder $conversationQuery) use ($user) {
                 $conversationQuery
@@ -94,7 +96,7 @@ class MessageController extends Controller
             'faculty:id,name,email,avatar_url,role',
             'participantOne:id,name,email,avatar_url,role',
             'participantTwo:id,name,email,avatar_url,role',
-            'latestMessage.sender:id,name,avatar_url',
+            'latestMessage.sender:id,name,email,avatar_url,role',
         ]);
 
         $data = $conversation->toArray();
@@ -110,7 +112,7 @@ class MessageController extends Controller
         abort_unless($this->userCanAccessConversation($user, $conversationId), 403, 'You do not have access to this conversation.');
 
         $messages = Message::where('conversation_id', $conversationId)
-            ->with('sender:id,name,avatar_url')
+            ->with('sender:id,name,email,avatar_url,role')
             ->orderBy('created_at')
             ->get();
 
@@ -127,8 +129,9 @@ class MessageController extends Controller
         $request->validate([
             'conversation_id' => 'required|uuid|exists:conversations,id',
             'receiver_id' => 'required|uuid|exists:users,id',
-            'body' => 'required_without:attachment_url|nullable|string|max:5000',
+            'body' => 'required_without_all:attachment_url,attachment|nullable|string|max:5000',
             'attachment_url' => 'nullable|url',
+            'attachment' => 'nullable|file|max:20480',
         ]);
 
         $sender = $request->user();
@@ -139,17 +142,21 @@ class MessageController extends Controller
         abort_unless($this->conversationHasParticipant($conversation, $receiver->id), 422, 'Receiver must belong to the selected conversation.');
         abort_unless($this->canChatWith($sender, $receiver), 403, 'You cannot send messages to this user.');
 
+        $uploadedAttachment = $request->hasFile('attachment')
+            ? $this->uploadToSupabase($request->file('attachment'), 'messages')
+            : null;
+
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_id' => $sender->id,
             'receiver_id' => $receiver->id,
             'body' => $request->body,
-            'attachment_url' => $request->attachment_url,
+            'attachment_url' => $uploadedAttachment['url'] ?? $request->attachment_url,
         ]);
 
         $conversation->update(['last_message_at' => now()]);
 
-        $message->load('sender:id,name,avatar_url');
+        $message->load('sender:id,name,email,avatar_url,role');
 
         $this->ably->publishMessage($conversation->id, $message->toArray());
         $this->ably->publishNotification($receiver->id, 'notification.new', [
@@ -159,6 +166,46 @@ class MessageController extends Controller
         ]);
 
         return response()->json(['data' => $message], 201);
+    }
+
+    private function uploadToSupabase(\Illuminate\Http\UploadedFile $file, string $folder): array
+    {
+        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
+        $serviceKey = (string) config('services.supabase.service_key');
+        $bucket = (string) config('services.supabase.bucket');
+
+        if ($supabaseUrl === '' || $serviceKey === '' || $bucket === '') {
+            throw new \RuntimeException('Supabase storage is not configured.');
+        }
+
+        $path = sprintf(
+            'messages/%s/%s/%s-%s',
+            $folder,
+            now()->format('Y/m'),
+            (string) Str::uuid(),
+            preg_replace('/[^A-Za-z0-9.\-_]/', '-', $file->getClientOriginalName())
+        );
+
+        $contentType = $file->getMimeType() ?: 'application/octet-stream';
+
+        $response = Http::withHeaders([
+            'apikey' => $serviceKey,
+            'Authorization' => 'Bearer ' . $serviceKey,
+            'x-upsert' => 'true',
+            'Content-Type' => $contentType,
+        ])->withBody(file_get_contents($file->getRealPath()), $contentType)
+            ->post("{$supabaseUrl}/storage/v1/object/{$bucket}/{$path}");
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Failed to upload message attachment.');
+        }
+
+        return [
+            'name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'path' => $path,
+            'url' => "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$path}",
+        ];
     }
 
     private function allowedContactsQuery(User $user): Builder

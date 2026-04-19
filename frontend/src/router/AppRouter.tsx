@@ -43,6 +43,8 @@ import StudentAboutPage from '../pages/student/StudentAboutPage';
 import StudentSupportPage from '../pages/student/StudentSupportPage';
 import StudentTermsPage from '../pages/student/StudentTermsPage';
 import StudentUploadThesisPage from '../pages/student/StudentUploadThesisPage';
+import StudentProfilePage from '../pages/student/StudentProfilePage';
+import StudentSettingsPage from '../pages/student/StudentSettingsPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -105,6 +107,8 @@ export default function AppRouter() {
           <Route path="/student/recently-viewed" element={<StudentRecentlyViewedPage />} />
           <Route path="/student/upload-thesis" element={<StudentUploadThesisPage />} />
           <Route path="/student/messages" element={<StudentMessagesPage />} />
+          <Route path="/student/profile" element={<StudentProfilePage />} />
+          <Route path="/student/settings" element={<StudentSettingsPage />} />
           <Route path="/student/about" element={<StudentAboutPage />} />
           <Route path="/student/support" element={<StudentSupportPage />} />
           <Route path="/student/terms" element={<StudentTermsPage />} />

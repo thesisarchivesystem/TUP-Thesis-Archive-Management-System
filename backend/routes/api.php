@@ -74,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Student ────────────────────────────────────────────
     Route::middleware('role:student')->prefix('student')->group(function () {
         Route::get('/dashboard', [StudentController::class, 'dashboard']);
+        Route::get('/profile', [StudentController::class, 'profile']);
         Route::get('/my-submissions', [ThesisController::class, 'mySubmissions']);
         Route::get('/recently-viewed', [ThesisController::class, 'recentlyViewed']);
     });

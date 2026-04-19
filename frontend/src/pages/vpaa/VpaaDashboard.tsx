@@ -56,24 +56,28 @@ export default function VpaaDashboard() {
         </div>
       </div>
 
-      <div className="vpaa-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <h3 style={{ margin: 0 }}>Top Searches</h3>
-          <span style={{ color: 'var(--maroon)', fontWeight: 700 }}>Show All</span>
+      <div className="vpaa-card vpaa-dashboard-panel">
+        <div className="vpaa-dashboard-head">
+          <h3>Top Searches</h3>
+          <span>Show All</span>
         </div>
-        <div className="vpaa-grid-4">
-          {topSearchCards.map((item) => (
-            <div className="vpaa-list-card" key={item.id}>
-              <div className="vpaa-cover" style={{ width: '100%', minWidth: 'unset', height: 220 }}>
-                <div className="vpaa-cover-meta">Technological University of the Philippines</div>
-                <div className="vpaa-cover-meta">{item.department || item.program || 'Research Archive'}</div>
-                <div className="vpaa-cover-title">{item.title}</div>
+        {topSearchCards.length ? (
+          <div className="vpaa-grid-4">
+            {topSearchCards.map((item) => (
+              <div className="vpaa-list-card" key={item.id}>
+                <div className="vpaa-cover vpaa-cover-wide">
+                  <div className="vpaa-cover-meta">Technological University of the Philippines</div>
+                  <div className="vpaa-cover-meta">{item.department || item.program || 'Research Archive'}</div>
+                  <div className="vpaa-cover-title">{item.title}</div>
+                </div>
+                <div style={{ marginTop: 10, fontWeight: 700 }}>{item.title}</div>
+                <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>{item.author}, {item.year}</div>
               </div>
-              <div style={{ marginTop: 10, fontWeight: 700 }}>{item.title}</div>
-              <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>{item.author}, {item.year}</div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="vpaa-dashboard-empty">No top searches available yet.</div>
+        )}
       </div>
     </VpaaLayout>
   );

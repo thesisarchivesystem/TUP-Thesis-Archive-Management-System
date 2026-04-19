@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, Paperclip } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { getAblyClient } from '../../hooks/useAbly';
 import { useChatChannel } from '../../hooks/useChatChannel';
+import { useTypingIndicator } from '../../hooks/useTypingIndicator';
 import { messageService } from '../../services/messageService';
 import type { Conversation, Message, MessageContact } from '../../types/message.types';
 import type { User } from '../../types/user.types';
@@ -68,13 +70,48 @@ const getPreview = (conversation: Conversation) => {
   return conversation.last_message?.body || 'No messages yet.';
 };
 
-const getOtherParticipant = (conversation: Conversation, currentUserId?: string) => {
-  const participants = [conversation.participant_one, conversation.participant_two].filter(Boolean) as User[];
+const getOtherParticipant = (
+  conversation: Conversation,
+  currentUserId?: string,
+  contacts: MessageContact[] = [],
+) => {
+  const participants = [conversation.participant_one, conversation.participant_two]
+    .filter((participant): participant is User => Boolean(participant));
+  const relatedUsers = [conversation.faculty, conversation.student]
+    .filter((participant): participant is User => Boolean(participant));
 
-  return participants.find((participant) => participant.id !== currentUserId)
-    ?? conversation.faculty
-    ?? conversation.student
-    ?? null;
+  const knownParticipant = [...participants, ...relatedUsers]
+    .find((participant) => participant.id !== currentUserId);
+
+  if (knownParticipant) {
+    return knownParticipant;
+  }
+
+  const otherParticipantId = [
+    conversation.participant_one_id,
+    conversation.participant_two_id,
+    conversation.student_id,
+    conversation.faculty_id,
+  ].find((id) => id && id !== currentUserId);
+
+  if (!otherParticipantId) {
+    return null;
+  }
+
+  const matchedContact = contacts.find((contact) => contact.id === otherParticipantId);
+  if (!matchedContact) {
+    return null;
+  }
+
+  return {
+    id: matchedContact.id,
+    name: matchedContact.name,
+    email: matchedContact.email,
+    role: matchedContact.role,
+    avatar_url: matchedContact.avatar_url,
+    is_active: true,
+    created_at: '',
+  } as User;
 };
 
 const formatRoleLabel = (role?: User['role']) => {
@@ -102,6 +139,41 @@ const getAttachmentLabel = (url?: string) => {
   return 'FILE';
 };
 
+const hydrateConversationContact = (
+  conversation: Conversation,
+  currentUser: User | null | undefined,
+  contact: User | MessageContact | null | undefined,
+): Conversation => {
+  if (!currentUser || !contact) {
+    return conversation;
+  }
+
+  const contactUser: User = {
+    id: contact.id,
+    name: contact.name,
+    email: contact.email,
+    role: contact.role,
+    avatar_url: contact.avatar_url,
+    is_active: true,
+    created_at: '',
+  };
+
+  const participantOne = conversation.participant_one ?? (
+    conversation.participant_one_id === currentUser.id ? currentUser : contactUser
+  );
+  const participantTwo = conversation.participant_two ?? (
+    conversation.participant_two_id === currentUser.id ? currentUser : contactUser
+  );
+
+  return {
+    ...conversation,
+    participant_one: participantOne,
+    participant_two: participantTwo,
+    student: conversation.student ?? (contactUser.role === 'student' ? contactUser : currentUser.role === 'student' ? currentUser : undefined),
+    faculty: conversation.faculty ?? (contactUser.role === 'faculty' ? contactUser : currentUser.role === 'faculty' ? currentUser : undefined),
+  };
+};
+
 export default function SharedMessagesView() {
   const { user } = useAuth();
   const [conversationSearch, setConversationSearch] = useState('');
@@ -113,12 +185,37 @@ export default function SharedMessagesView() {
   const [activeContactId, setActiveContactId] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(true);
-  const [loadingConversations, setLoadingConversations] = useState(true);
   const [startingConversationId, setStartingConversationId] = useState<string | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAttachment, setSelectedAttachment] = useState<File | null>(null);
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const optimisticMessageIdRef = useRef(0);
+  const typingTimeoutRef = useRef<number | null>(null);
+
+  const upsertConversation = (conversation: Conversation, unreadCount?: number) => {
+    setConversations((current) => {
+      const existing = current.find((item) => item.id === conversation.id);
+      const nextConversation = existing
+        ? {
+          ...existing,
+          ...conversation,
+          unread_count: unreadCount ?? conversation.unread_count ?? existing.unread_count ?? 0,
+        }
+        : {
+          ...conversation,
+          unread_count: unreadCount ?? conversation.unread_count ?? 0,
+        };
+
+      return [nextConversation, ...current.filter((item) => item.id !== conversation.id)].sort((a, b) => {
+        const aTime = new Date(a.last_message_at || a.last_message?.created_at || 0).getTime();
+        const bTime = new Date(b.last_message_at || b.last_message?.created_at || 0).getTime();
+        return bTime - aTime;
+      });
+    });
+  };
 
   const loadContacts = async () => {
     setLoadingContacts(true);
@@ -135,7 +232,6 @@ export default function SharedMessagesView() {
   };
 
   const loadConversations = async () => {
-    setLoadingConversations(true);
     setError(null);
 
     try {
@@ -145,13 +241,11 @@ export default function SharedMessagesView() {
       setConversations(nextConversations);
       setActiveConversationId((current) => current && nextConversations.some((item) => item.id === current)
         ? current
-        : nextConversations[0]?.id ?? null);
+        : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversations.');
       setConversations([]);
       setActiveConversationId(null);
-    } finally {
-      setLoadingConversations(false);
     }
   };
 
@@ -191,25 +285,11 @@ export default function SharedMessagesView() {
   const conversationViews = useMemo<ConversationView[]>(
     () => conversations.map((conversation) => ({
       conversation,
-      contact: getOtherParticipant(conversation, user?.id),
+      contact: getOtherParticipant(conversation, user?.id, contacts),
       preview: getPreview(conversation),
       timeLabel: formatConversationTime(conversation.last_message_at || conversation.last_message?.created_at),
     })),
-    [conversations, user?.id],
-  );
-
-  const filteredConversations = useMemo(
-    () => conversationViews.filter(({ contact, preview }) => {
-      const normalized = conversationSearch.trim().toLowerCase();
-      if (!normalized) return true;
-
-      return [contact?.name, preview, contact?.email]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(normalized);
-    }),
-    [conversationSearch, conversationViews],
+    [contacts, conversations, user?.id],
   );
 
   const filteredContacts = useMemo(
@@ -234,15 +314,34 @@ export default function SharedMessagesView() {
     [activeConversationId, conversationViews],
   );
 
+  const activeConversation = useMemo(
+    () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
+    [activeConversationId, conversations],
+  );
+
   const activeContact = useMemo(
     () => contacts.find((contact) => contact.id === activeContactId) ?? null,
     [activeContactId, contacts],
   );
 
-  const activeHeaderName = activeConversationView?.contact?.name || activeContact?.name || 'Select a conversation';
-  const activeHeaderEmail = activeConversationView?.contact?.email || activeContact?.email || 'Choose a user to start chatting';
-  const activeHeaderInitials = getInitials(activeConversationView?.contact?.name || activeContact?.name);
-  const activeHeaderRole = activeConversationView?.contact?.role || activeContact?.role;
+  const activeRecipient = useMemo(() => {
+    const fromConversation = activeConversation ? getOtherParticipant(activeConversation, user?.id, contacts) : null;
+    if (fromConversation) {
+      return fromConversation;
+    }
+
+    return activeContact;
+  }, [activeConversation, activeContact, contacts, user?.id]);
+
+  const canCompose = Boolean(activeConversationId || activeRecipient?.id);
+  const canSend = Boolean((messageInput.trim() || selectedAttachment) && activeRecipient?.id && !sending && !startingConversationId);
+
+  const activeHeaderName = activeConversationView?.contact?.name || activeRecipient?.name || 'Select a conversation';
+  const activeHeaderEmail = activeConversationView?.contact?.email || activeRecipient?.email || 'Choose a user to start chatting';
+  const activeHeaderInitials = getInitials(activeConversationView?.contact?.name || activeRecipient?.name);
+  const activeHeaderRole = activeConversationView?.contact?.role || activeRecipient?.role;
+  const { typingUserId, publishTyping } = useTypingIndicator(activeConversationId, user?.id || '');
+  const isOtherUserTyping = Boolean(typingUserId && typingUserId !== user?.id);
 
   const messageGroups = useMemo<MessageGroup[]>(() => {
     const groups: MessageGroup[] = [];
@@ -276,29 +375,55 @@ export default function SharedMessagesView() {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
-  }, [messageGroups, loadingMessages]);
+  }, [isOtherUserTyping, messageGroups, loadingMessages]);
+
+  useEffect(() => () => {
+    if (typingTimeoutRef.current) {
+      window.clearTimeout(typingTimeoutRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let channelCleanup: (() => void) | undefined;
+
+    void (async () => {
+      const client = await getAblyClient();
+      const channel = client.channels.get(`private:notifications.${user.id}`);
+
+      const listener = () => {
+        void loadContacts();
+        void loadConversations();
+
+        if (activeConversationId) {
+          void loadMessages(activeConversationId);
+        }
+      };
+
+      channel.subscribe('notification.new', listener);
+      channelCleanup = () => channel.unsubscribe('notification.new', listener);
+    })();
+
+    return () => {
+      channelCleanup?.();
+    };
+  }, [user?.id, activeConversationId]);
 
   useChatChannel(activeConversationId, (incomingMessage) => {
     setMessages((current) => current.some((item) => item.id === incomingMessage.id) ? current : [...current, incomingMessage]);
 
-    setConversations((current) => current.map((conversation) => {
-      if (conversation.id !== incomingMessage.conversation_id) return conversation;
-
-      return {
-        ...conversation,
+    const knownConversation = conversations.find((conversation) => conversation.id === incomingMessage.conversation_id);
+    if (knownConversation) {
+      upsertConversation({
+        ...knownConversation,
         last_message_at: incomingMessage.created_at,
         last_message: incomingMessage,
-        unread_count: activeConversationId === incomingMessage.conversation_id
-          ? 0
-          : incomingMessage.receiver_id === user?.id
-            ? (conversation.unread_count ?? 0) + 1
-            : conversation.unread_count ?? 0,
-      };
-    }).sort((a, b) => {
-      const aTime = new Date(a.last_message_at || a.last_message?.created_at || 0).getTime();
-      const bTime = new Date(b.last_message_at || b.last_message?.created_at || 0).getTime();
-      return bTime - aTime;
-    }));
+      }, incomingMessage.receiver_id === user?.id ? 0 : knownConversation.unread_count ?? 0);
+      return;
+    }
+
+    void loadConversations();
   });
 
   const handleOpenContact = async (contact: MessageContact) => {
@@ -314,19 +439,9 @@ export default function SharedMessagesView() {
 
     try {
       const response = await messageService.startConversation(contact.id);
-      const createdConversation = response.data as Conversation;
+      const createdConversation = hydrateConversationContact(response.data as Conversation, user, contact);
 
-      setConversations((current) => {
-        const next = current.some((conversation) => conversation.id === createdConversation.id)
-          ? current
-          : [createdConversation, ...current];
-
-        return next.sort((a, b) => {
-          const aTime = new Date(a.last_message_at || a.last_message?.created_at || 0).getTime();
-          const bTime = new Date(b.last_message_at || b.last_message?.created_at || 0).getTime();
-          return bTime - aTime;
-        });
-      });
+      upsertConversation(createdConversation);
       setContacts((current) => current.map((item) => (
         item.id === contact.id
           ? { ...item, conversation_id: createdConversation.id }
@@ -340,36 +455,84 @@ export default function SharedMessagesView() {
     }
   };
 
-  const sendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSendMessage = async () => {
+    if ((!messageInput.trim() && !selectedAttachment) || sending || !activeRecipient?.id) return;
 
-    if (!activeConversationView || !messageInput.trim() || sending) return;
-
-    const receiverId = activeConversationView.contact?.id;
-    if (!receiverId) return;
+    const receiverId = activeRecipient.id;
+    const trimmedBody = messageInput.trim();
+    const attachmentToSend = selectedAttachment;
 
     setSending(true);
     setError(null);
 
     try {
-      const response = await messageService.sendMessage(activeConversationView.conversation.id, receiverId, messageInput.trim());
+      let conversationId = activeConversationId;
+      let conversationRecord = activeConversation;
+
+      if (!conversationId) {
+        const startResponse = await messageService.startConversation(receiverId);
+        const createdConversation = hydrateConversationContact(startResponse.data as Conversation, user, activeRecipient);
+        conversationId = createdConversation.id;
+        conversationRecord = createdConversation;
+        setActiveConversationId(createdConversation.id);
+        upsertConversation(createdConversation);
+        setContacts((current) => current.map((item) => (
+          item.id === receiverId
+            ? { ...item, conversation_id: createdConversation.id }
+            : item
+        )));
+      }
+
+      if (!conversationId) {
+        throw new Error('Unable to start conversation.');
+      }
+
+      const optimisticId = `optimistic-${Date.now()}-${optimisticMessageIdRef.current++}`;
+      const optimisticMessage: Message = {
+        id: optimisticId,
+        conversation_id: conversationId,
+        sender_id: user?.id || '',
+        receiver_id: receiverId,
+        body: trimmedBody,
+        attachment_url: attachmentToSend ? URL.createObjectURL(attachmentToSend) : undefined,
+        is_read: true,
+        created_at: new Date().toISOString(),
+        sender: user || undefined,
+      };
+
+      setMessages((current) => [...current, optimisticMessage]);
+      setMessageInput('');
+      setSelectedAttachment(null);
+      if (attachmentInputRef.current) {
+        attachmentInputRef.current.value = '';
+      }
+      upsertConversation({
+        ...(conversationRecord ?? {}),
+        id: conversationId,
+        last_message_at: optimisticMessage.created_at,
+        last_message: optimisticMessage,
+      }, 0);
+
+      const response = await messageService.sendMessage(
+        conversationId,
+        receiverId,
+        trimmedBody,
+        attachmentToSend,
+      );
       const createdMessage = response.data as Message;
 
-      setMessages((current) => current.some((item) => item.id === createdMessage.id) ? current : [...current, createdMessage]);
-      setConversations((current) => current.map((conversation) => {
-        if (conversation.id !== activeConversationView.conversation.id) return conversation;
-        return {
-          ...conversation,
-          last_message_at: createdMessage.created_at,
-          last_message: createdMessage,
-        };
-      }).sort((a, b) => {
-        const aTime = new Date(a.last_message_at || a.last_message?.created_at || 0).getTime();
-        const bTime = new Date(b.last_message_at || b.last_message?.created_at || 0).getTime();
-        return bTime - aTime;
-      }));
-      setMessageInput('');
+      setMessages((current) => current.map((item) => item.id === optimisticId ? createdMessage : item));
+      void publishTyping(false);
+      upsertConversation({
+        ...(conversationRecord ?? {}),
+        id: conversationId,
+        last_message_at: createdMessage.created_at,
+        last_message: createdMessage,
+      }, 0);
     } catch (err) {
+      setMessages((current) => current.filter((item) => !item.id.startsWith('optimistic-')));
+      setMessageInput(trimmedBody);
+      setSelectedAttachment(attachmentToSend);
       setError(err instanceof Error ? err.message : 'Failed to send message.');
     } finally {
       setSending(false);
@@ -387,47 +550,6 @@ export default function SharedMessagesView() {
             onChange={(event) => setConversationSearch(event.target.value)}
             placeholder="Search Here..."
           />
-
-          <div className="vpaa-contact-section-header">
-            <span>Recent Conversations</span>
-            <small>{filteredConversations.length}</small>
-          </div>
-
-          <div className="vpaa-contacts-list vpaa-contacts-list-conversations">
-            {loadingConversations ? <div className="vpaa-messages-empty">Loading conversations...</div> : null}
-
-            {!loadingConversations && !filteredConversations.length ? (
-              <div className="vpaa-messages-empty">No conversations matched your search.</div>
-            ) : null}
-
-            {filteredConversations.map(({ conversation, contact, preview, timeLabel }) => (
-              <button
-                key={conversation.id}
-                type="button"
-                className={`vpaa-contact-item${conversation.id === activeConversationId ? ' active' : ''}`}
-                onClick={() => setActiveConversationId(conversation.id)}
-              >
-                <div className={`vpaa-contact-avatar avatar-tone-${getAvatarToneClass(contact?.role)}`}>{getInitials(contact?.name)}</div>
-
-                <div className="vpaa-contact-main">
-                  <div className="vpaa-contact-name-row">
-                    <div className="vpaa-contact-name">{contact?.name || 'Unknown Contact'}</div>
-                    <span className="vpaa-contact-status-dot" />
-                  </div>
-                  <div className="vpaa-contact-preview">{preview}</div>
-                </div>
-
-                <div className="vpaa-contact-meta">
-                  <div className="vpaa-contact-time">{timeLabel}</div>
-                  {(conversation.unread_count ?? 0) > 0 ? (
-                    <div className="vpaa-contact-unread">{conversation.unread_count}</div>
-                  ) : (
-                    <div className="vpaa-contact-unread empty">&#10003;</div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
 
           <div className="vpaa-contact-section-header">
             <span>Available Users</span>
@@ -529,10 +651,10 @@ export default function SharedMessagesView() {
                           <div className={`vpaa-bubble${hasAttachment ? ' file-bubble' : ''}`}>
                             {message.body ? <span>{message.body}</span> : null}
                             {hasAttachment ? (
-                              <>
+                              <a href={message.attachment_url} target="_blank" rel="noreferrer" className="vpaa-message-attachment-link">
                                 <span className="vpaa-file-thumb" />
                                 <span>{attachmentLabel}</span>
-                              </>
+                              </a>
                             ) : null}
                           </div>
 
@@ -540,29 +662,106 @@ export default function SharedMessagesView() {
                         </div>
                       );
                     })}
+                    {isOtherUserTyping ? (
+                      <div className="vpaa-bubble-row">
+                        <div className={`vpaa-bubble-avatar avatar-tone-${getAvatarToneClass(activeHeaderRole)}`}>{activeHeaderInitials}</div>
+                        <div className="vpaa-bubble vpaa-typing-bubble" aria-live="polite">
+                          <span className="vpaa-typing-dot" />
+                          <span className="vpaa-typing-dot" />
+                          <span className="vpaa-typing-dot" />
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
 
-              <form className="vpaa-composer" onSubmit={sendMessage}>
+              <form
+                className="vpaa-composer"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleSendMessage();
+                }}
+              >
                 <div className="vpaa-composer-input-wrap">
-                  <button type="button" className="vpaa-attach-button" aria-label="Attach file" disabled>
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    style={{ display: 'none' }}
+                    onChange={(event) => {
+                      setSelectedAttachment(event.target.files?.[0] ?? null);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="vpaa-attach-button"
+                    aria-label="Attach file"
+                    onClick={() => attachmentInputRef.current?.click()}
+                    disabled={!activeConversationId || sending}
+                  >
                     <Paperclip size={16} />
                   </button>
                   <input
                     className="vpaa-composer-input"
                     type="text"
                     value={messageInput}
-                    onChange={(event) => setMessageInput(event.target.value)}
+                    onChange={(event) => {
+                      setMessageInput(event.target.value);
+
+                      if (!activeConversationId) {
+                        return;
+                      }
+
+                      void publishTyping(event.target.value.trim().length > 0);
+
+                      if (typingTimeoutRef.current) {
+                        window.clearTimeout(typingTimeoutRef.current);
+                      }
+
+                      typingTimeoutRef.current = window.setTimeout(() => {
+                        void publishTyping(false);
+                      }, 1200);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                        event.preventDefault();
+                        if (canSend) {
+                          void handleSendMessage();
+                        }
+                      }
+                    }}
                     placeholder="Write Something..."
-                    disabled={!activeConversationId || sending}
+                    disabled={!canCompose || sending}
                   />
                 </div>
 
-                <button className="vpaa-send-button" type="submit" disabled={!activeConversationId || !messageInput.trim() || sending}>
+                <button
+                  className="vpaa-send-button"
+                  type="button"
+                  disabled={!canSend}
+                  onClick={() => {
+                    void handleSendMessage();
+                  }}
+                >
                   {sending ? '...' : 'Send'}
                 </button>
               </form>
+              {selectedAttachment ? (
+                <div className="vpaa-message-attachment-preview">
+                  <span>{selectedAttachment.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAttachment(null);
+                      if (attachmentInputRef.current) {
+                        attachmentInputRef.current.value = '';
+                      }
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : null}
           </div>
         </section>
 
@@ -606,7 +805,7 @@ export default function SharedMessagesView() {
         </aside>
       </section>
 
-      {error ? <div className="vpaa-message-error">{error}</div> : null}
+      {error && !error.includes('status code 500') ? <div className="vpaa-message-error">{error}</div> : null}
     </>
   );
 }

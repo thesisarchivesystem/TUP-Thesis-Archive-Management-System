@@ -264,8 +264,8 @@ export default function StudentLayout({ title, description, children, hidePageIn
                 </div>
 
                 <div className="vpaa-profile-actions">
-                  <Link className="vpaa-profile-action" to="/student/dashboard"><User size={16} /><span>Profile</span></Link>
-                  <Link className="vpaa-profile-action" to="/student/dashboard"><Settings size={16} /><span>Settings</span></Link>
+                  <Link className="vpaa-profile-action" to="/student/profile"><User size={16} /><span>Profile</span></Link>
+                  <Link className="vpaa-profile-action" to="/student/settings"><Settings size={16} /><span>Settings</span></Link>
                   <button type="button" className="vpaa-profile-action signout" onClick={logout}><LogOut size={16} /><span>Sign Out</span></button>
                 </div>
               </div>
@@ -273,7 +273,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
           </div>
         </header>
 
-        <section className="vpaa-content">
+        <section className={`vpaa-content${hidePageIntro ? ' vpaa-content-workspace' : ''}`}>
           {!hidePageIntro ? (
             <div className="vpaa-page-intro">
               <h1>{title}</h1>

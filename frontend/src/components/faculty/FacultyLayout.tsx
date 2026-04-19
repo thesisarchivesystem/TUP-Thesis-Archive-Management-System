@@ -283,7 +283,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
           </div>
         </header>
 
-        <section className="vpaa-content">
+        <section className={`vpaa-content${hidePageIntro ? ' vpaa-content-workspace' : ''}`}>
           {!hidePageIntro ? (
             <div className="vpaa-page-intro">
               <h1>{title}</h1>

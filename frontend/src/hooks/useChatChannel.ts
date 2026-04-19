@@ -24,5 +24,5 @@ export function useChatChannel(
     return () => {
       channel?.unsubscribe();
     };
-  }, [conversationId]);
+  }, [conversationId, onMessage]);
 }

@@ -50,6 +50,6 @@ class Conversation extends Model
 
     public function latestMessage()
     {
-        return $this->hasOne(Message::class, 'conversation_id')->latestOfMany();
+        return $this->hasOne(Message::class, 'conversation_id')->latest('created_at');
     }
 }

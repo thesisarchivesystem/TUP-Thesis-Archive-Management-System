@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Clock3, FileText, PencilLine } from 'lucide-react';
+import { Check, Clock3, FileText, FileUp, PencilLine } from 'lucide-react';
 import StudentLayout from '../../components/student/StudentLayout';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis, ThesisStatus } from '../../types/thesis.types';
@@ -24,6 +24,18 @@ const formatSubmissionDate = (value?: string) => {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+  });
+};
+
+const formatRelativeDate = (value?: string) => {
+  if (!value) return 'No recent update';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No recent update';
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
   });
 };
 
@@ -175,6 +187,11 @@ export default function StudentMySubmissionsPage() {
     };
   }, [items]);
 
+  const spotlightItem = useMemo(
+    () => filteredItems[0] ?? items[0] ?? null,
+    [filteredItems, items],
+  );
+
   return (
     <StudentLayout
       title="My Submissions"
@@ -238,6 +255,15 @@ export default function StudentMySubmissionsPage() {
               </select>
             </div>
 
+            <div className="student-submissions-panel-note vpaa-card">
+              <strong>{loading ? '--' : filteredItems.length}</strong>
+              <span>
+                {activeFilter === 'all'
+                  ? 'submissions in your archive workspace'
+                  : `${submissionFilters.find((filter) => filter.key === activeFilter)?.label || 'Selected'} items currently visible`}
+              </span>
+            </div>
+
             {loading ? (
               <div className="student-submissions-empty vpaa-card">Loading your submissions...</div>
             ) : filteredItems.length ? (
@@ -245,7 +271,12 @@ export default function StudentMySubmissionsPage() {
                 {filteredItems.map((item) => (
                   <article key={item.id} className="student-submission-card vpaa-card">
                     <div className="student-submission-card-head">
-                      <div>
+                      <div className="student-submission-card-title-group">
+                        <div className="student-submission-cover">
+                          <span className="student-submission-cover-meta">TUP Thesis Archive</span>
+                          <span className="student-submission-cover-meta">{item.department || item.program || 'Research Record'}</span>
+                          <strong>{item.title}</strong>
+                        </div>
                         <h3>{item.title}</h3>
                         <p>
                           {item.status === 'draft' ? 'Draft saved' : 'Submitted'} {formatSubmissionDate(item.submitted_at || item.created_at)}
@@ -256,6 +287,21 @@ export default function StudentMySubmissionsPage() {
                         {getStatusLabel(item.status)}
                       </span>
                     </div>
+
+                    <div className="student-submission-meta-row">
+                      <span>{item.department}</span>
+                      {item.program ? <span>{item.program}</span> : null}
+                      <span>{item.school_year}</span>
+                      {item.category?.name ? <span>{item.category.name}</span> : null}
+                      <span>Updated {formatRelativeDate(item.reviewed_at || item.approved_at || item.submitted_at || item.created_at)}</span>
+                    </div>
+
+                    {item.abstract ? (
+                      <div className="student-submission-summary">
+                        <strong>Abstract Preview</strong>
+                        <p>{item.abstract}</p>
+                      </div>
+                    ) : null}
 
                     <div className="student-submission-steps">
                       {buildProgressSteps(item.status).map((step) => (
@@ -269,32 +315,33 @@ export default function StudentMySubmissionsPage() {
                       ))}
                     </div>
 
-                    <div className="student-submission-actions">
-                      {item.status === 'approved' ? (
-                        <>
-                          <button type="button">View Approval</button>
-                          <button type="button">Download PDF</button>
-                          <button type="button">Share</button>
-                        </>
-                      ) : item.status === 'rejected' ? (
-                        <>
-                          <button type="button">Upload Revision</button>
-                          <button type="button">View Feedback</button>
-                          <button type="button">Extension Request</button>
-                        </>
-                      ) : item.status === 'draft' ? (
-                        <>
-                          <button type="button">Continue Draft</button>
-                          <button type="button">Submit Now</button>
-                        </>
-                      ) : (
-                        <>
-                          <button type="button">View Details</button>
-                          <button type="button">Message Adviser</button>
-                          <button type="button">Withdraw</button>
-                        </>
-                      )}
+                    <div className="student-submission-detail-grid">
+                      <div className="student-submission-detail-card">
+                        <span>Manuscript</span>
+                        <strong>{item.file_name || (item.file_url ? 'Uploaded file available' : 'No file uploaded')}</strong>
+                      </div>
+                      <div className="student-submission-detail-card">
+                        <span>Adviser</span>
+                        <strong>{item.adviser?.name || 'Not assigned yet'}</strong>
+                      </div>
+                      <div className="student-submission-detail-card full">
+                        <span>Latest Review Note</span>
+                        <strong>{item.rejection_reason || item.adviser_remarks || 'No review note yet.'}</strong>
+                      </div>
                     </div>
+
+                    {item.file_url ? (
+                      <div className="student-submission-actions">
+                        <a
+                          className="student-submissions-primary"
+                          href={item.file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open Manuscript
+                        </a>
+                      </div>
+                    ) : null}
                   </article>
                 ))}
               </div>
@@ -307,6 +354,22 @@ export default function StudentMySubmissionsPage() {
             <div className="student-submissions-summary-head">
               <h2>Submission Summary</h2>
               <p>Snapshot of your research workflow</p>
+            </div>
+
+            <div className="student-submissions-spotlight">
+              <div className="student-submissions-spotlight-cover">
+                <span className="student-submissions-spotlight-meta">Focused Record</span>
+                <strong>{loading ? 'Loading active submission' : spotlightItem?.title || 'No submission selected'}</strong>
+                <p>
+                  {loading
+                    ? 'Checking your current records.'
+                    : spotlightItem?.category?.name || spotlightItem?.program || spotlightItem?.department || 'Your next approved submission will appear here.'}
+                </p>
+              </div>
+              <div className="student-submissions-spotlight-stat">
+                <FileUp size={16} />
+                <span>{loading ? '--' : `${summary.filesUploaded} file${summary.filesUploaded === 1 ? '' : 's'} uploaded`}</span>
+              </div>
             </div>
 
             <div className="student-submissions-summary-grid">

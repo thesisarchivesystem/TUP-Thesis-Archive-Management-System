@@ -100,17 +100,17 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          <div className="vpaa-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-              <h3 style={{ margin: 0 }}>Top Searches</h3>
-              <span style={{ color: 'var(--maroon)', fontWeight: 700 }}>Show All -&gt;</span>
+          <div className="vpaa-card vpaa-dashboard-panel">
+            <div className="vpaa-dashboard-head">
+              <h3>Top Searches</h3>
+              <span>Show All -&gt;</span>
             </div>
 
             {topSearchCards.length ? (
               <div className="vpaa-grid-4">
                 {topSearchCards.map((item) => (
                   <div className="vpaa-list-card" key={item.id}>
-                    <div className="vpaa-cover" style={{ width: '100%', minWidth: 'unset', height: 220 }}>
+                    <div className="vpaa-cover vpaa-cover-wide">
                       <div className="vpaa-cover-meta">Technological University of the Philippines</div>
                       <div className="vpaa-cover-meta">{item.department || item.category || 'Thesis Archive'}</div>
                       <div className="vpaa-cover-title">{item.title}</div>
@@ -123,7 +123,7 @@ export default function StudentDashboard() {
                 ))}
               </div>
             ) : (
-              <div className="vpaa-card" style={{ marginTop: 16 }}>No recent submissions are available yet.</div>
+              <div className="vpaa-dashboard-empty">No recent submissions are available yet.</div>
             )}
           </div>
         </>

@@ -18,6 +18,52 @@ class StudentController extends Controller
 {
     public function __construct(private ActivityLogService $logger) {}
 
+    public function profile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $profile = StudentProfile::query()
+            ->with([
+                'user:id,name,email',
+                'adviser:id,name,email',
+            ])
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$profile) {
+            return response()->json([
+                'message' => 'Student profile not found.',
+            ], 404);
+        }
+
+        $latestSubmission = Thesis::query()
+            ->where('submitted_by', $user->id)
+            ->with('faculty:id,name,email')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->first();
+
+        return response()->json([
+            'data' => [
+                'id' => $profile->id,
+                'student_id' => $profile->student_id,
+                'full_name' => $profile->user?->name,
+                'email' => $profile->user?->email,
+                'mobile' => null,
+                'program' => $profile->program,
+                'department' => $profile->department,
+                'year_level' => $profile->year_level,
+                'thesis_title' => $latestSubmission?->title,
+                'adviser_name' => $latestSubmission?->faculty?->name ?? $profile->adviser?->name,
+                'adviser_email' => $latestSubmission?->faculty?->email ?? $profile->adviser?->email,
+                'defense_schedule' => $this->formatLongDate($latestSubmission?->approved_at ?? $latestSubmission?->updated_at),
+                'status' => $this->formatStudentStatus($latestSubmission?->status),
+                'editable_by' => 'Faculty',
+                'updated_at' => optional($profile->updated_at)?->toISOString(),
+            ],
+        ]);
+    }
+
     public function dashboard(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -101,6 +147,31 @@ class StudentController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function formatLongDate(mixed $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('F j, Y');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function formatStudentStatus(?string $status): string
+    {
+        return match ($status) {
+            'approved' => 'Approved',
+            'rejected' => 'Needs Revision',
+            'under_review' => 'For Final Review',
+            'pending' => 'Pending Review',
+            'draft' => 'Draft',
+            default => 'No submission yet',
+        };
     }
 
     public function index(Request $request): JsonResponse
