@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, ClipboardCheck, Clock3, Send, UsersRound } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
@@ -11,29 +12,10 @@ const formatDate = (value?: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 };
 
-const getProgramBadge = (program?: string | null) => {
-  if (!program) return 'GEN';
-  return program
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase())
-    .join('')
-    .slice(0, 3);
-};
-
-const getPriority = (thesis: Thesis): 'High' | 'Medium' | 'Low' => {
-  if (thesis.submitted_at) {
-    const diffDays = (Date.now() - new Date(thesis.submitted_at).getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays >= 5) return 'High';
-    if (diffDays >= 2) return 'Medium';
-  }
-  return 'Low';
-};
-
-const priorityStyles: Record<'High' | 'Medium' | 'Low', string> = {
-  High: 'bg-[rgba(139,35,50,0.06)] text-[var(--maroon)]',
-  Medium: 'bg-[rgba(74,143,181,0.10)] text-[var(--sky)]',
-  Low: 'bg-[rgba(61,139,74,0.10)] text-[var(--sage)]',
+const getProgramLabel = (program?: string | null) => {
+  if (!program) return 'General';
+  if (program.toLowerCase().includes('computer science')) return 'CS';
+  return program;
 };
 
 export default function FacultyReviewSubmissionsPage() {
@@ -43,7 +25,7 @@ export default function FacultyReviewSubmissionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [programFilter, setProgramFilter] = useState('All Programs');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [queueFilter, setQueueFilter] = useState<'All' | 'Assigned to Me' | 'Due This Week' | 'High Priority'>('All');
+  const navigate = useNavigate();
 
   useEffect(() => {
     let isMounted = true;
@@ -84,20 +66,9 @@ export default function FacultyReviewSubmissionsPage() {
 
       const matchesProgram = programFilter === 'All Programs' || submission.program === programFilter;
       const matchesStatus = statusFilter === 'All Status' || submission.status === statusFilter.toLowerCase();
-      const priority = getPriority(submission);
-
-      const matchesQueue = (() => {
-        if (queueFilter === 'All') return true;
-        if (queueFilter === 'Assigned to Me') return true;
-        if (queueFilter === 'High Priority') return priority === 'High';
-        if (!submission.submitted_at) return false;
-        const diffDays = (Date.now() - new Date(submission.submitted_at).getTime()) / (1000 * 60 * 60 * 24);
-        return diffDays <= 7;
-      })();
-
-      return matchesSearch && matchesProgram && matchesStatus && matchesQueue;
+      return matchesSearch && matchesProgram && matchesStatus;
     });
-  }, [programFilter, queueFilter, searchTerm, statusFilter, submissions]);
+  }, [programFilter, searchTerm, statusFilter, submissions]);
 
   const stats = useMemo(() => {
     const pendingReview = submissions.filter((item) => item.status === 'pending' || item.status === 'under_review').length;
@@ -189,18 +160,6 @@ export default function FacultyReviewSubmissionsPage() {
               </select>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {(['All', 'Assigned to Me', 'Due This Week', 'High Priority'] as const).map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold ${queueFilter === filter ? 'border-[var(--maroon)] bg-[rgba(139,35,50,0.06)] text-[var(--maroon)]' : 'border-[var(--border)] bg-white text-text-secondary'}`}
-                  onClick={() => setQueueFilter(filter)}
-                >
-                  {filter}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -212,25 +171,23 @@ export default function FacultyReviewSubmissionsPage() {
                   <th>Program</th>
                   <th>Submitted</th>
                   <th>Status</th>
-                  <th>Priority</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="text-center text-text-secondary">Loading review queue...</td>
+                    <td colSpan={6} className="text-center text-text-secondary">Loading review queue...</td>
                   </tr>
                 ) : null}
 
                 {!isLoading && !filteredSubmissions.length ? (
                   <tr>
-                    <td colSpan={7} className="text-center text-text-secondary">No submissions match the current filters.</td>
+                    <td colSpan={6} className="text-center text-text-secondary">No submissions match the current filters.</td>
                   </tr>
                 ) : null}
 
                 {filteredSubmissions.slice(0, 8).map((submission) => {
-                  const priority = getPriority(submission);
                   const statusLabel = submission.status === 'rejected' ? 'Revision' : submission.status === 'under_review' ? 'Pending' : 'Pending';
 
                   return (
@@ -239,7 +196,7 @@ export default function FacultyReviewSubmissionsPage() {
                       <td>{submission.submitter?.name || submission.authors?.join(', ') || 'Student'}</td>
                       <td>
                         <span className="rounded-xl bg-[rgba(139,35,50,0.06)] px-3 py-1 text-xs font-semibold text-[var(--maroon)]">
-                          {getProgramBadge(submission.program)}
+                          {getProgramLabel(submission.program)}
                         </span>
                       </td>
                       <td>{formatDate(submission.submitted_at ?? submission.created_at)}</td>
@@ -249,12 +206,13 @@ export default function FacultyReviewSubmissionsPage() {
                         </span>
                       </td>
                       <td>
-                        <span className={`rounded-xl px-3 py-1 text-xs font-semibold ${priorityStyles[priority]}`}>
-                          {priority}
-                        </span>
-                      </td>
-                      <td>
-                        <button type="button" className="rounded-xl bg-[var(--maroon)] px-4 py-2 text-sm font-semibold text-white">Review</button>
+                        <button
+                          type="button"
+                          className="rounded-xl bg-[var(--maroon)] px-4 py-2 text-sm font-semibold text-white"
+                          onClick={() => navigate(`/faculty/manage-thesis/review/${submission.id}`, { state: { submission } })}
+                        >
+                          View Details
+                        </button>
                       </td>
                     </tr>
                   );

@@ -226,10 +226,10 @@ class FacultyController extends Controller
             'submission_mode' => 'required|in:draft,submit',
             'confirm_original' => 'nullable|boolean',
             'allow_review' => 'nullable|boolean',
-            'manuscript' => 'nullable|file|mimes:pdf|max:20480',
+            'manuscript' => 'nullable|file|mimes:pdf|max:51200',
             'cover' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'supplementary_files' => 'nullable|array',
-            'supplementary_files.*' => 'file|max:20480',
+            'supplementary_files.*' => 'file|max:51200',
         ]);
 
         $authors = collect(explode(',', (string) ($validated['authors'] ?? '')))

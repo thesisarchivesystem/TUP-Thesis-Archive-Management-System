@@ -6,7 +6,6 @@ import type { NotificationType } from '../types/notification.types';
 
 export function useNotificationChannel(userId: string | null) {
   const addNotification = useNotificationStore((s) => s.addNotification);
-  const incrementUnread = useNotificationStore((s) => s.incrementUnread);
 
   useEffect(() => {
     if (!userId) return;
@@ -28,12 +27,11 @@ export function useNotificationChannel(userId: string | null) {
           data: payload,
           created_at: new Date().toISOString(),
         });
-        incrementUnread();
       });
     })();
 
     return () => {
       channel?.unsubscribe();
     };
-  }, [userId]);
+  }, [userId, addNotification]);
 }

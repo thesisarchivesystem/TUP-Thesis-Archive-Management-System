@@ -10,8 +10,19 @@ export interface StudentThesisPayload {
   category_id: string;
   school_year: string;
   authors?: string;
+  adviser_id?: string;
   manuscript?: File | null;
   supplementary_files?: File[];
+}
+
+export interface StudentAdviserOption {
+  id: string;
+  faculty_profile_id: string;
+  name: string;
+  email: string;
+  department: string;
+  faculty_role: string;
+  rank?: string | null;
 }
 
 export const thesisService = {
@@ -44,6 +55,7 @@ export const thesisService = {
     formData.append('program', payload.program ?? '');
     formData.append('category_id', payload.category_id);
     formData.append('school_year', payload.school_year);
+    formData.append('adviser_id', payload.adviser_id ?? '');
     formData.append('authors', JSON.stringify(
       (payload.authors ?? '')
         .split(',')
@@ -103,8 +115,18 @@ export const thesisService = {
     return data;
   },
 
+  async advisers() {
+    const { data } = await api.get<{ data?: StudentAdviserOption[] }>('/student/advisers');
+    return data.data ?? [];
+  },
+
   async recentlyViewed() {
     const { data } = await api.get('/student/recently-viewed');
     return data;
+  },
+
+  async getManuscriptAccessUrl(id: string) {
+    const { data } = await api.get<{ data?: { url?: string } }>(`/thesis/${id}/manuscript`);
+    return data.data?.url ?? null;
   },
 };

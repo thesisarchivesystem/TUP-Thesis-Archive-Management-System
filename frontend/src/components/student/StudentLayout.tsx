@@ -22,6 +22,10 @@ import {
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { useNotificationChannel } from '../../hooks/useNotificationChannel';
+import { useNotificationStore } from '../../store/notificationStore';
+import { notificationService } from '../../services/notificationService';
+import type { AppNotification } from '../../types/notification.types';
 import '../../styles/vpaa-shell.css';
 
 type ChatMessage = {
@@ -93,6 +97,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -102,6 +107,12 @@ export default function StudentLayout({ title, description, children, hidePageIn
   ]);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const setNotifications = useNotificationStore((state) => state.setNotifications);
+  const markRead = useNotificationStore((state) => state.markRead);
+
+  useNotificationChannel(user?.id ?? null);
 
   useEffect(() => {
     const tick = () => {
@@ -122,6 +133,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        setNotifOpen(false);
         setProfileOpen(false);
         setChatOpen(false);
         if (window.innerWidth <= 1024) setSidebarOpen(false);
@@ -137,9 +149,22 @@ export default function StudentLayout({ title, description, children, hidePageIn
   }, []);
 
   useEffect(() => {
+    setNotifOpen(false);
     setProfileOpen(false);
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    void notificationService.list()
+      .then((response) => {
+        setNotifications((response?.data ?? []) as AppNotification[]);
+      })
+      .catch(() => {
+        setNotifications([]);
+      });
+  }, [setNotifications, user?.id]);
 
   const initials = useMemo(() => {
     if (!user?.name) return 'ST';
@@ -173,6 +198,34 @@ export default function StudentLayout({ title, description, children, hidePageIn
     setChatOpen(true);
   };
 
+  const handleNotificationClick = async (notification: AppNotification) => {
+    if (!notification.read_at) {
+      markRead(notification.id);
+      try {
+        await notificationService.markRead(notification.id);
+      } catch {
+        // Keep optimistic UI behavior for now.
+      }
+    }
+
+    setNotifOpen(false);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    const nextNotifications = notifications.map((notification) => ({
+      ...notification,
+      read_at: notification.read_at ?? new Date().toISOString(),
+    }));
+
+    setNotifications(nextNotifications);
+
+    try {
+      await notificationService.markAllRead();
+    } catch {
+      // Keep optimistic UI behavior for now.
+    }
+  };
+
   return (
     <div
       className={[
@@ -181,7 +234,10 @@ export default function StudentLayout({ title, description, children, hidePageIn
         sidebarCollapsed ? 'sidebar-collapsed' : '',
         sidebarOpen ? 'sidebar-open' : '',
       ].filter(Boolean).join(' ')}
-      onClick={() => setProfileOpen(false)}
+      onClick={() => {
+        setNotifOpen(false);
+        setProfileOpen(false);
+      }}
     >
       <div className="vpaa-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
 
@@ -230,10 +286,52 @@ export default function StudentLayout({ title, description, children, hidePageIn
             <Link to="/student/messages" className="vpaa-topbar-icon-btn" aria-label="Messages">
               <MessageSquare size={18} />
             </Link>
-            <button type="button" className="vpaa-topbar-icon-btn" aria-label="Notifications">
-              <Bell size={18} />
-              <span className="vpaa-notif-dot" />
-            </button>
+            <div className="vpaa-topbar-dropdown">
+              <button
+                type="button"
+                className="vpaa-topbar-icon-btn"
+                aria-label="Notifications"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setNotifOpen((current) => !current);
+                  setProfileOpen(false);
+                }}
+              >
+                <Bell size={18} />
+                {!!unreadCount && <span className="vpaa-notif-dot" />}
+              </button>
+              <div className={`vpaa-dropdown-panel ${notifOpen ? 'open' : ''}`}>
+                <div className="vpaa-dropdown-header">
+                  <strong>Notifications</strong>
+                  <button
+                    type="button"
+                    className="vpaa-chat-suggestion"
+                    onClick={() => void handleMarkAllNotificationsRead()}
+                  >
+                    Mark all read
+                  </button>
+                </div>
+                <div className="vpaa-dropdown-list">
+                  {notifications.length ? notifications.slice(0, 5).map((notification, index) => (
+                    <button
+                      type="button"
+                      className="vpaa-dropdown-item"
+                      key={notification.id}
+                      onClick={() => void handleNotificationClick(notification)}
+                    >
+                      <div className={`vpaa-dropdown-icon ${index % 3 === 0 ? 'si-sage' : index % 3 === 1 ? 'si-maroon' : 'si-gold'}`}>
+                        <Bell size={16} />
+                      </div>
+                      <div className="vpaa-dropdown-text">
+                        <strong>{notification.title}</strong>
+                        <span>{notification.body || 'You have a new thesis update.'}</span>
+                        <span>{new Date(notification.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                      </div>
+                    </button>
+                  )) : <div className="vpaa-dropdown-item">No notifications yet.</div>}
+                </div>
+              </div>
+            </div>
             <button type="button" className="vpaa-topbar-icon-btn" onClick={toggle} aria-label="Toggle theme">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -245,6 +343,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
                 onClick={(event) => {
                   event.stopPropagation();
                   setProfileOpen((current) => !current);
+                  setNotifOpen(false);
                 }}
               >
                 <span className="vpaa-user-avatar avatar-tone-student">{initials}</span>

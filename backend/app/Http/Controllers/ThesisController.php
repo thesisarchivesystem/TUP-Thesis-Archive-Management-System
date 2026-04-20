@@ -6,12 +6,16 @@ use App\Models\Thesis;
 use App\Models\Category;
 use App\Models\Notification;
 use App\Models\RecentlyViewed;
+use App\Models\StudentProfile;
 use App\Services\AblyService;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Str;
 
 class ThesisController extends Controller
@@ -52,9 +56,10 @@ class ThesisController extends Controller
             'school_year' => 'required|string',
             'authors'     => 'nullable|array',
             'authors.*'   => 'string|max:255',
-            'manuscript'  => 'nullable|file|mimes:pdf|max:20480',
+            'adviser_id'  => 'nullable|uuid|exists:users,id',
+            'manuscript'  => 'nullable|file|mimes:pdf|max:51200',
             'supplementary_files' => 'nullable|array',
-            'supplementary_files.*' => 'file|max:20480',
+            'supplementary_files.*' => 'file|max:51200',
             'file_url'    => 'nullable|url',
             'file_name'   => 'nullable|string',
             'file_size'   => 'nullable|integer',
@@ -62,6 +67,11 @@ class ThesisController extends Controller
 
         $manuscript = $request->file('manuscript');
         $manuscriptUpload = $manuscript ? $this->uploadToSupabase($manuscript, 'manuscripts') : null;
+        $supplementaryUploads = collect($request->file('supplementary_files', []))
+            ->filter()
+            ->map(fn (\Illuminate\Http\UploadedFile $file) => $this->uploadToSupabase($file, 'supplementary'))
+            ->values()
+            ->all();
 
         $thesis = Thesis::create([
             'title'        => $request->title,
@@ -75,11 +85,21 @@ class ThesisController extends Controller
             'file_url'     => $manuscriptUpload['url'] ?? $request->file_url,
             'file_name'    => $manuscriptUpload['name'] ?? $request->file_name,
             'file_size'    => $manuscriptUpload['size'] ?? $request->file_size,
+            'supplementary_files' => $supplementaryUploads,
             'status'       => 'draft',
             'submitted_by' => $request->user()->id,
+            'adviser_id'   => $request->input('adviser_id'),
         ]);
 
-        return response()->json(['data' => $thesis], 201);
+        if ($request->filled('adviser_id')) {
+            StudentProfile::query()
+                ->where('user_id', $request->user()->id)
+                ->update(['adviser_id' => $request->input('adviser_id')]);
+        }
+
+        return response()->json([
+            'data' => $thesis->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug'),
+        ], 201);
     }
 
     public function show(string $id): JsonResponse
@@ -148,7 +168,52 @@ class ThesisController extends Controller
 
         $this->logger->log($request->user(), 'thesis.submitted', 'thesis', $thesis->id);
 
-        return response()->json(['data' => $thesis]);
+        return response()->json([
+            'data' => $thesis->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug'),
+        ]);
+    }
+
+    public function manuscript(Request $request, string $id): Response|StreamedResponse|JsonResponse|RedirectResponse
+    {
+        $thesis = Thesis::findOrFail($id);
+        $user = $request->user();
+
+        if (!$thesis->file_url) {
+            return response()->json(['error' => 'No manuscript file is attached to this thesis.'], 404);
+        }
+
+        $isOwner = $user->id === $thesis->submitted_by;
+        $isAdviser = $thesis->adviser_id && $user->id === $thesis->adviser_id;
+        $isVpaa = $user->role === 'vpaa';
+
+        if (!$isOwner && !$isAdviser && !$isVpaa) {
+            return response()->json(['error' => 'You are not allowed to access this manuscript.'], 403);
+        }
+
+        $signedUrl = $this->createSignedSupabaseUrl($thesis->file_url);
+
+        if ($signedUrl && $request->expectsJson()) {
+            return response()->json(['data' => ['url' => $signedUrl]]);
+        }
+
+        if ($signedUrl) {
+            return redirect()->away($signedUrl);
+        }
+
+        $download = $this->downloadFromSupabaseUrl($thesis->file_url);
+
+        if ($download['failed']) {
+            return response()->json(['error' => 'Unable to open the manuscript file.'], 502);
+        }
+
+        $contentType = $download['content_type'] ?: 'application/pdf';
+        $filename = $thesis->file_name ?: 'manuscript.pdf';
+
+        return response($download['body'], 200, [
+            'Content-Type' => $contentType,
+            'Content-Disposition' => 'inline; filename="' . addslashes($filename) . '"',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
     }
 
     public function review(Request $request, string $id): JsonResponse
@@ -171,12 +236,16 @@ class ThesisController extends Controller
 
         // ── Notify student via Ably ──────────────────────────────
         $eventName = $request->status === 'approved' ? 'thesis.approved' : 'thesis.rejected';
+        $notificationTitle = $request->status === 'approved' ? 'Thesis Approved' : 'Thesis Needs Revision';
+        $notificationBody = $request->adviser_remarks ?? $request->rejection_reason ?? '';
         $this->ably->publishNotification($thesis->submitted_by, $eventName, [
             'thesis_id'    => $thesis->id,
             'thesis_title' => $thesis->title,
             'status'       => $request->status,
             'remarks'      => $request->adviser_remarks,
             'reason'       => $request->rejection_reason,
+            'title'        => $notificationTitle,
+            'body'         => $notificationBody,
         ]);
 
         // ── Save DB notification ─────────────────────────────────
@@ -200,7 +269,7 @@ class ThesisController extends Controller
     {
         $theses = Thesis::whereIn('status', ['pending', 'under_review'])
             ->where('adviser_id', $request->user()->id)
-            ->with('submitter:id,name')
+            ->with('submitter:id,name', 'adviser:id,name', 'category:id,name,slug')
             ->orderByDesc('submitted_at')
             ->paginate(20);
 
@@ -210,7 +279,8 @@ class ThesisController extends Controller
     public function approved(Request $request): JsonResponse
     {
         $theses = Thesis::where('status', 'approved')
-            ->with('submitter:id,name', 'category:id,name,slug')
+            ->where('adviser_id', $request->user()->id)
+            ->with('submitter:id,name', 'adviser:id,name', 'category:id,name,slug')
             ->orderByDesc('approved_at')
             ->paginate(20);
 
@@ -220,7 +290,7 @@ class ThesisController extends Controller
     public function mySubmissions(Request $request): JsonResponse
     {
         $theses = Thesis::where('submitted_by', $request->user()->id)
-            ->with('category:id,name,slug')
+            ->with('adviser:id,name', 'category:id,name,slug')
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -374,5 +444,99 @@ class ThesisController extends Controller
             'path' => $path,
             'url' => "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$path}",
         ];
+    }
+
+    private function downloadFromSupabaseUrl(string $url): array
+    {
+        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
+        $serviceKey = (string) config('services.supabase.service_key');
+        $bucket = (string) config('services.supabase.bucket');
+
+        if ($supabaseUrl === '' || $serviceKey === '' || $bucket === '') {
+            throw new \RuntimeException('Supabase storage is not configured.');
+        }
+
+        $publicPrefix = "{$supabaseUrl}/storage/v1/object/public/{$bucket}/";
+        $privatePrefix = "{$supabaseUrl}/storage/v1/object/{$bucket}/";
+
+        if (str_starts_with($url, $publicPrefix)) {
+            $path = substr($url, strlen($publicPrefix));
+        } elseif (str_starts_with($url, $privatePrefix)) {
+            $path = substr($url, strlen($privatePrefix));
+        } else {
+            throw new \RuntimeException('Stored manuscript URL is invalid.');
+        }
+
+        $response = Http::withHeaders([
+            'apikey' => $serviceKey,
+            'Authorization' => 'Bearer ' . $serviceKey,
+        ])->get("{$supabaseUrl}/storage/v1/object/{$bucket}/{$path}");
+
+        return [
+            'failed' => $response->failed(),
+            'body' => $response->body(),
+            'content_type' => $response->header('Content-Type'),
+        ];
+    }
+
+    private function isSupabasePublicObjectUrl(string $url): bool
+    {
+        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
+        $bucket = (string) config('services.supabase.bucket');
+
+        if ($supabaseUrl === '' || $bucket === '') {
+            return false;
+        }
+
+        return str_starts_with($url, "{$supabaseUrl}/storage/v1/object/public/{$bucket}/");
+    }
+
+    private function createSignedSupabaseUrl(string $url, int $expiresIn = 300): ?string
+    {
+        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
+        $serviceKey = (string) config('services.supabase.service_key');
+        $bucket = (string) config('services.supabase.bucket');
+
+        if ($supabaseUrl === '' || $serviceKey === '' || $bucket === '') {
+            throw new \RuntimeException('Supabase storage is not configured.');
+        }
+
+        $publicPrefix = "{$supabaseUrl}/storage/v1/object/public/{$bucket}/";
+        $privatePrefix = "{$supabaseUrl}/storage/v1/object/{$bucket}/";
+
+        if (str_starts_with($url, $publicPrefix)) {
+            $path = substr($url, strlen($publicPrefix));
+        } elseif (str_starts_with($url, $privatePrefix)) {
+            $path = substr($url, strlen($privatePrefix));
+        } else {
+            return null;
+        }
+
+        $response = Http::withHeaders([
+            'apikey' => $serviceKey,
+            'Authorization' => 'Bearer ' . $serviceKey,
+        ])->post("{$supabaseUrl}/storage/v1/object/sign/{$bucket}/{$path}", [
+            'expiresIn' => $expiresIn,
+        ]);
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        $signedPath = $response->json('signedURL') ?? $response->json('signedUrl');
+
+        if (!is_string($signedPath) || $signedPath === '') {
+            return null;
+        }
+
+        if (str_starts_with($signedPath, 'http://') || str_starts_with($signedPath, 'https://')) {
+            return $signedPath;
+        }
+
+        if (str_starts_with($signedPath, '/object/')) {
+            return $supabaseUrl . '/storage/v1' . $signedPath;
+        }
+
+        return $supabaseUrl . $signedPath;
     }
 }

@@ -42,6 +42,36 @@ export default function FacultyApprovedThesesPage() {
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [tagFilter, setTagFilter] = useState<'All' | 'This Month' | 'Most Shared' | 'With Datasets'>('All');
 
+  const handleOpenManuscript = async (thesis: Thesis) => {
+    const previewWindow = window.open('', '_blank');
+
+    if (!previewWindow) {
+      setError('Popup blocked while opening the manuscript. Please allow popups and try again.');
+      return;
+    }
+
+    previewWindow.document.title = thesis.file_name || thesis.title || 'Opening manuscript...';
+    previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening manuscript...</p>';
+
+    try {
+      const signedUrl = await thesisService.getManuscriptAccessUrl(thesis.id);
+
+      if (!signedUrl) {
+        throw new Error('Unable to open the manuscript right now.');
+      }
+
+      previewWindow.location.replace(signedUrl);
+    } catch (err) {
+      previewWindow.document.title = 'Unable to open manuscript';
+      previewWindow.document.body.innerHTML = `
+        <p style="font-family: Arial, sans-serif; padding: 24px;">
+          ${err instanceof Error ? err.message : 'Unable to open the manuscript right now.'}
+        </p>
+      `;
+      setError(err instanceof Error ? err.message : 'Unable to open the manuscript right now.');
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -255,7 +285,13 @@ export default function FacultyApprovedThesesPage() {
                       <span className="rounded-xl bg-[rgba(61,139,74,0.10)] px-3 py-1 text-xs font-semibold text-[var(--sage)]">Approved</span>
                     </td>
                     <td>
-                      <button type="button" className="rounded-xl bg-[var(--maroon)] px-4 py-2 text-sm font-semibold text-white">View</button>
+                      <button
+                        type="button"
+                        className="rounded-xl bg-[var(--maroon)] px-4 py-2 text-sm font-semibold text-white"
+                        onClick={() => void handleOpenManuscript(thesis)}
+                      >
+                        View Manuscript
+                      </button>
                     </td>
                   </tr>
                 ))}
