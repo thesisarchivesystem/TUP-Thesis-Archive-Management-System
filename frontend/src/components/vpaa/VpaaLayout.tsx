@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bell, ChevronRight, Clock3, FileClock, FileText, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, User } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import { vpaaDashboardService, type ActivityLogEntry } from '../../services/vpaaDashboardService';
+import { useNotificationChannel } from '../../hooks/useNotificationChannel';
+import { useNotificationStore } from '../../store/notificationStore';
+import { notificationService } from '../../services/notificationService';
+import type { AppNotification } from '../../types/notification.types';
 import '../../styles/vpaa-shell.css';
 
 type ChatMessage = {
@@ -92,24 +95,14 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
     { id: 'bot-1', type: 'bot', text: 'Hi! I can help you find thesis collections, browse categories, or guide you to the right sign-in page.' },
     { id: 'bot-2', type: 'bot', text: 'Try one of the quick prompts below.' },
   ]);
-  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const setNotifications = useNotificationStore((state) => state.setNotifications);
+  const markRead = useNotificationStore((state) => state.markRead);
 
-  useEffect(() => {
-    void vpaaDashboardService.getActivityLog()
-      .then((response) => setActivityLog(
-        response.logs.map((entry) => ({
-          id: entry.id,
-          userId: '',
-          action: entry.badge,
-          description: entry.request_record,
-          timestamp: entry.timestamp,
-          user: entry.account ? { name: entry.account } : undefined,
-        })),
-      ))
-      .catch(() => setActivityLog([]));
-  }, []);
+  useNotificationChannel(user?.id ?? null);
 
   useEffect(() => {
     const tick = () => {
@@ -152,16 +145,17 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
     setSearchQuery(searchParams.get('q') ?? '');
   }, [searchParams]);
 
-  const notifications = useMemo(
-    () =>
-      activityLog.slice(0, 3).map((entry) => ({
-        id: entry.id,
-        title: entry.action,
-        body: entry.description,
-        time: formatRelativeTimestamp(entry.timestamp),
-      })),
-    [activityLog],
-  );
+  useEffect(() => {
+    if (!user?.id) return;
+
+    void notificationService.list()
+      .then((response) => {
+        setNotifications((response?.data ?? []) as AppNotification[]);
+      })
+      .catch(() => {
+        setNotifications([]);
+      });
+  }, [setNotifications, user?.id]);
 
   const initials = user?.name
     ? user.name
@@ -189,6 +183,34 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
     ]);
     setChatInput('');
     setChatOpen(true);
+  };
+
+  const handleNotificationClick = async (notification: AppNotification) => {
+    if (!notification.read_at) {
+      markRead(notification.id);
+      try {
+        await notificationService.markRead(notification.id);
+      } catch {
+        // Keep optimistic UI behavior for now.
+      }
+    }
+
+    setNotifOpen(false);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    const nextNotifications = notifications.map((notification) => ({
+      ...notification,
+      read_at: notification.read_at ?? new Date().toISOString(),
+    }));
+
+    setNotifications(nextNotifications);
+
+    try {
+      await notificationService.markAllRead();
+    } catch {
+      // Keep optimistic UI behavior for now.
+    }
   };
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -269,16 +291,34 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
                 setProfileOpen(false);
               }}>
                 <Bell size={18} />
-                {!!notifications.length && <span className="vpaa-notif-dot" />}
+                {!!unreadCount && <span className="vpaa-notif-dot" />}
               </button>
               <div className={`vpaa-dropdown-panel ${notifOpen ? 'open' : ''}`}>
-                <div className="vpaa-dropdown-header"><strong>Notifications</strong><Link to="/vpaa/activity-log">View all</Link></div>
+                <div className="vpaa-dropdown-header">
+                  <strong>Notifications</strong>
+                  <button
+                    type="button"
+                    className="vpaa-chat-suggestion"
+                    onClick={() => void handleMarkAllNotificationsRead()}
+                  >
+                    Mark all read
+                  </button>
+                </div>
                 <div className="vpaa-dropdown-list">
-                  {notifications.length ? notifications.map((item, index) => (
-                    <div className="vpaa-dropdown-item" key={item.id}>
+                  {notifications.length ? notifications.slice(0, 5).map((item, index) => (
+                    <button
+                      type="button"
+                      className="vpaa-dropdown-item"
+                      key={item.id}
+                      onClick={() => void handleNotificationClick(item)}
+                    >
                       <div className={`vpaa-dropdown-icon ${index % 3 === 0 ? 'si-maroon' : index % 3 === 1 ? 'si-sage' : 'si-terracotta'}`}><Bell size={16} /></div>
-                      <div className="vpaa-dropdown-text"><strong>{item.title}</strong><span>{item.body}</span><span>{item.time}</span></div>
-                    </div>
+                      <div className="vpaa-dropdown-text">
+                        <strong>{item.title}</strong>
+                        <span>{item.body || 'You have a new archive update.'}</span>
+                        <span>{formatRelativeTimestamp(item.created_at)}</span>
+                      </div>
+                    </button>
                   )) : <div className="vpaa-dropdown-item">No notifications yet.</div>}
                 </div>
               </div>
