@@ -30,6 +30,7 @@ import FacultyAddThesisPage from '../pages/faculty/FacultyAddThesisPage';
 import FacultyApprovedThesesPage from '../pages/faculty/FacultyApprovedThesesPage';
 import FacultyReviewSubmissionsPage from '../pages/faculty/FacultyReviewSubmissionsPage';
 import FacultySubmissionDetailsPage from '../pages/faculty/FacultySubmissionDetailsPage';
+import FacultySearchResultsPage from '../pages/faculty/FacultySearchResultsPage';
 import FacultyActivityLogPage from '../pages/faculty/FacultyActivityLogPage';
 import FacultyAdviseesPage from '../pages/faculty/FacultyAdviseesPage';
 import FacultyTermsPage from '../pages/faculty/FacultyTermsPage';
@@ -40,12 +41,14 @@ import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentMessagesPage from '../pages/student/StudentMessagesPage';
 import StudentMySubmissionsPage from '../pages/student/StudentMySubmissionsPage';
 import StudentRecentlyViewedPage from '../pages/student/StudentRecentlyViewedPage';
+import StudentSearchResultsPage from '../pages/student/StudentSearchResultsPage';
 import StudentAboutPage from '../pages/student/StudentAboutPage';
 import StudentSupportPage from '../pages/student/StudentSupportPage';
 import StudentTermsPage from '../pages/student/StudentTermsPage';
 import StudentUploadThesisPage from '../pages/student/StudentUploadThesisPage';
 import StudentProfilePage from '../pages/student/StudentProfilePage';
 import StudentSettingsPage from '../pages/student/StudentSettingsPage';
+import VpaaSearchResultsPage from '../pages/vpaa/VpaaSearchResultsPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -69,6 +72,7 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute allowedRoles={['vpaa']} />}>
           <Route path="/vpaa/dashboard" element={<VpaaDashboard />} />
           <Route path="/vpaa/categories" element={<VpaaCategoriesPage />} />
+          <Route path="/vpaa/search" element={<VpaaSearchResultsPage />} />
           <Route path="/vpaa/activity-log" element={<VpaaActivityLogPage />} />
           <Route path="/vpaa/messages" element={<VpaaMessagesPage />} />
           <Route path="/vpaa/my-advisees" element={<VpaaAdviseesPage />} />
@@ -85,6 +89,7 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute allowedRoles={['faculty']} />}>
           <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
           <Route path="/faculty/categories" element={<FacultyCategoriesPage />} />
+          <Route path="/faculty/search" element={<FacultySearchResultsPage />} />
           <Route path="/faculty/activity-log" element={<FacultyActivityLogPage />} />
           <Route path="/faculty/messages" element={<FacultyMessagesPage />} />
           <Route path="/faculty/profile" element={<FacultyProfilePage />} />
@@ -105,6 +110,7 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute allowedRoles={['student']} />}>
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/categories" element={<StudentCategoriesPage />} />
+          <Route path="/student/search" element={<StudentSearchResultsPage />} />
           <Route path="/student/my-submissions" element={<StudentMySubmissionsPage />} />
           <Route path="/student/recently-viewed" element={<StudentRecentlyViewedPage />} />
           <Route path="/student/upload-thesis" element={<StudentUploadThesisPage />} />

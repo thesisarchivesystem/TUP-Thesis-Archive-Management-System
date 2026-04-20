@@ -165,11 +165,11 @@ export default function FacultyApprovedThesesPage() {
 
         <section className="grid gap-3 xl:grid-cols-5">
           {stats.map(({ label, value, icon: Icon, tone }) => (
-            <article key={label} className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow-sm)]">
+            <article key={label} className="rounded-[18px] border border-[var(--border)] bg-[var(--bg-card)] p-3.5 shadow-[var(--shadow-sm)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="mb-1 text-xs font-medium text-text-secondary">{label}</p>
-                  <h2 className="mb-0 text-3xl leading-none text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>{value}</h2>
+                  <h2 className="mb-0 text-2xl leading-none text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>{value}</h2>
                 </div>
                 <span
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl"
@@ -195,13 +195,13 @@ export default function FacultyApprovedThesesPage() {
           ))}
         </section>
 
-        <section className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
+        <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)]">
           <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(139,35,50,0.08)] text-[var(--maroon)]">
                 <Files size={20} />
               </span>
-              <h2 className="mb-0 text-2xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Approved Thesis Library</h2>
+              <h2 className="mb-0 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Approved Thesis Library</h2>
             </div>
             <button type="button" className="text-sm font-semibold text-[var(--maroon)]">Export List ?</button>
           </div>

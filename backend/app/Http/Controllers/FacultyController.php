@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DailyQuote;
 use App\Models\ActivityLog;
 use App\Models\FacultyProfile;
+use App\Models\SearchLog;
 use App\Models\StudentProfile;
 use App\Models\Thesis;
 use App\Models\Category;
@@ -334,16 +335,7 @@ class FacultyController extends Controller
             ->get()
             ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
 
-        $topSearches = Thesis::query()
-            ->where('status', 'approved')
-            ->where('adviser_id', $user->id)
-            ->with(['submitter:id,name', 'category:id,name'])
-            ->orderByDesc('view_count')
-            ->orderByDesc('approved_at')
-            ->orderByDesc('created_at')
-            ->limit(8)
-            ->get()
-            ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
+        $topSearches = $this->resolveTopSearches();
 
         $quote = DailyQuote::query()
             ->where('is_active', true)
@@ -440,6 +432,7 @@ class FacultyController extends Controller
             'department' => $thesis->department,
             'program' => $thesis->program,
             'category' => $thesis->category?->name,
+            'keywords' => collect($thesis->keywords ?? [])->filter()->take(2)->values()->all(),
             'view_count' => (int) $thesis->view_count,
             'approved_at' => $this->formatIsoTimestamp($thesis->approved_at),
             'created_at' => $this->formatIsoTimestamp($thesis->created_at),
@@ -506,6 +499,35 @@ class FacultyController extends Controller
             'tone' => 'terracotta',
             'action' => 'Review',
         ];
+    }
+
+    private function resolveTopSearches()
+    {
+        $topThesisIds = SearchLog::query()
+            ->whereNotNull('thesis_id')
+            ->select('thesis_id')
+            ->selectRaw('COUNT(*) as search_hits')
+            ->groupBy('thesis_id')
+            ->orderByDesc('search_hits')
+            ->limit(8)
+            ->pluck('thesis_id');
+
+        if ($topThesisIds->isEmpty()) {
+            return collect();
+        }
+
+        $theses = Thesis::query()
+            ->where('status', 'approved')
+            ->whereIn('id', $topThesisIds)
+            ->with(['submitter:id,name', 'category:id,name'])
+            ->get()
+            ->keyBy('id');
+
+        return $topThesisIds
+            ->map(fn (string $id) => $theses->get($id))
+            ->filter()
+            ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis))
+            ->values();
     }
 
     private function generateNextStudentId(): string

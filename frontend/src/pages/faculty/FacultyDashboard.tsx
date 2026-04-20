@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Activity } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -28,7 +29,33 @@ export default function FacultyDashboard() {
   }, [user?.role]);
 
   const recentCards = useMemo(() => recentTheses.slice(0, 4), [recentTheses]);
+  const recentlyAddedCards = useMemo(() => recentTheses.slice(0, 8), [recentTheses]);
   const topSearchCards = useMemo(() => topSearches.slice(0, 8), [topSearches]);
+  const renderDashboardCard = (item: FacultyDashboardThesis) => {
+    const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
+
+    return (
+      <article className="vpaa-category-thesis-card" key={item.id}>
+        <div className="vpaa-cover vpaa-category-thesis-cover">
+          <div className="vpaa-cover-meta">Technological University of the Philippines</div>
+          <div className="vpaa-cover-meta">{item.department || item.category || 'Thesis Archive'}</div>
+          <div className="vpaa-cover-title">{item.title}</div>
+        </div>
+
+        <div className="vpaa-category-thesis-body">
+          <h3>{item.title}</h3>
+          <p>
+            {item.author || item.submitter_name || 'Student'} - {item.year || 'Recent'}
+          </p>
+          <div className="vpaa-category-tags">
+            {tags.map((tag) => (
+              <span className="vpaa-pill vpaa-category-tag" key={tag}>{tag}</span>
+            ))}
+          </div>
+        </div>
+      </article>
+    );
+  };
 
   return (
     <FacultyLayout
@@ -55,12 +82,12 @@ export default function FacultyDashboard() {
         </div>
 
         <div className="vpaa-cover-strip">
-          <div className="vpaa-cover-strip-label">Recently Added</div>
+          <div className="vpaa-cover-strip-label">Continue Reading</div>
           <div className="vpaa-cover-scroll">
             {recentCards.map((item) => (
               <div className="vpaa-cover" key={item.id}>
                 <div className="vpaa-cover-meta">Technological University of the Philippines</div>
-                <div className="vpaa-cover-meta">{item.author || item.submitter_name || 'Assigned Advisee'}</div>
+                <div className="vpaa-cover-meta">Computer Studies Department</div>
                 <div className="vpaa-cover-title">{item.title}</div>
               </div>
             ))}
@@ -77,27 +104,29 @@ export default function FacultyDashboard() {
 
       <div className="vpaa-card vpaa-dashboard-panel">
         <div className="vpaa-dashboard-head">
-          <h3>Top Searches</h3>
+          <h3><Activity size={16} /> Recently Added</h3>
+          <span>Show All -&gt;</span>
+        </div>
+        {recentlyAddedCards.length ? (
+          <div className="vpaa-grid-4">
+            {recentlyAddedCards.map(renderDashboardCard)}
+          </div>
+        ) : (
+          <div className="vpaa-dashboard-empty">No recently added theses are available yet.</div>
+        )}
+      </div>
+
+      <div className="vpaa-card vpaa-dashboard-panel">
+        <div className="vpaa-dashboard-head">
+          <h3><Activity size={16} /> Top Searches</h3>
           <span>Show All -&gt;</span>
         </div>
         {topSearchCards.length ? (
           <div className="vpaa-grid-4">
-            {topSearchCards.map((item) => (
-              <div className="vpaa-list-card" key={item.id}>
-                <div className="vpaa-cover vpaa-cover-wide">
-                  <div className="vpaa-cover-meta">Technological University of the Philippines</div>
-                  <div className="vpaa-cover-meta">{item.author || item.submitter_name || 'Assigned Advisee'}</div>
-                  <div className="vpaa-cover-title">{item.title}</div>
-                </div>
-                <div style={{ marginTop: 10, fontWeight: 700 }}>{item.title}</div>
-                <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>
-                  {item.author || item.submitter_name || 'Student'}, {item.department}
-                </div>
-              </div>
-            ))}
+            {topSearchCards.map(renderDashboardCard)}
           </div>
         ) : (
-          <div className="vpaa-dashboard-empty">No recent submissions are available yet.</div>
+          <div className="vpaa-dashboard-empty">No top searches are available yet.</div>
         )}
       </div>
     </FacultyLayout>

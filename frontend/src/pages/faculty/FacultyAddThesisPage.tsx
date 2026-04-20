@@ -169,9 +169,9 @@ export default function FacultyAddThesisPage() {
         {success ? <div className="rounded-xl bg-[rgba(61,139,74,0.12)] px-4 py-3 text-sm font-medium text-[var(--sage)]">{success}</div> : null}
 
         <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
-          <section className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
+          <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)]">
             <div className="mb-5">
-              <h2 className="mb-1 text-2xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Thesis Details</h2>
+              <h2 className="mb-1 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Thesis Details</h2>
               <p className="text-sm text-text-secondary">Provide accurate information so your work is discoverable in the archive.</p>
             </div>
 
@@ -285,9 +285,9 @@ export default function FacultyAddThesisPage() {
           </section>
 
           <aside className="space-y-4">
-            <section className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
+            <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)]">
               <div className="mb-5">
-                <h2 className="mb-1 text-2xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Submission Checklist</h2>
+                <h2 className="mb-1 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Submission Checklist</h2>
                 <p className="text-sm text-text-secondary">Ensure these items are ready before submitting.</p>
               </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FileText, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, Upload, User, Users } from 'lucide-react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import '../../styles/vpaa-shell.css';
@@ -72,12 +72,15 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [manageThesisOpen, setManageThesisOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 'bot-1', type: 'bot', text: 'Hi! I can help with thesis review, faculty workflows, and archive support questions.' },
     { id: 'bot-2', type: 'bot', text: 'Try one of the quick prompts below.' },
@@ -124,6 +127,10 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   }, [location.pathname]);
 
   useEffect(() => {
+    setSearchQuery(searchParams.get('q') ?? '');
+  }, [searchParams]);
+
+  useEffect(() => {
     setManageThesisOpen(location.pathname.startsWith('/faculty/manage-thesis'));
   }, [location.pathname]);
 
@@ -159,6 +166,15 @@ export default function FacultyLayout({ title, description, children, hidePageIn
     ]);
     setChatInput('');
     setChatOpen(true);
+  };
+
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) return;
+
+    navigate(`/faculty/search?q=${encodeURIComponent(trimmed)}`);
   };
 
   return (
@@ -225,10 +241,15 @@ export default function FacultyLayout({ title, description, children, hidePageIn
             <button type="button" className="vpaa-hamburger-btn" onClick={toggleSidebar} aria-label="Toggle navigation menu">
               <Menu size={18} />
             </button>
-            <div className="vpaa-search-bar">
+            <form className="vpaa-search-bar" onSubmit={handleSearchSubmit}>
               <Search size={18} />
-              <input type="text" placeholder="Search the thesis archive, categories, or records..." />
-            </div>
+              <input
+                type="text"
+                placeholder="Search the thesis archive, categories, or records..."
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </form>
           </div>
 
           <div className="vpaa-topbar-right">

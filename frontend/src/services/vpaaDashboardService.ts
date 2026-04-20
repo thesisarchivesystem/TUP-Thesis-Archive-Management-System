@@ -53,6 +53,7 @@ export interface VpaaDashboardThesis {
   department: string;
   program?: string | null;
   category?: string | null;
+  keywords?: string[];
   view_count: number;
   approved_at?: string | null;
 }

@@ -195,12 +195,12 @@ export default function FacultyFileSharingPage() {
           {statCards.map(({ label, value, icon: Icon, tone }) => (
             <article
               key={label}
-              className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow-sm)]"
+              className="rounded-[18px] border border-[var(--border)] bg-[var(--bg-card)] p-3.5 shadow-[var(--shadow-sm)]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="mb-1 text-xs font-medium text-text-secondary">{label}</p>
-                  <h2 className="mb-0 text-3xl leading-none text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>{value}</h2>
+                  <h2 className="mb-0 text-2xl leading-none text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>{value}</h2>
                 </div>
                 <span
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl"
@@ -233,7 +233,7 @@ export default function FacultyFileSharingPage() {
                 <BookOpen size={20} />
               </span>
               <div>
-                <h2 className="mb-0 text-2xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Department Library</h2>
+                <h2 className="mb-0 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Department Library</h2>
                 <p className="text-sm text-text-secondary">{libraryDepartment}</p>
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function FacultyFileSharingPage() {
           </div>
         </section>
 
-        <section className="rounded-[22px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)] md:p-6">
+        <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow-sm)] md:p-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <button
               type="button"
@@ -286,7 +286,7 @@ export default function FacultyFileSharingPage() {
                 <Upload size={18} />
               </span>
               <div className="flex items-center gap-3">
-                <h2 className="mb-0 text-2xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Add Department File</h2>
+                <h2 className="mb-0 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Add Department File</h2>
                 <ChevronDown
                   size={18}
                   className={`transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}

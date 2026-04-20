@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, ChevronRight, Clock3, FileClock, FileText, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, User } from 'lucide-react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { vpaaDashboardService, type ActivityLogEntry } from '../../services/vpaaDashboardService';
@@ -79,12 +79,15 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 'bot-1', type: 'bot', text: 'Hi! I can help you find thesis collections, browse categories, or guide you to the right sign-in page.' },
     { id: 'bot-2', type: 'bot', text: 'Try one of the quick prompts below.' },
@@ -145,6 +148,10 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    setSearchQuery(searchParams.get('q') ?? '');
+  }, [searchParams]);
+
   const notifications = useMemo(
     () =>
       activityLog.slice(0, 3).map((entry) => ({
@@ -182,6 +189,15 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
     ]);
     setChatInput('');
     setChatOpen(true);
+  };
+
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) return;
+
+    navigate(`/vpaa/search?q=${encodeURIComponent(trimmed)}`);
   };
 
   return (
@@ -228,10 +244,15 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
             <button type="button" className="vpaa-hamburger-btn" onClick={toggleSidebar} aria-label="Toggle navigation menu">
               <Menu size={18} />
             </button>
-            <div className="vpaa-search-bar">
+            <form className="vpaa-search-bar" onSubmit={handleSearchSubmit}>
               <Search size={18} />
-              <input type="text" placeholder="Search the thesis archive, categories, or records..." />
-            </div>
+              <input
+                type="text"
+                placeholder="Search the thesis archive, categories, or records..."
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </form>
           </div>
 
           <div className="vpaa-topbar-right">
