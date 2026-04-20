@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Conversation;
 use App\Models\DailyQuote;
+use App\Models\FacultyProfile;
 use App\Models\StudentProfile;
 use App\Models\Thesis;
 use App\Models\User;
@@ -17,6 +18,35 @@ use Illuminate\Support\Facades\Hash;
 class StudentController extends Controller
 {
     public function __construct(private ActivityLogService $logger) {}
+
+    public function advisers(Request $request): JsonResponse
+    {
+        $studentProfile = StudentProfile::query()
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        $faculty = FacultyProfile::query()
+            ->with('user:id,name,email')
+            ->where('status', 'active')
+            ->when($studentProfile?->department, fn ($query, $department) => $query->where('department', $department))
+            ->orderBy('department')
+            ->orderBy('faculty_role')
+            ->get();
+
+        return response()->json([
+            'data' => $faculty->map(function (FacultyProfile $profile) {
+                return [
+                    'id' => $profile->user_id,
+                    'faculty_profile_id' => $profile->id,
+                    'name' => $profile->user?->name,
+                    'email' => $profile->user?->email,
+                    'department' => $profile->department,
+                    'faculty_role' => $profile->faculty_role,
+                    'rank' => $profile->rank,
+                ];
+            })->values(),
+        ]);
+    }
 
     public function profile(Request $request): JsonResponse
     {

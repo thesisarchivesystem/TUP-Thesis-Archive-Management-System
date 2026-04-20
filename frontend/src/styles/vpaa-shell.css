@@ -1556,79 +1556,6 @@
   gap: 18px;
 }
 
-.student-submissions-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.95fr);
-  gap: 18px;
-  padding: 24px 26px;
-  background:
-    radial-gradient(circle at top left, rgba(139, 35, 50, 0.08), transparent 42%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(248, 241, 236, 0.86));
-}
-
-.student-submissions-hero-copy {
-  display: grid;
-  gap: 10px;
-}
-
-.student-submissions-hero-label {
-  display: inline-flex;
-  width: fit-content;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(139, 35, 50, 0.08);
-  color: var(--maroon);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.student-submissions-hero-copy h2 {
-  margin: 0;
-  font-family: 'DM Serif Display', serif;
-  font-size: 31px;
-  line-height: 1.1;
-  color: var(--text-primary);
-}
-
-.student-submissions-hero-copy p {
-  margin: 0;
-  max-width: 58ch;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.65;
-}
-
-.student-submissions-hero-grid {
-  display: grid;
-  gap: 12px;
-  align-content: center;
-}
-
-.student-submissions-hero-metric {
-  border: 1px solid rgba(139, 35, 50, 0.1);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
-  padding: 16px 18px;
-}
-
-.student-submissions-hero-metric span {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.student-submissions-hero-metric strong {
-  display: block;
-  margin-top: 8px;
-  color: var(--text-primary);
-  font-size: 16px;
-  line-height: 1.4;
-}
-
 .student-submissions-topbar {
   display: flex;
   justify-content: flex-end;
@@ -1794,20 +1721,23 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .student-submission-card-title-group {
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 18px;
   align-items: start;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .student-submission-cover {
-  min-height: 144px;
+  width: 118px;
+  min-height: 168px;
   border-radius: 20px;
-  padding: 14px 14px 16px;
+  padding: 16px 14px 18px;
   background: linear-gradient(160deg, #a23342 0%, #6c1c29 100%);
   color: rgba(255, 255, 255, 0.9);
   display: flex;
@@ -1831,6 +1761,21 @@
   color: #fff;
 }
 
+.student-submission-card-copy {
+  display: grid;
+  gap: 10px;
+  align-self: start;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.student-submission-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .student-submission-card-head h3,
 .student-submissions-summary-head h2,
 .student-submissions-note h3,
@@ -1841,7 +1786,28 @@
 }
 
 .student-submission-card-head h3 {
-  font-size: 16px;
+  font-size: 19px;
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+}
+
+.student-submission-authors {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.student-submission-date {
+  color: var(--text-secondary);
+}
+
+.student-submission-inline-action {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 8px 14px;
+}
+
+.student-submission-badge {
+  flex: 0 0 auto;
 }
 
 .student-submission-card-head p,
@@ -1962,6 +1928,10 @@
 
 .student-submission-step.current .student-submission-step-dot {
   background: var(--maroon);
+}
+
+.student-submission-steps-header {
+  margin-bottom: 2px;
 }
 
 .student-submission-actions {
@@ -2159,14 +2129,6 @@
   box-shadow: none;
 }
 
-.theme-dark .student-submissions-hero {
-  background:
-    radial-gradient(circle at top left, rgba(184, 58, 78, 0.14), transparent 42%),
-    linear-gradient(135deg, rgba(43, 33, 39, 0.94), rgba(33, 24, 30, 0.9));
-  border-color: rgba(200, 160, 170, 0.12);
-}
-
-.theme-dark .student-submissions-hero-metric,
 .theme-dark .student-submissions-panel-note {
   background: rgba(42, 32, 40, 0.88);
   border-color: rgba(200, 160, 170, 0.12);
@@ -2178,8 +2140,6 @@
   border-color: rgba(200, 160, 170, 0.12);
 }
 
-.theme-dark .student-submissions-hero-copy h2,
-.theme-dark .student-submissions-hero-metric strong,
 .theme-dark .student-submissions-panel-note strong {
   color: #fff3f2;
 }
@@ -3174,6 +3134,424 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.faculty-submission-details-shell {
+  display: grid;
+  gap: 22px;
+}
+
+.faculty-submission-details-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.faculty-submission-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--maroon);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(139, 35, 50, 0.06);
+  border: 1px solid rgba(139, 35, 50, 0.08);
+}
+
+.faculty-submission-details-loading {
+  color: var(--text-secondary);
+}
+
+.faculty-submission-details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.faculty-submission-hero-card,
+.faculty-submission-info-card {
+  display: grid;
+  gap: 18px;
+}
+
+.faculty-submission-hero-card {
+  position: relative;
+  overflow: hidden;
+  gap: 24px;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 150, 58, 0.1), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 248, 244, 0.92));
+  box-shadow: var(--shadow-md);
+}
+
+.faculty-submission-hero-card::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -24px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 35, 50, 0.08), transparent 68%);
+  pointer-events: none;
+}
+
+.faculty-submission-hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.faculty-submission-title-block {
+  display: grid;
+  gap: 10px;
+  max-width: 860px;
+}
+
+.faculty-submission-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.faculty-submission-hero-header h2,
+.faculty-submission-info-card h3,
+.faculty-submission-section h3 {
+  margin: 0;
+}
+
+.faculty-submission-hero-header h2 {
+  margin-top: 2px;
+  font-size: 30px;
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.faculty-submission-hero-copy {
+  max-width: 720px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.faculty-submission-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  border: 1px solid transparent;
+}
+
+.faculty-submission-status-pill.status-approved {
+  background: rgba(61, 139, 74, 0.1);
+  color: var(--sage);
+  border-color: rgba(61, 139, 74, 0.12);
+}
+
+.faculty-submission-status-pill.status-rejected {
+  background: rgba(196, 101, 74, 0.1);
+  color: var(--terracotta);
+  border-color: rgba(196, 101, 74, 0.14);
+}
+
+.faculty-submission-status-pill.status-pending,
+.faculty-submission-status-pill.status-under_review,
+.faculty-submission-status-pill.status-draft {
+  background: rgba(201, 150, 58, 0.1);
+  color: var(--gold);
+  border-color: rgba(201, 150, 58, 0.16);
+}
+
+.faculty-submission-meta-chips,
+.faculty-submission-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.faculty-submission-meta-chips span,
+.faculty-submission-keywords span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.faculty-submission-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.faculty-submission-metrics article {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(139, 35, 50, 0.08);
+}
+
+.faculty-submission-metrics span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.faculty-submission-metrics strong {
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.faculty-submission-section {
+  display: grid;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+  padding-top: 2px;
+}
+
+.faculty-submission-review-panel {
+  display: grid;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(139, 35, 50, 0.08);
+}
+
+.faculty-submission-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.faculty-submission-review-head h3 {
+  margin: 6px 0 0;
+}
+
+.faculty-submission-review-textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  border: 1px solid var(--input-border);
+  border-radius: 18px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+  line-height: 1.7;
+  padding: 16px 18px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.faculty-submission-review-textarea:focus {
+  border-color: var(--maroon);
+  box-shadow: 0 0 0 3px rgba(139, 35, 50, 0.08);
+}
+
+.faculty-submission-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.faculty-submission-review-button {
+  min-width: 132px;
+  min-height: 46px;
+  border-radius: 14px;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.faculty-submission-review-button.reject {
+  background: rgba(196, 101, 74, 0.14);
+  color: var(--terracotta);
+}
+
+.faculty-submission-review-button.approve {
+  background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
+  color: white;
+}
+
+.faculty-submission-review-button:hover:not(:disabled),
+.faculty-submission-manuscript-button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.faculty-submission-review-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.faculty-submission-section p,
+.faculty-submission-manuscript-copy {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.faculty-submission-side-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.faculty-submission-info-card,
+.faculty-submission-manuscript-card {
+  border-radius: 24px;
+  box-shadow: var(--shadow-md);
+}
+
+.faculty-submission-info-list {
+  display: grid;
+  gap: 14px;
+}
+
+.faculty-submission-info-list div {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.faculty-submission-info-list div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.faculty-submission-info-list span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.faculty-submission-info-list strong {
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.faculty-submission-file-name {
+  word-break: break-word;
+}
+
+.faculty-submission-manuscript-card {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  background:
+    linear-gradient(180deg, rgba(139, 35, 50, 0.02), rgba(139, 35, 50, 0)),
+    var(--bg-card);
+}
+
+.faculty-submission-manuscript-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.faculty-submission-manuscript-header h3 {
+  margin: 0 0 8px;
+}
+
+.faculty-submission-manuscript-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 35, 50, 0.08);
+  color: var(--maroon);
+  flex-shrink: 0;
+}
+
+.faculty-submission-manuscript-preview {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+}
+
+.faculty-submission-manuscript-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.faculty-submission-manuscript-preview strong {
+  color: var(--text-primary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.faculty-submission-manuscript-preview small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.faculty-submission-manuscript-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 16px 30px rgba(139, 35, 50, 0.16);
+}
+
+.faculty-submission-manuscript-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .vpaa-messages-shell {
@@ -4497,6 +4875,7 @@
 @media (max-width: 1200px) {
   .vpaa-grid-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .vpaa-hero-row,
+  .faculty-submission-details-grid,
   .student-submissions-layout,
   .student-recent-layout,
   .vpaa-messages-shell,
@@ -4546,6 +4925,20 @@
   .vpaa-settings-grid {
     grid-template-columns: 1fr;
   }
+  .faculty-submission-hero-header,
+  .faculty-submission-manuscript-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .faculty-submission-review-actions {
+    flex-direction: column;
+  }
+  .faculty-submission-review-button {
+    width: 100%;
+  }
+  .faculty-submission-metrics {
+    grid-template-columns: 1fr;
+  }
   .student-submissions-summary-grid,
   .student-submission-steps,
   .student-recent-grid,
@@ -4567,9 +4960,6 @@
   .student-submission-card-head {
     flex-direction: column;
     align-items: stretch;
-  }
-  .student-submissions-hero {
-    grid-template-columns: 1fr;
   }
   .ra-header,
   .filter-row,

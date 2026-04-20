@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Thesis (shared for all roles)
     Route::apiResource('thesis', ThesisController::class)->except(['destroy']);
     Route::post('/thesis/{id}/submit', [ThesisController::class, 'submit']);
+    Route::get('/thesis/{id}/manuscript', [ThesisController::class, 'manuscript']);
 
     // ── VPAA ───────────────────────────────────────────────
     Route::middleware('role:vpaa')->prefix('vpaa')->group(function () {
@@ -75,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:student')->prefix('student')->group(function () {
         Route::get('/dashboard', [StudentController::class, 'dashboard']);
         Route::get('/profile', [StudentController::class, 'profile']);
+        Route::get('/advisers', [StudentController::class, 'advisers']);
         Route::get('/my-submissions', [ThesisController::class, 'mySubmissions']);
         Route::get('/recently-viewed', [ThesisController::class, 'recentlyViewed']);
     });

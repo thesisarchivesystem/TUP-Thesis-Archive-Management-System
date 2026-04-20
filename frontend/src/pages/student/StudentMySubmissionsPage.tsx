@@ -4,16 +4,6 @@ import StudentLayout from '../../components/student/StudentLayout';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis, ThesisStatus } from '../../types/thesis.types';
 
-type SubmissionFilter = 'all' | ThesisStatus | 'revisions';
-
-const submissionFilters: Array<{ key: SubmissionFilter; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'under_review', label: 'Under Review' },
-  { key: 'revisions', label: 'Revisions' },
-  { key: 'draft', label: 'Draft' },
-];
-
 const formatSubmissionDate = (value?: string) => {
   if (!value) return 'Recently saved';
 
@@ -39,13 +29,6 @@ const formatRelativeDate = (value?: string) => {
   });
 };
 
-const getStatusBadgeClass = (status: ThesisStatus) => {
-  if (status === 'approved') return 'approved';
-  if (status === 'draft') return 'draft';
-  if (status === 'rejected') return 'revisions';
-  return 'review';
-};
-
 const getStatusLabel = (status: ThesisStatus) => {
   if (status === 'approved') return 'Approved';
   if (status === 'rejected') return 'Revisions Needed';
@@ -53,12 +36,25 @@ const getStatusLabel = (status: ThesisStatus) => {
   return 'Under Review';
 };
 
+const getFeedbackLabel = (item: Thesis) => {
+  if (item.status === 'rejected') return 'Revision Notes';
+  if (item.status === 'approved') return 'Approval Comment';
+  return 'Review Comment';
+};
+
+const getStatusBadgeClass = (status: ThesisStatus) => {
+  if (status === 'approved') return 'student-submission-badge approved';
+  if (status === 'rejected') return 'student-submission-badge revisions';
+  if (status === 'draft') return 'student-submission-badge draft';
+  return 'student-submission-badge review';
+};
+
 const buildProgressSteps = (status: ThesisStatus) => {
   const allPending = [
     { label: 'Submitted', done: false, current: false },
-    { label: 'Adviser Check', done: false, current: false },
-    { label: 'Panel Review', done: false, current: false },
-    { label: 'Library Intake', done: false, current: false },
+    { label: 'For Review', done: false, current: false },
+    { label: 'Approved', done: false, current: false },
+    { label: 'For Defense', done: false, current: false },
   ];
 
   if (status === 'draft') {
@@ -68,35 +64,35 @@ const buildProgressSteps = (status: ThesisStatus) => {
   if (status === 'pending') {
     return [
       { label: 'Submitted', done: true, current: false },
-      { label: 'Adviser Check', done: true, current: true },
-      { label: 'Panel Review', done: false, current: false },
-      { label: 'Library Intake', done: false, current: false },
+      { label: 'For Review', done: true, current: true },
+      { label: 'Approved', done: false, current: false },
+      { label: 'For Defense', done: false, current: false },
     ];
   }
 
   if (status === 'under_review') {
     return [
       { label: 'Submitted', done: true, current: false },
-      { label: 'Adviser Check', done: true, current: false },
-      { label: 'Panel Review', done: true, current: true },
-      { label: 'Library Intake', done: false, current: false },
+      { label: 'For Review', done: true, current: false },
+      { label: 'Approved', done: true, current: true },
+      { label: 'For Defense', done: false, current: false },
     ];
   }
 
   if (status === 'approved') {
     return [
       { label: 'Submitted', done: true, current: false },
-      { label: 'Adviser Check', done: true, current: false },
-      { label: 'Panel Review', done: true, current: false },
-      { label: 'Library Intake', done: true, current: false },
+      { label: 'For Review', done: true, current: false },
+      { label: 'Approved', done: true, current: false },
+      { label: 'For Defense', done: true, current: false },
     ];
   }
 
   return [
     { label: 'Submitted', done: true, current: false },
-    { label: 'Adviser Check', done: true, current: false },
-    { label: 'Panel Review', done: false, current: true },
-    { label: 'Library Intake', done: false, current: false },
+    { label: 'For Review', done: true, current: false },
+    { label: 'Approved', done: false, current: true },
+    { label: 'For Defense', done: false, current: false },
   ];
 };
 
@@ -104,7 +100,36 @@ export default function StudentMySubmissionsPage() {
   const [items, setItems] = useState<Thesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<SubmissionFilter>('all');
+
+  const handleOpenManuscript = async (item: Thesis) => {
+    const previewWindow = window.open('', '_blank');
+
+    if (!previewWindow) {
+      setError('Popup blocked while opening the manuscript. Please allow popups and try again.');
+      return;
+    }
+
+    previewWindow.document.title = item.file_name || item.title || 'Opening manuscript...';
+    previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening manuscript...</p>';
+
+    try {
+      const signedUrl = await thesisService.getManuscriptAccessUrl(item.id);
+
+      if (!signedUrl) {
+        throw new Error('Unable to open the manuscript right now.');
+      }
+
+      previewWindow.location.replace(signedUrl);
+    } catch (err) {
+      previewWindow.document.title = 'Unable to open manuscript';
+      previewWindow.document.body.innerHTML = `
+        <p style="font-family: Arial, sans-serif; padding: 24px;">
+          ${err instanceof Error ? err.message : 'Unable to open the manuscript right now.'}
+        </p>
+      `;
+      setError(err instanceof Error ? err.message : 'Unable to open the manuscript right now.');
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -122,12 +147,6 @@ export default function StudentMySubmissionsPage() {
         setLoading(false);
       });
   }, []);
-
-  const filteredItems = useMemo(() => {
-    if (activeFilter === 'all') return items;
-    if (activeFilter === 'revisions') return items.filter((item) => item.status === 'rejected');
-    return items.filter((item) => item.status === activeFilter);
-  }, [activeFilter, items]);
 
   const stats = useMemo(() => {
     const approved = items.filter((item) => item.status === 'approved').length;
@@ -188,8 +207,8 @@ export default function StudentMySubmissionsPage() {
   }, [items]);
 
   const spotlightItem = useMemo(
-    () => filteredItems[0] ?? items[0] ?? null,
-    [filteredItems, items],
+    () => items[0] ?? null,
+    [items],
   );
 
   return (
@@ -236,39 +255,11 @@ export default function StudentMySubmissionsPage() {
 
         <div className="student-submissions-layout">
           <section className="student-submissions-main">
-            <div className="student-submissions-toolbar">
-              <div className="student-submissions-filters">
-                {submissionFilters.map((filter) => (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    className={`student-submissions-filter${activeFilter === filter.key ? ' active' : ''}`}
-                    onClick={() => setActiveFilter(filter.key)}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-
-              <select className="student-submissions-sort" defaultValue="latest">
-                <option value="latest">Sort by: Latest update</option>
-              </select>
-            </div>
-
-            <div className="student-submissions-panel-note vpaa-card">
-              <strong>{loading ? '--' : filteredItems.length}</strong>
-              <span>
-                {activeFilter === 'all'
-                  ? 'submissions in your archive workspace'
-                  : `${submissionFilters.find((filter) => filter.key === activeFilter)?.label || 'Selected'} items currently visible`}
-              </span>
-            </div>
-
             {loading ? (
               <div className="student-submissions-empty vpaa-card">Loading your submissions...</div>
-            ) : filteredItems.length ? (
+            ) : items.length ? (
               <div className="student-submissions-list">
-                {filteredItems.map((item) => (
+                {items.map((item) => (
                   <article key={item.id} className="student-submission-card vpaa-card">
                     <div className="student-submission-card-head">
                       <div className="student-submission-card-title-group">
@@ -277,23 +268,44 @@ export default function StudentMySubmissionsPage() {
                           <span className="student-submission-cover-meta">{item.department || item.program || 'Research Record'}</span>
                           <strong>{item.title}</strong>
                         </div>
-                        <h3>{item.title}</h3>
-                        <p>
-                          {item.status === 'draft' ? 'Draft saved' : 'Submitted'} {formatSubmissionDate(item.submitted_at || item.created_at)}
-                          {' '}by {(item.authors ?? []).join(', ') || 'Student author'}
-                        </p>
+                        <div className="student-submission-card-copy">
+                          <div className="student-submission-steps student-submission-steps-header">
+                            {buildProgressSteps(item.status).map((step) => (
+                              <div
+                                key={step.label}
+                                className={`student-submission-step${step.done ? ' done' : ''}${step.current ? ' current' : ''}`}
+                              >
+                                <span className="student-submission-step-dot" />
+                                <span>{step.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="student-submission-title-row">
+                            <h3>{item.title}</h3>
+                            <span className={getStatusBadgeClass(item.status)}>{getStatusLabel(item.status)}</span>
+                            {item.file_url ? (
+                              <button
+                                type="button"
+                                className="student-submissions-primary student-submission-inline-action"
+                                onClick={() => void handleOpenManuscript(item)}
+                              >
+                                Open Manuscript
+                              </button>
+                            ) : null}
+                          </div>
+                          <p className="student-submission-authors">{(item.authors ?? []).join(', ') || 'Student author'}</p>
+                          <p className="student-submission-date">
+                            {item.status === 'draft' ? 'Draft saved' : 'Submitted'} {formatSubmissionDate(item.submitted_at || item.created_at)}
+                          </p>
+                          <div className="student-submission-meta-row">
+                            <span>{item.department}</span>
+                            {item.program ? <span>{item.program}</span> : null}
+                            <span>{item.school_year}</span>
+                            {item.category?.name ? <span>{item.category.name}</span> : null}
+                            <span>Updated {formatRelativeDate(item.reviewed_at || item.approved_at || item.submitted_at || item.created_at)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <span className={`student-submission-badge ${getStatusBadgeClass(item.status)}`}>
-                        {getStatusLabel(item.status)}
-                      </span>
-                    </div>
-
-                    <div className="student-submission-meta-row">
-                      <span>{item.department}</span>
-                      {item.program ? <span>{item.program}</span> : null}
-                      <span>{item.school_year}</span>
-                      {item.category?.name ? <span>{item.category.name}</span> : null}
-                      <span>Updated {formatRelativeDate(item.reviewed_at || item.approved_at || item.submitted_at || item.created_at)}</span>
                     </div>
 
                     {item.abstract ? (
@@ -303,17 +315,12 @@ export default function StudentMySubmissionsPage() {
                       </div>
                     ) : null}
 
-                    <div className="student-submission-steps">
-                      {buildProgressSteps(item.status).map((step) => (
-                        <div
-                          key={step.label}
-                          className={`student-submission-step${step.done ? ' done' : ''}${step.current ? ' current' : ''}`}
-                        >
-                          <span className="student-submission-step-dot" />
-                          <span>{step.label}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {item.adviser_remarks || item.rejection_reason ? (
+                      <div className="student-submission-summary">
+                        <strong>{getFeedbackLabel(item)}</strong>
+                        <p>{item.rejection_reason || item.adviser_remarks}</p>
+                      </div>
+                    ) : null}
 
                     <div className="student-submission-detail-grid">
                       <div className="student-submission-detail-card">
@@ -324,29 +331,20 @@ export default function StudentMySubmissionsPage() {
                         <span>Adviser</span>
                         <strong>{item.adviser?.name || 'Not assigned yet'}</strong>
                       </div>
-                      <div className="student-submission-detail-card full">
-                        <span>Latest Review Note</span>
-                        <strong>{item.rejection_reason || item.adviser_remarks || 'No review note yet.'}</strong>
+                      <div className="student-submission-detail-card">
+                        <span>Category</span>
+                        <strong>{item.category?.name || 'Not assigned yet'}</strong>
+                      </div>
+                      <div className="student-submission-detail-card">
+                        <span>Review Status</span>
+                        <strong>{getStatusLabel(item.status)}</strong>
                       </div>
                     </div>
-
-                    {item.file_url ? (
-                      <div className="student-submission-actions">
-                        <a
-                          className="student-submissions-primary"
-                          href={item.file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open Manuscript
-                        </a>
-                      </div>
-                    ) : null}
                   </article>
                 ))}
               </div>
             ) : (
-              <div className="student-submissions-empty vpaa-card">No submissions found for this filter.</div>
+              <div className="student-submissions-empty vpaa-card">No submissions found.</div>
             )}
           </section>
 
