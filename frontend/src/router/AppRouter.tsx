@@ -9,6 +9,7 @@ import VpaaSignIn from '../pages/auth/VpaaSignIn';
 import FacultySignIn from '../pages/auth/FacultySignIn';
 import StudentSignIn from '../pages/auth/StudentSignIn';
 import ForgotPassword from '../pages/auth/ForgotPassword';
+import ResetPassword from '../pages/auth/ResetPassword';
 // Dashboard pages
 import VpaaDashboard from '../pages/vpaa/VpaaDashboard';
 import VpaaCategoriesPage from '../pages/vpaa/VpaaCategoriesPage';
@@ -41,7 +42,6 @@ import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentMessagesPage from '../pages/student/StudentMessagesPage';
 import StudentMySubmissionsPage from '../pages/student/StudentMySubmissionsPage';
 import StudentSubmissionDetailsPage from '../pages/student/StudentSubmissionDetailsPage';
-import StudentRecentlyViewedPage from '../pages/student/StudentRecentlyViewedPage';
 import StudentSearchResultsPage from '../pages/student/StudentSearchResultsPage';
 import StudentAboutPage from '../pages/student/StudentAboutPage';
 import StudentSupportPage from '../pages/student/StudentSupportPage';
@@ -68,6 +68,7 @@ export default function AppRouter() {
         <Route path="/sign-in/faculty" element={<FacultySignIn />} />
         <Route path="/sign-in/student" element={<StudentSignIn />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected Routes - VPAA */}
         <Route path="/vpaa" element={<ProtectedRoute allowedRoles={['vpaa']} />}>
@@ -117,7 +118,6 @@ export default function AppRouter() {
           <Route path="search" element={<StudentSearchResultsPage />} />
           <Route path="my-submissions" element={<StudentMySubmissionsPage />} />
           <Route path="my-submissions/:id" element={<StudentSubmissionDetailsPage />} />
-          <Route path="recently-viewed" element={<StudentRecentlyViewedPage />} />
           <Route path="upload-thesis" element={<StudentUploadThesisPage />} />
           <Route path="messages" element={<StudentMessagesPage />} />
           <Route path="profile" element={<StudentProfilePage />} />

@@ -7,6 +7,7 @@ export function useAuth() {
     user: auth.user,
     token: auth.token,
     isAuthenticated: !!auth.token,
+    rememberMe: auth.rememberMe,
     setAuth: auth.setAuth,
     logout: auth.logout,
   };

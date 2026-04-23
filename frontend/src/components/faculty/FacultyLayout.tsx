@@ -389,7 +389,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
                   <span className="vpaa-user-avatar avatar-tone-faculty small">{initials}</span>
                   <div className="vpaa-user-info">
                     <strong className="vpaa-user-name">{user?.name || 'Faculty User'}</strong>
-                    <span className="vpaa-user-role">{user?.email || 'Faculty account'}</span>
+                    <span className="vpaa-user-role">Faculty</span>
                   </div>
                 </div>
 

@@ -119,6 +119,36 @@ export default function StudentUploadThesisPage() {
     return '';
   };
 
+  const buildUploadPayload = () => ({
+    title: form.title,
+    abstract: form.abstract,
+    department: form.department,
+    program: form.program,
+    category_id: form.category_id,
+    school_year: form.school_year,
+    authors: form.authors,
+    adviser_id: form.adviser_id,
+    keywords: form.keywords,
+    manuscript: manuscriptFile,
+    supplementary_files: supplementaryFiles,
+  });
+
+  const persistDraft = async () => {
+    const payload = buildUploadPayload();
+
+    if (draftId) {
+      const updated = await thesisService.updateStudentUpload(draftId, payload);
+      const updatedId = updated?.data?.id ?? draftId;
+      setDraftId(updatedId);
+      return updatedId;
+    }
+
+    const created = await thesisService.createStudentUpload(payload);
+    const createdId = created?.data?.id ?? null;
+    setDraftId(createdId);
+    return createdId;
+  };
+
   const handleDraftSave = async () => {
     try {
       setSaving(true);
@@ -131,21 +161,7 @@ export default function StudentUploadThesisPage() {
         return;
       }
 
-      const created = await thesisService.createStudentUpload({
-        title: form.title,
-        abstract: form.abstract,
-        department: form.department,
-        program: form.program,
-        category_id: form.category_id,
-        school_year: form.school_year,
-        authors: form.authors,
-        adviser_id: form.adviser_id,
-        keywords: form.keywords,
-        manuscript: manuscriptFile,
-        supplementary_files: supplementaryFiles,
-      });
-
-      setDraftId(created?.data?.id ?? null);
+      await persistDraft();
       setMessage('Draft saved successfully.');
     } catch (err) {
       setError(extractApiErrorMessage(err, 'Unable to save your thesis draft.'));
@@ -178,24 +194,7 @@ export default function StudentUploadThesisPage() {
 
       let thesisId = draftId;
 
-      if (!thesisId) {
-        const created = await thesisService.createStudentUpload({
-          title: form.title,
-          abstract: form.abstract,
-          department: form.department,
-          program: form.program,
-          category_id: form.category_id,
-          school_year: form.school_year,
-          authors: form.authors,
-          adviser_id: form.adviser_id,
-          keywords: form.keywords,
-          manuscript: manuscriptFile,
-          supplementary_files: supplementaryFiles,
-        });
-
-        thesisId = (created?.data?.id as string | undefined) ?? null;
-        setDraftId(thesisId);
-      }
+      thesisId = await persistDraft();
 
       if (!thesisId) {
         throw new Error('The thesis draft was created but no ID was returned.');

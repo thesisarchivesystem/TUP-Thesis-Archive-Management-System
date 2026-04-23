@@ -32,7 +32,7 @@ type RoleSignInLayoutProps = {
   };
   error?: string;
   isLoading?: boolean;
-  onSubmit: (values: { identifier: string; password: string }) => Promise<void> | void;
+  onSubmit: (values: { identifier: string; password: string; remember: boolean }) => Promise<void> | void;
 };
 
 function LogoIcon() {
@@ -167,7 +167,7 @@ function AuthStyles() {
         overflow: hidden;
         display: flex;
         align-items: flex-end;
-        padding: 48px;
+        padding: 40px;
         min-height: 100vh;
       }
 
@@ -192,7 +192,7 @@ function AuthStyles() {
       .auth-showcase-content {
         position: relative;
         z-index: 2;
-        max-width: 480px;
+        max-width: 440px;
       }
 
       .auth-showcase-badge {
@@ -227,7 +227,7 @@ function AuthStyles() {
       }
 
       .auth-showcase-content h2 {
-        font-size: 36px;
+        font-size: 32px;
         color: var(--text-primary);
         line-height: 1.15;
         margin: 0 0 12px;
@@ -237,21 +237,21 @@ function AuthStyles() {
       .auth-showcase-content em { font-style: italic; color: var(--maroon); }
 
       .auth-showcase-content p {
-        font-size: 14px;
+        font-size: 13px;
         color: var(--text-secondary);
         line-height: 1.65;
-        margin: 0 0 28px;
+        margin: 0 0 24px;
       }
 
       .auth-showcase-stats {
         display: flex;
-        gap: 32px;
-        padding-top: 20px;
+        gap: 28px;
+        padding-top: 18px;
         border-top: 1px solid var(--border);
       }
 
       .auth-showcase-number {
-        font-size: 26px;
+        font-size: 23px;
         color: var(--text-primary);
         line-height: 1;
         margin-bottom: 3px;
@@ -268,12 +268,12 @@ function AuthStyles() {
       }
 
       .auth-panel {
-        width: 520px;
+        width: 470px;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        padding: 48px 56px;
+        padding: 40px 44px;
         background: var(--panel-bg);
         backdrop-filter: blur(30px);
         border-left: 1px solid var(--border);
@@ -313,9 +313,9 @@ function AuthStyles() {
         gap: 6px;
         color: var(--text-tertiary);
         text-decoration: none;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
-        margin-bottom: 36px;
+        margin-bottom: 30px;
         transition: color 0.25s ease;
       }
 
@@ -325,34 +325,34 @@ function AuthStyles() {
       .auth-logo {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         margin-bottom: 8px;
       }
 
       .auth-logo-icon {
-        width: 42px;
-        height: 42px;
+        width: 38px;
+        height: 38px;
         background: var(--maroon);
-        border-radius: 12px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
-      .auth-logo-icon svg { width: 22px; height: 22px; fill: white; }
-      .auth-logo-text { font-size: 18px; color: var(--text-primary); }
+      .auth-logo-icon svg { width: 20px; height: 20px; fill: white; }
+      .auth-logo-text { font-size: 16px; color: var(--text-primary); }
       .auth-logo-text span { color: var(--maroon); }
 
-      .auth-header { margin-bottom: 32px; }
+      .auth-header { margin-bottom: 28px; }
       .auth-header h1 {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
         color: var(--text-primary);
-        margin: 20px 0 8px;
+        margin: 18px 0 6px;
       }
 
       .auth-header p {
-        font-size: 14px;
+        font-size: 13px;
         color: var(--text-secondary);
         line-height: 1.5;
         margin: 0;
@@ -392,9 +392,9 @@ function AuthStyles() {
       }
 
       .auth-form { display: flex; flex-direction: column; gap: 20px; }
-      .auth-form-group { display: flex; flex-direction: column; gap: 7px; }
+      .auth-form-group { display: flex; flex-direction: column; gap: 6px; }
       .auth-form-label {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         color: var(--text-secondary);
         letter-spacing: 0.02em;
@@ -418,11 +418,11 @@ function AuthStyles() {
 
       .auth-input {
         width: 100%;
-        padding: 13px 14px 13px 42px;
+        padding: 12px 14px 12px 40px;
         background: var(--input-bg);
         border: 1.5px solid var(--input-border);
         border-radius: 12px;
-        font-size: 14px;
+        font-size: 13px;
         color: var(--text-primary);
         outline: none;
         transition: all 0.25s ease;
@@ -473,13 +473,13 @@ function AuthStyles() {
       }
 
       .auth-checkbox-group label {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--text-secondary);
         cursor: pointer;
       }
 
       .auth-forgot-link {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--maroon);
         text-decoration: none;
         font-weight: 600;
@@ -493,12 +493,12 @@ function AuthStyles() {
 
       .auth-submit {
         width: 100%;
-        padding: 14px;
+        padding: 12px;
         background: var(--maroon);
         color: white;
         border: none;
         border-radius: 12px;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 700;
         cursor: pointer;
         display: flex;
@@ -549,7 +549,7 @@ function AuthStyles() {
 
       .auth-role-switch {
         text-align: center;
-        font-size: 13px;
+        font-size: 12px;
         color: var(--text-secondary);
       }
 
@@ -562,8 +562,8 @@ function AuthStyles() {
       .auth-role-switch a:hover { text-decoration: underline; }
 
       .auth-footer {
-        margin-top: 36px;
-        padding-top: 20px;
+        margin-top: 30px;
+        padding-top: 18px;
         border-top: 1px solid var(--border);
         text-align: center;
       }
@@ -586,13 +586,13 @@ function AuthStyles() {
         .auth-panel {
           width: 100%;
           max-width: 100%;
-          padding: 40px 32px;
+          padding: 36px 28px;
         }
       }
 
       @media (max-width: 480px) {
-        .auth-panel { padding: 32px 24px; }
-        .auth-header h1 { font-size: 24px; }
+        .auth-panel { padding: 28px 20px; }
+        .auth-header h1 { font-size: 22px; }
         .auth-showcase-stats { gap: 20px; }
       }
     `}</style>
@@ -697,13 +697,13 @@ export default function RoleSignInLayout({
 
         {error ? <div className="auth-error">{error}</div> : null}
 
-        <form
-          className="auth-form"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            await onSubmit({ identifier, password });
-          }}
-        >
+          <form
+            className="auth-form"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              await onSubmit({ identifier, password, remember });
+            }}
+          >
           <div className="auth-form-group">
             <label className="auth-form-label">{identifierLabel}</label>
             <div className="auth-input-wrapper">
