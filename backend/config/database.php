@@ -1,5 +1,7 @@
 <?php
 
+use PDO;
+
 return [
     'default' => env('DB_CONNECTION', 'pgsql'),
 
@@ -15,7 +17,12 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'options' => extension_loaded('pdo_pgsql') ? array_filter([
+                // Helps when using transaction poolers (for example Supabase pooler:6543)
+                // where server-side prepared statements may fail across pooled connections.
+                PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', false),
+            ]) : [],
         ],
     ],
 
