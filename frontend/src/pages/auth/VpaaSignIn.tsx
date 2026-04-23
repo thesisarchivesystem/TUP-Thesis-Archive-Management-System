@@ -39,8 +39,8 @@ export default function VpaaSignIn() {
         { value: '3', label: 'Programs' },
         { value: '10+', label: 'Years' },
       ]}
-      identifierLabel="Admin ID"
-      identifierPlaceholder="e.g. TUPM-VPAA-001"
+      identifierLabel="VPAA Email"
+      identifierPlaceholder="e.g. vpaa@tup.edu.ph"
       roleSwitchLinks={[
         { label: 'Student', to: '/sign-in/student' },
         { label: 'Faculty', to: '/sign-in/faculty' },
@@ -53,7 +53,7 @@ export default function VpaaSignIn() {
       }}
       error={error}
       isLoading={isLoading}
-      onSubmit={async ({ identifier, password }) => {
+      onSubmit={async ({ identifier, password, remember }) => {
         setIsLoading(true);
         setError('');
         try {
@@ -62,7 +62,7 @@ export default function VpaaSignIn() {
             setError('This login is for VPAA administrators only');
             return;
           }
-          setAuth(response.user, response.token);
+          setAuth(response.user, response.token, remember);
           navigate('/vpaa/dashboard', { replace: true });
         } catch (err: any) {
           setError(err.response?.data?.errors?.identifier?.[0] || err.response?.data?.message || 'Login failed');

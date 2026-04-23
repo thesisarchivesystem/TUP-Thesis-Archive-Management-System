@@ -41,8 +41,8 @@ export default function FacultySignIn() {
         { value: '3', label: 'Programs' },
         { value: '10+', label: 'Years' },
       ]}
-      identifierLabel="Faculty ID"
-      identifierPlaceholder="e.g. TUPM-F-2024-001"
+      identifierLabel="Faculty Email"
+      identifierPlaceholder="e.g. faculty@tup.edu.ph"
       roleSwitchLinks={[
         { label: 'Student', to: '/sign-in/student' },
         { label: 'VPAA', to: '/sign-in/vpaa' },
@@ -55,7 +55,7 @@ export default function FacultySignIn() {
       }}
       error={error}
       isLoading={isLoading}
-      onSubmit={async ({ identifier, password }) => {
+      onSubmit={async ({ identifier, password, remember }) => {
         setIsLoading(true);
         setError('');
         try {
@@ -64,7 +64,7 @@ export default function FacultySignIn() {
             setError('This login is for faculty only');
             return;
           }
-          setAuth(response.user, response.token);
+          setAuth(response.user, response.token, remember);
           navigate('/faculty/dashboard', { replace: true });
         } catch (err: any) {
           setError(err.response?.data?.errors?.identifier?.[0] || err.response?.data?.message || 'Login failed');

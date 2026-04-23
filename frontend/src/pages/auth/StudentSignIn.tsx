@@ -39,8 +39,8 @@ export default function StudentSignIn() {
         { value: '3', label: 'Programs' },
         { value: '10+', label: 'Years' },
       ]}
-      identifierLabel="Student ID"
-      identifierPlaceholder="e.g. TUPM-21-0001"
+      identifierLabel="Student Email"
+      identifierPlaceholder="e.g. student@tup.edu.ph"
       roleSwitchLinks={[
         { label: 'Faculty', to: '/sign-in/faculty' },
         { label: 'VPAA', to: '/sign-in/vpaa' },
@@ -53,7 +53,7 @@ export default function StudentSignIn() {
       }}
       error={error}
       isLoading={isLoading}
-      onSubmit={async ({ identifier, password }) => {
+      onSubmit={async ({ identifier, password, remember }) => {
         setIsLoading(true);
         setError('');
         try {
@@ -62,7 +62,7 @@ export default function StudentSignIn() {
             setError('This login is for students only');
             return;
           }
-          setAuth(response.user, response.token);
+          setAuth(response.user, response.token, remember);
           navigate('/student/dashboard', { replace: true });
         } catch (err: any) {
           setError(err.response?.data?.errors?.identifier?.[0] || err.response?.data?.message || 'Login failed');

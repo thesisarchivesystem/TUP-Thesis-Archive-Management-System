@@ -340,10 +340,10 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
               <div className={`vpaa-dropdown-panel vpaa-profile-panel ${profileOpen ? 'open' : ''}`}>
                 <div className="vpaa-profile-card">
                   <span className="vpaa-user-avatar avatar-tone-vpaa small">{initials}</span>
-                  <div className="vpaa-user-info"><strong className="vpaa-user-name">{user?.name || 'VPAA User'}</strong><span className="vpaa-user-role">{user?.email || 'Vice President for Academic Affairs'}</span></div>
+                  <div className="vpaa-user-info"><strong className="vpaa-user-name">{user?.name || 'VPAA User'}</strong><span className="vpaa-user-role">VPAA</span></div>
                 </div>
                 <div className="vpaa-profile-actions">
-                  <Link className="vpaa-profile-action" to="/vpaa/profile"><User size={16} /><span>My Profile</span></Link>
+                  <Link className="vpaa-profile-action" to="/vpaa/profile"><User size={16} /><span>Profile</span></Link>
                   <Link className="vpaa-profile-action" to="/vpaa/settings"><Settings size={16} /><span>Settings</span></Link>
                   <button type="button" className="vpaa-profile-action signout" onClick={logout}><LogOut size={16} /><span>Sign Out</span></button>
                 </div>

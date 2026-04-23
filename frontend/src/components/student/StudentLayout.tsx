@@ -16,7 +16,6 @@ import {
   Sun,
   Upload,
   User,
-  History,
   FolderOpen,
 } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -270,7 +269,6 @@ export default function StudentLayout({ title, description, children, hidePageIn
           <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/student/upload-thesis"><Upload size={20} /><span>Upload Thesis</span></NavLink>
 
           <span className="vpaa-nav-section-label">Activity</span>
-          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/student/recently-viewed"><History size={20} /><span>Recently Viewed</span></NavLink>
           <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/student/my-submissions"><FolderOpen size={20} /><span>My Submissions</span></NavLink>
         </nav>
 
@@ -379,7 +377,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
                   <span className="vpaa-user-avatar avatar-tone-student small">{initials}</span>
                   <div className="vpaa-user-info">
                     <strong className="vpaa-user-name">{user?.name || 'Student User'}</strong>
-                    <span className="vpaa-user-role">{user?.email || 'Student account'}</span>
+                    <span className="vpaa-user-role">Student</span>
                   </div>
                 </div>
 

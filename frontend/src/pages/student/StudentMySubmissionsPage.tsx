@@ -101,6 +101,7 @@ export default function StudentMySubmissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleViewDetails = (item: Thesis) => {
     const submissionId = String(item.id ?? '').trim();
@@ -149,6 +150,28 @@ export default function StudentMySubmissionsPage() {
       setError(err instanceof Error ? err.message : 'Unable to download the manuscript right now.');
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDeleteDraft = async (item: Thesis) => {
+    if (item.status !== 'draft') {
+      setError('Only draft submissions can be deleted.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete the draft "${item.title}"?`);
+    if (!confirmed) return;
+
+    setError(null);
+    setDeletingId(item.id);
+
+    try {
+      await thesisService.delete(item.id);
+      setItems((current) => current.filter((entry) => entry.id !== item.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete the draft right now.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -342,6 +365,33 @@ export default function StudentMySubmissionsPage() {
                               disabled={downloadingId === item.id}
                             >
                               {downloadingId === item.id ? 'Downloading...' : action}
+                            </button>
+                          );
+                        }
+
+                        if (action === 'Preview Draft') {
+                          return (
+                            <button
+                              key={action}
+                              type="button"
+                              className="student-submissions-secondary"
+                              onClick={() => handleViewDetails(item)}
+                            >
+                              {action}
+                            </button>
+                          );
+                        }
+
+                        if (action === 'Delete Draft') {
+                          return (
+                            <button
+                              key={action}
+                              type="button"
+                              className="student-submissions-secondary"
+                              onClick={() => void handleDeleteDraft(item)}
+                              disabled={deletingId === item.id}
+                            >
+                              {deletingId === item.id ? 'Deleting...' : action}
                             </button>
                           );
                         }

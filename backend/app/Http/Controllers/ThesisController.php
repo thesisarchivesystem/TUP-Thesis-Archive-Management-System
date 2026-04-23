@@ -130,6 +130,14 @@ class ThesisController extends Controller
             return response()->json(['error' => 'Cannot update submitted theses'], 403);
         }
 
+        $keywords = $this->normalizeArrayField($request->input('keywords'));
+        $authors = $this->normalizeArrayField($request->input('authors'));
+
+        $request->merge([
+            'keywords' => $keywords,
+            'authors' => $authors,
+        ]);
+
         $request->validate([
             'title' => 'sometimes|required|string|max:500',
             'abstract' => 'nullable|string',
@@ -141,13 +149,67 @@ class ThesisController extends Controller
             'school_year' => 'sometimes|required|string',
             'authors' => 'nullable|array',
             'authors.*' => 'string|max:255',
+            'adviser_id'  => 'nullable|uuid|exists:users,id',
+            'manuscript'  => 'nullable|file|mimes:pdf|max:51200',
+            'supplementary_files' => 'nullable|array',
+            'supplementary_files.*' => 'file|max:51200',
         ]);
 
-        $thesis->update($request->only([
-            'title', 'abstract', 'keywords', 'department', 'program', 'category_id', 'school_year', 'authors',
-        ]));
+        $payload = $request->only([
+            'title',
+            'abstract',
+            'keywords',
+            'department',
+            'program',
+            'category_id',
+            'school_year',
+            'authors',
+            'adviser_id',
+        ]);
+
+        $manuscript = $request->file('manuscript');
+        if ($manuscript) {
+            $manuscriptUpload = $this->uploadToSupabase($manuscript, 'manuscripts');
+            $payload['file_url'] = $manuscriptUpload['url'];
+            $payload['file_name'] = $manuscriptUpload['name'];
+            $payload['file_size'] = $manuscriptUpload['size'];
+        }
+
+        $supplementaryFiles = $request->file('supplementary_files', []);
+        if (is_array($supplementaryFiles) && count(array_filter($supplementaryFiles)) > 0) {
+            $payload['supplementary_files'] = collect($supplementaryFiles)
+                ->filter()
+                ->map(fn (\Illuminate\Http\UploadedFile $file) => $this->uploadToSupabase($file, 'supplementary'))
+                ->values()
+                ->all();
+        }
+
+        $thesis->update($payload);
+
+        if ($request->filled('adviser_id')) {
+            StudentProfile::query()
+                ->where('user_id', $request->user()->id)
+                ->update(['adviser_id' => $request->input('adviser_id')]);
+        }
 
         return response()->json(['data' => $thesis]);
+    }
+
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $thesis = Thesis::findOrFail($id);
+
+        if ($thesis->submitted_by !== $request->user()->id) {
+            return response()->json(['error' => 'You are not allowed to delete this thesis.'], 403);
+        }
+
+        if ($thesis->status !== 'draft') {
+            return response()->json(['error' => 'Only draft theses can be deleted.'], 403);
+        }
+
+        $thesis->delete();
+
+        return response()->json(['message' => 'Draft deleted successfully.']);
     }
 
     public function submit(Request $request, string $id): JsonResponse
