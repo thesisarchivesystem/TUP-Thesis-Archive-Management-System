@@ -1,16 +1,12 @@
 import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MoonStar, SunMedium } from 'lucide-react';
+import { GraduationCap, MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { authService } from '../../services/authService';
 import tupBuilding from '../../assets/tup-building.gif';
 
 function LogoIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-    </svg>
-  );
+  return <GraduationCap />;
 }
 
 function ForgotPasswordStyles() {
@@ -243,8 +239,8 @@ function ForgotPasswordStyles() {
 
       .forgot-theme-toggle .sun-icon { color: var(--gold); }
       .forgot-theme-toggle .moon-icon { color: var(--sky); }
-      .forgot-shell[data-theme='light'] .forgot-theme-toggle .moon-icon { display: none; }
-      .forgot-shell[data-theme='dark'] .forgot-theme-toggle .sun-icon { display: none; }
+      .forgot-shell[data-theme='light'] .forgot-theme-toggle .sun-icon { display: none; }
+      .forgot-shell[data-theme='dark'] .forgot-theme-toggle .moon-icon { display: none; }
 
       .forgot-back,
       .forgot-link {

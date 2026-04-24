@@ -106,20 +106,21 @@
 .vpaa-sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 4px 8px;
   margin-bottom: 24px;
 }
 
 .vpaa-sidebar-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--maroon);
-  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--maroon);
+  color: white;
+  flex-shrink: 0;
 }
 
 .vpaa-sidebar-brand-text {
@@ -5731,19 +5732,17 @@
 .vpaa-ai-chatbot-avatar {
   width: 44px;
   height: 44px;
-  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: linear-gradient(180deg, #b84844 0%, #b1453d 100%);
-  color: white;
 }
 
-.vpaa-ai-chatbot-avatar svg {
-  width: 22px;
-  height: 22px;
-  fill: currentColor;
+.vpaa-ai-chatbot-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .vpaa-ai-chatbot-title h3 {
@@ -5872,9 +5871,8 @@
   width: 74px;
   height: 74px;
   border: 0;
-  border-radius: 24px;
-  background: linear-gradient(180deg, #b84844 0%, #b1453d 100%);
-  box-shadow: 0 18px 34px rgba(177, 69, 61, 0.34);
+  background: transparent;
+  box-shadow: none;
   cursor: pointer;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   z-index: 121;
@@ -5884,21 +5882,11 @@
   transform: translateY(-2px) scale(1.02);
 }
 
-.vpaa-ai-chatbot-fab svg {
-  width: 36px;
-  height: 36px;
-}
-
-.vpaa-ai-chatbot-fab .bot-fill {
-  fill: #fff;
-}
-
-.vpaa-ai-chatbot-fab .bot-cut {
-  fill: #8f2a33;
-}
-
-.theme-dark .vpaa-ai-chatbot-fab .bot-cut {
-  fill: #b83a4e;
+.vpaa-ai-chatbot-fab img {
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  display: block;
 }
 
 @media (max-width: 1200px) {
