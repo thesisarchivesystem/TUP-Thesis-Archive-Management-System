@@ -12,6 +12,7 @@ use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -127,7 +128,7 @@ class MessageController extends Controller
         Message::where('conversation_id', $conversationId)
             ->where('receiver_id', $user->id)
             ->whereRaw('is_read = false')
-            ->update(['is_read' => true]);
+            ->update(['is_read' => DB::raw('true')]);
 
         return response()->json(['data' => $messages]);
     }
