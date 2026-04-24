@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, FilePlus2, LoaderCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -43,11 +44,18 @@ export default function FacultyDashboard() {
   const recentlyAddedCards = useMemo(() => recentTheses.slice(0, 8), [recentTheses]);
   const topSearchCards = useMemo(() => topSearches.slice(0, 8), [topSearches]);
 
+  const thesisHref = (item: FacultyDashboardThesis) => `/faculty/theses/${encodeURIComponent(item.id)}`;
+
   const renderDashboardCard = (item: FacultyDashboardThesis) => {
     const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
 
     return (
-      <article className="vpaa-category-thesis-card" key={item.id}>
+      <Link
+        className="vpaa-category-thesis-card"
+        key={item.id}
+        to={thesisHref(item)}
+        state={{ thesis: item }}
+      >
         <div className="vpaa-cover vpaa-category-thesis-cover">
           <div className="vpaa-cover-meta">Technological University of the Philippines</div>
           <div className="vpaa-cover-meta">{item.department || item.category || 'Thesis Archive'}</div>
@@ -65,7 +73,7 @@ export default function FacultyDashboard() {
             ))}
           </div>
         </div>
-      </article>
+      </Link>
     );
   };
 
@@ -106,11 +114,11 @@ export default function FacultyDashboard() {
               <div className="vpaa-cover-strip-label">Continue Reading</div>
               <div className="vpaa-cover-scroll">
                 {recentCards.map((item) => (
-                  <div className="vpaa-cover" key={item.id}>
+                  <Link className="vpaa-cover" key={item.id} to={thesisHref(item)} state={{ thesis: item }}>
                     <div className="vpaa-cover-meta">Technological University of the Philippines</div>
                     <div className="vpaa-cover-meta">Computer Studies Department</div>
                     <div className="vpaa-cover-title">{item.title}</div>
-                  </div>
+                  </Link>
                 ))}
                 {!recentCards.length ? (
                   <div className="vpaa-cover" aria-hidden="true">

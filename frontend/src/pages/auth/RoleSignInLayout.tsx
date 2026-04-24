@@ -1,8 +1,9 @@
 import { CSSProperties, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, MoonStar, SunMedium } from 'lucide-react';
+import { MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import tupBuilding from '../../assets/tup-building.gif';
+import BrandMarkIcon from '../../components/BrandMarkIcon';
 
 type RoleLink = {
   label: string;
@@ -36,7 +37,7 @@ type RoleSignInLayoutProps = {
 };
 
 function LogoIcon() {
-  return <GraduationCap />;
+  return <BrandMarkIcon />;
 }
 
 function BackIcon() {
@@ -335,7 +336,7 @@ function AuthStyles() {
         justify-content: center;
       }
 
-      .auth-logo-icon svg { width: 20px; height: 20px; fill: white; }
+      .auth-logo-icon svg { width: 20px; height: 20px; color: white; }
       .auth-logo-text { font-size: 16px; color: var(--text-primary); }
       .auth-logo-text span { color: var(--maroon); }
 

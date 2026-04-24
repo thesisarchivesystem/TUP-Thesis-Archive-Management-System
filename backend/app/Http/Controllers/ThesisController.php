@@ -106,9 +106,14 @@ class ThesisController extends Controller
     public function show(string $id): JsonResponse
     {
         $thesis = Thesis::with('submitter:id,name', 'adviser:id,name', 'category:id,name,slug')->findOrFail($id);
+        $user = auth()->user();
+
+        if ($thesis->status !== 'approved' && (!$user || ($user->id !== $thesis->submitted_by && $user->id !== $thesis->adviser_id && $user->role !== 'vpaa'))) {
+            return response()->json(['error' => 'You are not allowed to access this thesis.'], 403);
+        }
 
         // Track view if authenticated as student
-        if (auth()->check() && auth()->user()->role === 'student') {
+        if (auth()->check() && auth()->user()->role === 'student' && $thesis->status === 'approved') {
             RecentlyViewed::updateOrCreate(
                 ['user_id' => auth()->id(), 'thesis_id' => $thesis->id],
                 ['viewed_at' => now()]
@@ -116,7 +121,9 @@ class ThesisController extends Controller
         }
 
         // Increment view count
-        $thesis->increment('view_count');
+        if ($thesis->status === 'approved') {
+            $thesis->increment('view_count');
+        }
 
         return response()->json(['data' => $thesis]);
     }
@@ -126,9 +133,21 @@ class ThesisController extends Controller
         $thesis = Thesis::findOrFail($id);
 
         // Only allow updating if status is draft
-        if ($thesis->status !== 'draft') {
-            return response()->json(['error' => 'Cannot update submitted theses'], 403);
+        if (!in_array($thesis->status, ['draft', 'rejected'], true)) {
+            return response()->json(['error' => 'Only draft or rejected theses can be updated.'], 403);
         }
+
+        if ($thesis->submitted_by !== $request->user()->id) {
+            return response()->json(['error' => 'You are not allowed to update this thesis.'], 403);
+        }
+
+        $keywords = $this->normalizeArrayField($request->input('keywords'));
+        $authors = $this->normalizeArrayField($request->input('authors'));
+
+        $request->merge([
+            'keywords' => $keywords,
+            'authors' => $authors,
+        ]);
 
         $request->validate([
             'title' => 'sometimes|required|string|max:500',
@@ -141,20 +160,47 @@ class ThesisController extends Controller
             'school_year' => 'sometimes|required|string',
             'authors' => 'nullable|array',
             'authors.*' => 'string|max:255',
+            'adviser_id'  => 'nullable|uuid|exists:users,id',
+            'manuscript'  => 'nullable|file|mimes:pdf|max:51200',
+            'supplementary_files' => 'nullable|array',
+            'supplementary_files.*' => 'file|max:51200',
         ]);
 
-        $thesis->update($request->only([
-            'title', 'abstract', 'keywords', 'department', 'program', 'category_id', 'school_year', 'authors',
-        ]));
+        $payload = $request->only([
+            'title', 'abstract', 'keywords', 'department', 'program', 'category_id', 'school_year', 'authors', 'adviser_id',
+        ]);
 
-        return response()->json(['data' => $thesis]);
+        if ($request->hasFile('manuscript')) {
+            $manuscriptUpload = $this->uploadToSupabase($request->file('manuscript'), 'manuscripts');
+            $payload['file_url'] = $manuscriptUpload['url'];
+            $payload['file_name'] = $manuscriptUpload['name'];
+            $payload['file_size'] = $manuscriptUpload['size'];
+        }
+
+        if ($request->hasFile('supplementary_files')) {
+            $payload['supplementary_files'] = collect($request->file('supplementary_files', []))
+                ->filter()
+                ->map(fn (\Illuminate\Http\UploadedFile $file) => $this->uploadToSupabase($file, 'supplementary'))
+                ->values()
+                ->all();
+        }
+
+        $thesis->update($payload);
+
+        if ($request->filled('adviser_id')) {
+            StudentProfile::query()
+                ->where('user_id', $request->user()->id)
+                ->update(['adviser_id' => $request->input('adviser_id')]);
+        }
+
+        return response()->json(['data' => $thesis->fresh()->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug')]);
     }
 
     public function submit(Request $request, string $id): JsonResponse
     {
         $thesis = Thesis::findOrFail($id);
 
-        if ($thesis->status !== 'draft') {
+        if (!in_array($thesis->status, ['draft', 'rejected'], true)) {
             return response()->json(['error' => 'Thesis already submitted'], 403);
         }
 
@@ -165,6 +211,10 @@ class ThesisController extends Controller
         $thesis->update([
             'status'       => 'pending',
             'submitted_at' => now(),
+            'reviewed_at' => null,
+            'approved_at' => null,
+            'rejection_reason' => null,
+            'adviser_remarks' => null,
         ]);
 
         $this->logger->log($request->user(), 'thesis.submitted', 'thesis', $thesis->id);
@@ -338,6 +388,23 @@ class ThesisController extends Controller
         return response()->json($theses);
     }
 
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $thesis = Thesis::findOrFail($id);
+
+        if ($thesis->submitted_by !== $request->user()->id) {
+            return response()->json(['error' => 'You are not allowed to delete this thesis.'], 403);
+        }
+
+        if ($thesis->status !== 'draft') {
+            return response()->json(['error' => 'Only draft submissions can be deleted.'], 403);
+        }
+
+        $thesis->delete();
+
+        return response()->json(['message' => 'Draft deleted successfully.']);
+    }
+
     public function recentlyViewed(Request $request): JsonResponse
     {
         $theses = RecentlyViewed::where('user_id', $request->user()->id)
@@ -369,6 +436,7 @@ class ThesisController extends Controller
                 ->select([
                     'id',
                     'title',
+                    'abstract',
                     'authors',
                     'department',
                     'program',
@@ -395,11 +463,13 @@ class ThesisController extends Controller
                         'id' => $thesis->id,
                         'title' => $thesis->title,
                         'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+                        'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+                        'abstract' => $thesis->abstract,
                         'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
                         'department' => $thesis->department,
                         'program' => $thesis->program,
                         'school_year' => $thesis->school_year,
-                        'keywords' => collect($thesis->keywords ?? [])->filter()->take(2)->values()->all(),
+                        'keywords' => collect($thesis->keywords ?? [])->filter()->values()->all(),
                         'approved_at' => optional($thesis->approved_at)?->toISOString(),
                     ];
                 })->all(),

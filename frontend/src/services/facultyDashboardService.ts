@@ -12,6 +12,8 @@ export interface FacultyDashboardThesis {
   id: string;
   title: string;
   author: string;
+  authors?: string[];
+  abstract?: string | null;
   submitter_name?: string | null;
   year: string | null;
   department: string;

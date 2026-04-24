@@ -440,12 +440,14 @@ class FacultyController extends Controller
             'id' => $thesis->id,
             'title' => $thesis->title,
             'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+            'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+            'abstract' => $thesis->abstract,
             'submitter_name' => $thesis->submitter?->name,
             'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
             'department' => $thesis->department,
             'program' => $thesis->program,
             'category' => $thesis->category?->name,
-            'keywords' => collect($thesis->keywords ?? [])->filter()->take(2)->values()->all(),
+            'keywords' => collect($thesis->keywords ?? [])->filter()->values()->all(),
             'view_count' => (int) $thesis->view_count,
             'approved_at' => $this->formatIsoTimestamp($thesis->approved_at),
             'created_at' => $this->formatIsoTimestamp($thesis->created_at),
@@ -674,11 +676,16 @@ class FacultyController extends Controller
             'assigned_chair_id' => 'nullable|uuid|exists:users,id',
         ]);
 
+        $normalizedCollege = $this->resolveCollegeForDepartment(
+            (string) $request->department,
+            $request->input('college')
+        );
+
         $facultyId = $request->filled('faculty_id')
             ? (string) $request->faculty_id
             : $this->generateNextFacultyId((string) $request->faculty_role);
 
-        $facultyProfile = DB::transaction(function () use ($request, $facultyId) {
+        $facultyProfile = DB::transaction(function () use ($request, $facultyId, $normalizedCollege) {
             $user = User::create([
                 'first_name' => $request->first_name,
                 'last_name'  => $request->last_name,
@@ -693,7 +700,7 @@ class FacultyController extends Controller
                 'user_id'           => $user->id,
                 'faculty_id'        => $facultyId,
                 'department'        => $request->department,
-                'college'           => $request->college,
+                'college'           => $normalizedCollege,
                 'rank'              => $request->rank,
                 'faculty_role'      => $request->faculty_role,
                 'assigned_chair_id' => $request->assigned_chair_id,
@@ -769,7 +776,12 @@ class FacultyController extends Controller
             'assigned_chair_id' => 'nullable|uuid|exists:users,id',
         ]);
 
-        DB::transaction(function () use ($request, $faculty, $user) {
+        $normalizedCollege = $this->resolveCollegeForDepartment(
+            (string) $request->department,
+            $request->input('college')
+        );
+
+        DB::transaction(function () use ($request, $faculty, $user, $normalizedCollege) {
             $userData = [
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
@@ -785,7 +797,7 @@ class FacultyController extends Controller
             $faculty->update([
                 'faculty_id' => $request->faculty_id,
                 'department' => $request->department,
-                'college' => $request->college,
+                'college' => $normalizedCollege,
                 'rank' => $request->rank,
                 'faculty_role' => $request->faculty_role,
                 'assigned_chair_id' => $request->assigned_chair_id,
@@ -880,5 +892,18 @@ class FacultyController extends Controller
                     ],
                 );
             });
+    }
+
+    private function resolveCollegeForDepartment(string $department, ?string $college): ?string
+    {
+        $normalizedDepartment = trim($department);
+        $normalizedCollege = $college !== null ? trim($college) : null;
+        $departmentCollegeMap = config('academic.department_college_map', []);
+
+        if (isset($departmentCollegeMap[$normalizedDepartment])) {
+            return $departmentCollegeMap[$normalizedDepartment];
+        }
+
+        return $normalizedCollege !== '' ? $normalizedCollege : null;
     }
 }

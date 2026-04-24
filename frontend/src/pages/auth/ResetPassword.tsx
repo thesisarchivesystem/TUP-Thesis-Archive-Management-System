@@ -1,14 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { GraduationCap, MoonStar, SunMedium } from 'lucide-react';
+import { MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { authService } from '../../services/authService';
 import tupBuilding from '../../assets/tup-building.gif';
+import BrandMarkIcon from '../../components/BrandMarkIcon';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LogoIcon() {
-  return <GraduationCap />;
+  return <BrandMarkIcon />;
 }
 
 function BackIcon() {
@@ -344,7 +345,7 @@ function ResetPasswordStyles() {
         justify-content: center;
       }
 
-      .reset-logo-icon svg { width: 20px; height: 20px; fill: white; }
+      .reset-logo-icon svg { width: 20px; height: 20px; color: white; }
       .reset-logo-text { font-size: 16px; color: var(--text-primary); }
       .reset-logo-text span { color: var(--maroon); }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Clock3, FileText, PencilLine } from 'lucide-react';
+import { BookOpenText, Check, Clock3, FileText, PencilLine, ShieldCheck, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
 import { thesisService } from '../../services/thesisService';
@@ -79,8 +79,8 @@ const buildProgressSteps = (status: ThesisStatus) => {
 
 const getSubmissionActions = (item: Thesis) => {
   if (item.status === 'approved') return ['View Approval', 'Download PDF'];
-  if (item.status === 'rejected') return ['Upload Revision', 'View Feedback', 'Extension Request'];
-  if (item.status === 'draft') return ['Continue Editing', 'Preview Draft', 'Delete Draft'];
+  if (item.status === 'rejected') return ['Make Revision', 'Extension Request'];
+  if (item.status === 'draft') return ['Continue Editing', 'Edit Draft', 'Delete Draft'];
   return ['View Details', 'Message Adviser', 'Withdraw'];
 };
 
@@ -113,6 +113,32 @@ export default function StudentMySubmissionsPage() {
     setError(null);
     navigate(`/student/my-submissions/${encodeURIComponent(submissionId)}`, {
       state: { submission: item },
+    });
+  };
+
+  const handleEditDraft = (item: Thesis) => {
+    if (item.status !== 'draft') {
+      setError('Only draft submissions can be edited.');
+      return;
+    }
+
+    setError(null);
+    navigate(`/student/upload-thesis?draft=${encodeURIComponent(item.id)}`, {
+      state: { draft: item },
+    });
+  };
+
+  const handleMakeRevision = (item: Thesis) => {
+    setError(null);
+    navigate(`/student/upload-thesis?draft=${encodeURIComponent(item.id)}`, {
+      state: { draft: item },
+    });
+  };
+
+  const handleExtensionRequest = (item: Thesis) => {
+    setError(null);
+    navigate(`/student/extension-request?thesis=${encodeURIComponent(item.id)}`, {
+      state: { thesis: item },
     });
   };
 
@@ -354,7 +380,7 @@ export default function StudentMySubmissionsPage() {
                       >
                         View Details
                       </button>
-                      {getSubmissionActions(item).slice(1).map((action) => {
+                      {(item.status === 'rejected' ? getSubmissionActions(item) : getSubmissionActions(item).slice(1)).map((action) => {
                         if (action === 'Download PDF') {
                           return (
                             <button
@@ -369,13 +395,13 @@ export default function StudentMySubmissionsPage() {
                           );
                         }
 
-                        if (action === 'Preview Draft') {
+                        if (action === 'Edit Draft') {
                           return (
                             <button
                               key={action}
                               type="button"
                               className="student-submissions-secondary"
-                              onClick={() => handleViewDetails(item)}
+                              onClick={() => handleEditDraft(item)}
                             >
                               {action}
                             </button>
@@ -396,6 +422,32 @@ export default function StudentMySubmissionsPage() {
                           );
                         }
 
+                        if (action === 'Make Revision') {
+                          return (
+                            <button
+                              key={action}
+                              type="button"
+                              className="student-submissions-secondary"
+                              onClick={() => handleMakeRevision(item)}
+                            >
+                              {action}
+                            </button>
+                          );
+                        }
+
+                        if (action === 'Extension Request') {
+                          return (
+                            <button
+                              key={action}
+                              type="button"
+                              className="student-submissions-secondary"
+                              onClick={() => handleExtensionRequest(item)}
+                            >
+                              {action}
+                            </button>
+                          );
+                        }
+
                         return (
                           <button key={action} type="button" className="student-submissions-secondary">
                             {action}
@@ -411,13 +463,27 @@ export default function StudentMySubmissionsPage() {
             )}
           </section>
 
-          <aside className="student-submissions-side vpaa-card">
-            <div className="student-submissions-summary-head">
-              <h2>Submission Summary</h2>
-              <p>Snapshot of your research workflow</p>
+          <aside className="student-submissions-side vpaa-card thesis-details-side-card submission-accent-panel">
+            <div className="student-submissions-summary-head thesis-details-side-head">
+              <div>
+                <h2>Submission Summary</h2>
+                <p>Snapshot of your research workflow</p>
+              </div>
+              <div className="thesis-details-side-graphic" aria-hidden="true">
+                <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
+                <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
+                <div className="thesis-details-side-cloud">
+                  <div className="thesis-details-side-graphic-book">
+                    <BookOpenText size={24} />
+                  </div>
+                  <div className="thesis-details-side-shield">
+                    <ShieldCheck size={16} />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="student-submissions-summary-grid">
+            <div className="student-submissions-summary-grid submission-summary-grid">
               <div className="student-submissions-summary-box">
                 <span>Turnaround Avg.</span>
                 <strong>{loading ? '--' : `${summary.turnaround} days`}</strong>

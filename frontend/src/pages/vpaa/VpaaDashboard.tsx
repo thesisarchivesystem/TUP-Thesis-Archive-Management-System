@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, FilePlus2, LoaderCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
 import { vpaaDashboardService, type DailyQuote, type VpaaDashboardThesis } from '../../services/vpaaDashboardService';
 
@@ -38,11 +39,18 @@ export default function VpaaDashboard() {
   const continueReadingCards = useMemo(() => recentTheses.slice(0, 4), [recentTheses]);
   const topSearchCards = useMemo(() => topSearches.slice(0, 8), [topSearches]);
 
+  const thesisHref = (item: VpaaDashboardThesis) => `/vpaa/theses/${encodeURIComponent(item.id)}`;
+
   const renderDashboardCard = (item: VpaaDashboardThesis) => {
     const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
 
     return (
-      <article className="vpaa-category-thesis-card" key={item.id}>
+      <Link
+        className="vpaa-category-thesis-card"
+        key={item.id}
+        to={thesisHref(item)}
+        state={{ thesis: item }}
+      >
         <div className="vpaa-cover vpaa-category-thesis-cover">
           <div className="vpaa-cover-meta">Technological University of the Philippines</div>
           <div className="vpaa-cover-meta">{item.department || item.program || 'Research Archive'}</div>
@@ -58,7 +66,7 @@ export default function VpaaDashboard() {
             ))}
           </div>
         </div>
-      </article>
+      </Link>
     );
   };
 
@@ -93,11 +101,11 @@ export default function VpaaDashboard() {
               <div className="vpaa-cover-strip-label">Continue Reading</div>
               <div className="vpaa-cover-scroll">
                 {continueReadingCards.map((item) => (
-                  <div className="vpaa-cover" key={item.id}>
+                  <Link className="vpaa-cover" key={item.id} to={thesisHref(item)} state={{ thesis: item }}>
                     <div className="vpaa-cover-meta">Technological University of the Philippines</div>
                     <div className="vpaa-cover-meta">Computer Studies Department</div>
                     <div className="vpaa-cover-title">{item.title}</div>
-                  </div>
+                  </Link>
                 ))}
                 {!continueReadingCards.length ? (
                   <div className="vpaa-cover" aria-hidden="true">

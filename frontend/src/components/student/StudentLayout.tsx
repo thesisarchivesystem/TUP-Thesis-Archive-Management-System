@@ -65,7 +65,7 @@ const formatDate = (date: Date) =>
   `${String(date.getDate()).padStart(2, '0')}-${['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][date.getMonth()]}-${date.getFullYear()}`;
 
 export default function StudentLayout({ title, description, children, hidePageIntro = false }: Props) {
-  const { user, logout } = useAuth();
+  const { user, confirmAndLogout } = useAuth();
   const { theme, toggle } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -325,8 +325,9 @@ export default function StudentLayout({ title, description, children, hidePageIn
                 </div>
               </div>
             </div>
-            <button type="button" className="vpaa-topbar-icon-btn" onClick={toggle} aria-label="Toggle theme">
-              {theme === 'dark' ? <SunMedium size={18} /> : <MoonStar size={18} />}
+            <button type="button" className="vpaa-topbar-icon-btn theme-toggle" onClick={toggle} aria-label="Toggle theme">
+              <SunMedium className="sun-icon" size={18} />
+              <MoonStar className="moon-icon" size={18} />
             </button>
 
             <div className="vpaa-topbar-dropdown">
@@ -350,7 +351,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
                 <div className="vpaa-profile-actions">
                   <Link className="vpaa-profile-action" to="/student/profile"><User size={16} /><span>Profile</span></Link>
                   <Link className="vpaa-profile-action" to="/student/settings"><Settings size={16} /><span>Settings</span></Link>
-                  <button type="button" className="vpaa-profile-action signout" onClick={logout}><LogOut size={16} /><span>Sign Out</span></button>
+                  <button type="button" className="vpaa-profile-action signout" onClick={confirmAndLogout}><LogOut size={16} /><span>Sign Out</span></button>
                 </div>
               </div>
             </div>

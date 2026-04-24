@@ -111,11 +111,13 @@ class VpaaController extends Controller
             'id' => $thesis->id,
             'title' => $thesis->title,
             'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+            'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+            'abstract' => $thesis->abstract,
             'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
             'department' => $thesis->department,
             'program' => $thesis->program,
             'category' => $thesis->category?->name,
-            'keywords' => collect($thesis->keywords ?? [])->filter()->take(2)->values()->all(),
+            'keywords' => collect($thesis->keywords ?? [])->filter()->values()->all(),
             'view_count' => (int) $thesis->view_count,
             'approved_at' => optional($thesis->approved_at)?->toISOString(),
         ];
@@ -207,17 +209,26 @@ class VpaaController extends Controller
             ->get()
             ->keyBy('id');
 
-        $departmentCollegeMap = FacultyProfile::query()
-            ->whereNotNull('department')
-            ->whereNotNull('college')
-            ->get(['department', 'college'])
-            ->pluck('college', 'department');
+        $departmentCollegeMap = collect(config('academic.department_college_map', []))
+            ->merge(
+                FacultyProfile::query()
+                    ->whereNotNull('department')
+                    ->whereNotNull('college')
+                    ->where('department', '!=', '')
+                    ->where('college', '!=', '')
+                    ->get(['department', 'college'])
+                    ->pluck('college', 'department')
+                    ->all()
+            );
 
-        $allColleges = FacultyProfile::query()
-            ->whereNotNull('college')
-            ->where('college', '!=', '')
-            ->orderBy('college')
-            ->pluck('college')
+        $allColleges = collect(config('academic.colleges', []))
+            ->merge(
+                FacultyProfile::query()
+                    ->whereNotNull('college')
+                    ->where('college', '!=', '')
+                    ->orderBy('college')
+                    ->pluck('college')
+            )
             ->unique()
             ->values();
 
@@ -322,6 +333,7 @@ class VpaaController extends Controller
                     ->select([
                         'id',
                         'title',
+                        'abstract',
                         'authors',
                         'department',
                         'program',
@@ -348,11 +360,13 @@ class VpaaController extends Controller
                             'id' => $thesis->id,
                             'title' => $thesis->title,
                             'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+                            'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+                            'abstract' => $thesis->abstract,
                             'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
                             'department' => $thesis->department,
                             'program' => $thesis->program,
                             'school_year' => $thesis->school_year,
-                            'keywords' => collect($thesis->keywords ?? [])->filter()->take(2)->values()->all(),
+                            'keywords' => collect($thesis->keywords ?? [])->filter()->values()->all(),
                             'approved_at' => optional($thesis->approved_at)?->toISOString(),
                         ];
                     })->all(),

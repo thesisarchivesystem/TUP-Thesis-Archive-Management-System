@@ -98,6 +98,16 @@ class User extends Authenticatable
         return $this->hasMany(SupportTicket::class, 'user_id');
     }
 
+    public function extensionRequests(): HasMany
+    {
+        return $this->hasMany(ExtensionRequest::class, 'student_id');
+    }
+
+    public function receivedExtensionRequests(): HasMany
+    {
+        return $this->hasMany(ExtensionRequest::class, 'faculty_id');
+    }
+
     public function getRouteKeyName(): string
     {
         return 'id';

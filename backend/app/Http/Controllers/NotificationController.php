@@ -59,6 +59,7 @@ class NotificationController extends Controller
             'faculty' => [
                 'new_message',
                 'thesis.submitted',
+                'extension.requested',
                 'department.file_shared',
                 'student.created',
             ],

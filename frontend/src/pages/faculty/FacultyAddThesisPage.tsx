@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { BookOpenText, ClipboardList, FileText, FolderOpen, ShieldCheck, Sparkles, Tags, UserRound } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { categoryService, type CategoryOption } from '../../services/categoryService';
 import { useAuth } from '../../hooks/useAuth';
@@ -12,7 +13,7 @@ const initialForm = {
   department: 'Computer Studies Department',
   schoolYear: String(new Date().getFullYear()),
   categoryId: '',
-  authors: '',
+  authors: [] as string[],
   adviser: '',
   abstract: '',
   keywords: '',
@@ -24,11 +25,11 @@ export default function FacultyAddThesisPage() {
   const { user } = useAuth();
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [form, setForm] = useState(initialForm);
+  const [authorInput, setAuthorInput] = useState('');
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [manuscriptFile, setManuscriptFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [supplementaryFiles, setSupplementaryFiles] = useState<File[]>([]);
@@ -61,12 +62,20 @@ export default function FacultyAddThesisPage() {
     };
   }, []);
 
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      adviser: current.adviser || user?.name || '',
+    }));
+  }, [user?.name]);
+
   const resetForm = () => {
     setForm({
       ...initialForm,
       adviser: user?.name ?? '',
       categoryId: categories[0]?.id ?? '',
     });
+    setAuthorInput('');
     setManuscriptFile(null);
     setCoverFile(null);
     setSupplementaryFiles([]);
@@ -75,56 +84,58 @@ export default function FacultyAddThesisPage() {
     if (supplementaryInputRef.current) supplementaryInputRef.current.value = '';
   };
 
-  useEffect(() => {
+  const addAuthor = (value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return;
+
+    setForm((current) => {
+      if (current.authors.includes(normalized)) {
+        return current;
+      }
+
+      return { ...current, authors: [...current.authors, normalized] };
+    });
+    setAuthorInput('');
+  };
+
+  const removeAuthor = (authorToRemove: string) => {
     setForm((current) => ({
       ...current,
-      adviser: current.adviser || user?.name || '',
+      authors: current.authors.filter((author) => author !== authorToRemove),
     }));
-  }, [user?.name]);
+  };
 
-  const inputClass = (field: string) =>
-    `w-full rounded-2xl border bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)] ${
-      invalidFields.includes(field)
-        ? 'border-[var(--maroon)] bg-[rgba(139,35,50,0.03)]'
-        : 'border-[var(--input-border)]'
-    }`;
+  const validateSubmit = (mode: 'draft' | 'submit') => {
+    if (!form.title.trim()) return 'Please enter the thesis title.';
+    if (!form.program.trim()) return 'Please enter the program.';
+    if (!form.department.trim()) return 'Please enter the department.';
+    if (!form.schoolYear.trim()) return 'Please enter the school year.';
+    if (!form.categoryId.trim()) return 'Please select a category.';
 
-  const validateSubmit = () => {
-    const missing: string[] = [];
+    if (mode === 'submit') {
+      if (!form.authors.length) return 'Please list at least one author.';
+      if (!form.adviser.trim()) return 'Please enter the thesis adviser.';
+      if (!form.abstract.trim()) return 'Please enter the thesis abstract.';
+      if (!form.keywords.trim()) return 'Please enter at least one keyword.';
+      if (!manuscriptFile) return 'Please attach the thesis PDF before submitting.';
+      if (!form.confirmOriginal || !form.allowReview) {
+        return 'Please complete the submission confirmations before submitting the thesis.';
+      }
+    }
 
-    if (!form.title.trim()) missing.push('title');
-    if (!form.program.trim()) missing.push('program');
-    if (!form.department.trim()) missing.push('department');
-    if (!form.schoolYear.trim()) missing.push('schoolYear');
-    if (!form.categoryId.trim()) missing.push('categoryId');
-    if (!form.authors.trim()) missing.push('authors');
-    if (!form.adviser.trim()) missing.push('adviser');
-    if (!form.abstract.trim()) missing.push('abstract');
-    if (!form.keywords.trim()) missing.push('keywords');
-    if (!manuscriptFile) missing.push('manuscript');
-    if (!form.confirmOriginal) missing.push('confirmOriginal');
-    if (!form.allowReview) missing.push('allowReview');
-
-    setInvalidFields(missing);
-    return missing;
+    return '';
   };
 
   const handleSave = async (mode: 'draft' | 'submit') => {
     setSubmitting(mode);
     setError('');
     setSuccess('');
-    setInvalidFields([]);
 
-    if (mode === 'submit') {
-      const missing = validateSubmit();
-
-      if (missing.length) {
-        const message = 'Please complete all required fields and confirmations before submitting the thesis.';
-        setError(message);
-        window.alert(message);
-        setSubmitting(null);
-        return;
-      }
+    const validationError = validateSubmit(mode);
+    if (validationError) {
+      setError(validationError);
+      setSubmitting(null);
+      return;
     }
 
     try {
@@ -135,7 +146,7 @@ export default function FacultyAddThesisPage() {
         program: form.program,
         category_id: form.categoryId,
         school_year: form.schoolYear,
-        authors: form.authors,
+        authors: form.authors.join(', '),
         adviser: form.adviser,
         submission_mode: mode,
         confirm_original: form.confirmOriginal,
@@ -146,7 +157,6 @@ export default function FacultyAddThesisPage() {
       });
 
       setSuccess(mode === 'submit' ? 'Thesis submitted and stored in the database.' : 'Thesis draft stored in the database.');
-
       resetForm();
     } catch (err: any) {
       setError(
@@ -159,163 +169,232 @@ export default function FacultyAddThesisPage() {
     }
   };
 
+  const handleChange = (field: 'title' | 'program' | 'department' | 'schoolYear' | 'categoryId' | 'adviser' | 'abstract' | 'keywords') => (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) => {
+    setForm((current) => ({ ...current, [field]: event.target.value }));
+  };
+
   return (
     <FacultyLayout
       title="Add Thesis"
       description="Submit a thesis entry with complete metadata, abstract, and required documents for review."
     >
-      <div className="space-y-5">
-        {error ? <div className="rounded-xl bg-[rgba(139,35,50,0.08)] px-4 py-3 text-sm font-medium text-[var(--maroon)]">{error}</div> : null}
-        {success ? <div className="rounded-xl bg-[rgba(61,139,74,0.12)] px-4 py-3 text-sm font-medium text-[var(--sage)]">{success}</div> : null}
+      {error ? <div className="vpaa-banner-error">{error}</div> : null}
+      {success ? <div className="vpaa-banner-success">{success}</div> : null}
 
-        <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
-          <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)]">
-            <div className="mb-5">
-              <h2 className="mb-1 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Thesis Details</h2>
-              <p className="text-sm text-text-secondary">Provide accurate information so your work is discoverable in the archive.</p>
+      <div className="student-upload-shell">
+        <section className="student-upload-main vpaa-card">
+          <div className="student-upload-section-copy">
+            <h2><BookOpenText size={22} /> Thesis Details</h2>
+            <p>Provide accurate information so the thesis is discoverable and publication-ready in the archive.</p>
+          </div>
+
+          <form className="student-upload-form" onSubmit={(event) => event.preventDefault()}>
+            <input ref={manuscriptInputRef} type="file" accept=".pdf,application/pdf" hidden onChange={(event) => setManuscriptFile(event.target.files?.[0] ?? null)} />
+            <input ref={coverInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" hidden onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)} />
+            <input ref={supplementaryInputRef} type="file" multiple hidden onChange={(event) => setSupplementaryFiles(Array.from(event.target.files ?? []))} />
+
+            <label className="student-upload-field full">
+              <span>Thesis Title</span>
+              <input value={form.title} onChange={handleChange('title')} placeholder="Enter full thesis title" />
+            </label>
+
+            <div className="student-upload-grid">
+              <label className="student-upload-field">
+                <span>Program</span>
+                <input value={form.program} onChange={handleChange('program')} />
+              </label>
+
+              <label className="student-upload-field">
+                <span>Department</span>
+                <input value={form.department} onChange={handleChange('department')} />
+              </label>
+
+              <label className="student-upload-field">
+                <span>Year</span>
+                <input value={form.schoolYear} onChange={handleChange('schoolYear')} placeholder="2026" />
+              </label>
+
+              <label className="student-upload-field">
+                <span>Category</span>
+                <select value={form.categoryId} onChange={handleChange('categoryId')} disabled={loadingCategories || !categories.length}>
+                  {!categories.length ? <option value="">No categories available</option> : <option value="">Select a category</option>}
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+              </label>
             </div>
 
-            <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
-              <input ref={manuscriptInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={(event) => setManuscriptFile(event.target.files?.[0] ?? null)} />
-              <input ref={coverInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" className="hidden" onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)} />
-              <input ref={supplementaryInputRef} type="file" multiple className="hidden" onChange={(event) => setSupplementaryFiles(Array.from(event.target.files ?? []))} />
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-text-primary">Thesis Title</span>
-                <input className={inputClass('title')} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Enter full thesis title" />
-              </label>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-text-primary">Program</span>
-                  <input className={inputClass('program')} value={form.program} onChange={(event) => setForm({ ...form, program: event.target.value })} />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-text-primary">Department</span>
-                  <input className={inputClass('department')} value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} />
-                </label>
+            <label className="student-upload-field full">
+              <span><UserRound size={14} /> Authors</span>
+              <div className="student-upload-author-box">
+                <div className="student-upload-author-tags">
+                  {form.authors.map((author) => (
+                    <span className="student-upload-author-chip" key={author}>
+                      {author}
+                      <button type="button" onClick={() => removeAuthor(author)} aria-label={`Remove ${author}`}>
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  value={authorInput}
+                  onChange={(event) => setAuthorInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      addAuthor(authorInput);
+                    }
+                  }}
+                  onBlur={() => addAuthor(authorInput)}
+                  placeholder="Type an author name, then press Enter"
+                />
               </div>
+              <small>Press Enter after each author name to add another one.</small>
+            </label>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-text-primary">Year</span>
-                  <input className={inputClass('schoolYear')} value={form.schoolYear} onChange={(event) => setForm({ ...form, schoolYear: event.target.value })} placeholder="2026" />
-                </label>
+            <label className="student-upload-field full">
+              <span><UserRound size={14} /> Thesis Adviser</span>
+              <input value={form.adviser} onChange={handleChange('adviser')} placeholder="Enter adviser name" />
+            </label>
 
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-text-primary">Category</span>
-                  <select className={inputClass('categoryId')} value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} disabled={loadingCategories || !categories.length}>
-                    {!categories.length ? <option value="">No categories available</option> : null}
-                    {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                  </select>
-                </label>
-              </div>
+            <label className="student-upload-field full">
+              <span><FileText size={14} /> Abstract</span>
+              <textarea value={form.abstract} onChange={handleChange('abstract')} placeholder="Paste your abstract here" rows={6} />
+            </label>
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-text-primary">Authors</span>
-                <input className={inputClass('authors')} value={form.authors} onChange={(event) => setForm({ ...form, authors: event.target.value })} placeholder="List all authors separated by commas" />
-                <span className="mt-2 block text-xs text-text-tertiary">Example: Maria Santos, John Dela Cruz, Faye Lim</span>
-              </label>
+            <label className="student-upload-field full">
+              <span><Tags size={14} /> Keywords</span>
+              <input value={form.keywords} onChange={handleChange('keywords')} placeholder="E.g. LMS, adaptive learning, analytics" />
+            </label>
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-text-primary">Thesis Adviser</span>
-                <input className={inputClass('adviser')} value={form.adviser} onChange={(event) => setForm({ ...form, adviser: event.target.value })} />
-              </label>
+            <div className="student-upload-field full">
+              <span><FolderOpen size={14} /> Upload Files</span>
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-text-primary">Abstract</span>
-                <textarea className={`min-h-[132px] ${inputClass('abstract')}`} value={form.abstract} onChange={(event) => setForm({ ...form, abstract: event.target.value })} placeholder="Paste your abstract here" />
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-text-primary">Keywords</span>
-                <input className={inputClass('keywords')} value={form.keywords} onChange={(event) => setForm({ ...form, keywords: event.target.value })} placeholder="E.g. LMS, adaptive learning, analytics" />
-              </label>
-
-              <div className="space-y-3">
-                <span className="block text-sm font-semibold text-text-primary">Upload Files</span>
-
-                <div className="grid gap-3">
-                  <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                    <input className={inputClass('manuscript')} value={manuscriptFile?.name ?? ''} readOnly placeholder="No file chosen" />
-                    <div className="flex gap-2">
-                      <button type="button" className="rounded-2xl border border-[var(--input-border)] bg-white px-5 py-3 text-sm font-semibold text-text-primary" onClick={() => manuscriptInputRef.current?.click()}>Select PDF</button>
-                      {manuscriptFile ? <button type="button" className="rounded-2xl border border-[rgba(139,35,50,0.18)] bg-[rgba(139,35,50,0.05)] px-4 py-3 text-sm font-semibold text-[var(--maroon)]" onClick={() => { setManuscriptFile(null); if (manuscriptInputRef.current) manuscriptInputRef.current.value = ''; }}>Remove</button> : null}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                    <input className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none" value={coverFile?.name ?? ''} readOnly placeholder="No file chosen" />
-                    <div className="flex gap-2">
-                      <button type="button" className="rounded-2xl border border-[var(--input-border)] bg-white px-5 py-3 text-sm font-semibold text-text-primary" onClick={() => coverInputRef.current?.click()}>Upload Cover</button>
-                      {coverFile ? <button type="button" className="rounded-2xl border border-[rgba(139,35,50,0.18)] bg-[rgba(139,35,50,0.05)] px-4 py-3 text-sm font-semibold text-[var(--maroon)]" onClick={() => { setCoverFile(null); if (coverInputRef.current) coverInputRef.current.value = ''; }}>Remove</button> : null}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                    <input className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none" value={supplementaryFiles.length ? supplementaryFiles.map((file) => file.name).join(', ') : ''} readOnly placeholder="No files chosen" />
-                    <div className="flex gap-2">
-                      <button type="button" className="rounded-2xl border border-[var(--input-border)] bg-white px-5 py-3 text-sm font-semibold text-text-primary" onClick={() => supplementaryInputRef.current?.click()}>Supplementary Files</button>
-                      {supplementaryFiles.length ? <button type="button" className="rounded-2xl border border-[rgba(139,35,50,0.18)] bg-[rgba(139,35,50,0.05)] px-4 py-3 text-sm font-semibold text-[var(--maroon)]" onClick={() => { setSupplementaryFiles([]); if (supplementaryInputRef.current) supplementaryInputRef.current.value = ''; }}>Remove</button> : null}
-                    </div>
-                  </div>
+              <div className="student-upload-file-row">
+                <div className="student-upload-file-label">{manuscriptFile?.name || 'No file chosen'}</div>
+                <div className="student-upload-file-actions">
+                  <label className="student-upload-file-btn">
+                    <input type="file" accept=".pdf,application/pdf" hidden onChange={(event) => setManuscriptFile(event.target.files?.[0] ?? null)} />
+                    Select PDF
+                  </label>
+                  {manuscriptFile ? (
+                    <button type="button" className="student-upload-file-remove" onClick={() => {
+                      setManuscriptFile(null);
+                      if (manuscriptInputRef.current) manuscriptInputRef.current.value = '';
+                    }} aria-label="Remove selected PDF">
+                      x
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
-              <label className={`flex items-start gap-3 text-sm font-semibold ${invalidFields.includes('confirmOriginal') ? 'text-[var(--maroon)]' : 'text-text-primary'}`}>
-                <input type="checkbox" className="mt-1 h-4 w-4 rounded border-[var(--input-border)]" checked={form.confirmOriginal} onChange={(event) => setForm({ ...form, confirmOriginal: event.target.checked })} />
-                <span>I confirm that this submission is original, properly cited, and approved for upload to the thesis archive.</span>
-              </label>
-
-              <label className={`flex items-start gap-3 text-sm font-semibold ${invalidFields.includes('allowReview') ? 'text-[var(--maroon)]' : 'text-text-primary'}`}>
-                <input type="checkbox" className="mt-1 h-4 w-4 rounded border-[var(--input-border)]" checked={form.allowReview} onChange={(event) => setForm({ ...form, allowReview: event.target.checked })} />
-                <span>I agree to share the thesis for academic purposes and allow the archive committee to review the content.</span>
-              </label>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button type="button" className="rounded-2xl border border-[var(--input-border)] bg-white px-6 py-3 text-sm font-semibold text-text-primary" onClick={() => void handleSave('draft')} disabled={submitting !== null || !form.title || !form.categoryId}>
-                  {submitting === 'draft' ? 'Saving...' : 'Save Draft'}
-                </button>
-                <button type="button" className="rounded-2xl bg-[var(--maroon)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-sm)]" onClick={() => void handleSave('submit')} disabled={submitting !== null || !form.title || !form.categoryId}>
-                  {submitting === 'submit' ? 'Submitting...' : 'Submit Thesis'}
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <aside className="space-y-4">
-            <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-sm)]">
-              <div className="mb-5">
-                <h2 className="mb-1 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Submission Checklist</h2>
-                <p className="text-sm text-text-secondary">Ensure these items are ready before submitting.</p>
-              </div>
-
-              <div className="mb-4 flex flex-wrap gap-2">
-                {checklistItems.map((item) => (
-                  <span key={item} className="rounded-full bg-[rgba(139,35,50,0.06)] px-3 py-2 text-sm font-medium text-[var(--maroon)]">{item}</span>
-                ))}
-              </div>
-
-              <div className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4">
-                <div className="mb-3 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Upload Status</div>
-                <div className="space-y-3 text-sm text-text-secondary">
-                  <div className="flex items-center gap-3"><span className="h-3 w-3 rounded-full bg-[var(--sage)]" /><span>Profile and program details</span></div>
-                  <div className="flex items-center gap-3"><span className="h-3 w-3 rounded-full bg-[var(--gold)]" /><span>Files added (PDF, cover, supplementary)</span></div>
-                  <div className="flex items-center gap-3"><span className="h-3 w-3 rounded-full bg-[var(--gold)]" /><span>Adviser approval and consent</span></div>
+              <div className="student-upload-file-row">
+                <div className="student-upload-file-label">{coverFile?.name || 'No file chosen'}</div>
+                <div className="student-upload-file-actions">
+                  <label className="student-upload-file-btn">
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" hidden onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)} />
+                    Upload Cover
+                  </label>
+                  {coverFile ? (
+                    <button type="button" className="student-upload-file-remove" onClick={() => {
+                      setCoverFile(null);
+                      if (coverInputRef.current) coverInputRef.current.value = '';
+                    }} aria-label="Remove cover file">
+                      x
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-[rgba(196,101,74,0.18)] bg-[rgba(196,101,74,0.06)] px-4 py-4 text-sm text-text-secondary">
-                Faculty-added theses are automatically approved and published to the archive. No additional review is required.
+              <div className="student-upload-file-row">
+                <div className="student-upload-file-label">
+                  {supplementaryFiles.length ? supplementaryFiles.map((file) => file.name).join(', ') : 'No files chosen'}
+                </div>
+                <div className="student-upload-file-actions">
+                  <label className="student-upload-file-btn">
+                    <input type="file" multiple hidden onChange={(event) => setSupplementaryFiles(Array.from(event.target.files ?? []))} />
+                    Supplementary Files
+                  </label>
+                  {supplementaryFiles.length ? (
+                    <button type="button" className="student-upload-file-remove" onClick={() => {
+                      setSupplementaryFiles([]);
+                      if (supplementaryInputRef.current) supplementaryInputRef.current.value = '';
+                    }} aria-label="Remove supplementary files">
+                      x
+                    </button>
+                  ) : null}
+                </div>
               </div>
+            </div>
 
-              <div className="mt-4 rounded-2xl border border-[rgba(196,101,74,0.18)] bg-[rgba(196,101,74,0.04)] px-4 py-4 text-sm text-text-secondary">
-                Need help? Visit the Support page or contact your department coordinator for submission guidelines.
+            <label className="student-upload-check">
+              <input type="checkbox" checked={form.confirmOriginal} onChange={(event) => setForm((current) => ({ ...current, confirmOriginal: event.target.checked }))} />
+              <span>I confirm that this submission is original, properly cited, and approved for upload to the thesis archive. <strong className="student-upload-required">*</strong></span>
+            </label>
+
+            <label className="student-upload-check">
+              <input type="checkbox" checked={form.allowReview} onChange={(event) => setForm((current) => ({ ...current, allowReview: event.target.checked }))} />
+              <span>I agree to share the thesis for academic purposes and allow the archive committee to review the content. <strong className="student-upload-required">*</strong></span>
+            </label>
+
+            <div className="student-upload-actions">
+              <button type="button" className="student-upload-secondary" onClick={() => void handleSave('draft')} disabled={submitting !== null}>
+                {submitting === 'draft' ? 'Saving...' : 'Save Draft'}
+              </button>
+              <button type="button" className="student-upload-primary" onClick={() => void handleSave('submit')} disabled={submitting !== null}>
+                {submitting === 'submit' ? 'Submitting...' : 'Submit Thesis'}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <aside className="student-upload-side vpaa-card thesis-details-side-card submission-accent-panel">
+          <div className="student-upload-section-copy thesis-details-side-head">
+            <div>
+              <h2>Submission Checklist</h2>
+              <p>Ensure these items are ready before submitting.</p>
+            </div>
+            <div className="thesis-details-side-graphic" aria-hidden="true">
+              <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
+              <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
+              <div className="thesis-details-side-cloud">
+                <div className="thesis-details-side-graphic-book">
+                  <ClipboardList size={24} />
+                </div>
+                <div className="thesis-details-side-shield">
+                  <ShieldCheck size={16} />
+                </div>
               </div>
-            </section>
-          </aside>
-        </div>
+            </div>
+          </div>
+
+          <div className="student-upload-chip-row">
+            {checklistItems.map((item) => (
+              <span key={item} className="student-upload-chip">{item}</span>
+            ))}
+          </div>
+
+          <div className="student-upload-status">
+            <h3>Upload Status</h3>
+            <ul>
+              <li className="is-complete">Metadata and adviser details</li>
+              <li>Files added (PDF, cover, supplementary)</li>
+              <li>Faculty publication confirmation</li>
+            </ul>
+          </div>
+
+          <div className="student-upload-note">
+            Faculty-added theses are automatically approved and published to the archive. No additional review is required.
+          </div>
+
+          <div className="student-upload-note">
+            Need help? Visit the Support page or coordinate with the archive office for publication guidelines.
+          </div>
+        </aside>
       </div>
     </FacultyLayout>
   );

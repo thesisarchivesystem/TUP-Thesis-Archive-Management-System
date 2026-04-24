@@ -37,14 +37,16 @@ type Props = {
   role: UserRole;
   initialName: string;
   initialEmail: string;
+  initialCategory?: string;
+  initialMessage?: string;
 };
 
-export default function SupportCenterContent({ role, initialName, initialEmail }: Props) {
+export default function SupportCenterContent({ role, initialName, initialEmail, initialCategory = '', initialMessage = '' }: Props) {
   const [form, setForm] = useState({
     full_name: initialName,
     email: initialEmail,
-    category: '',
-    message: '',
+    category: initialCategory,
+    message: initialMessage,
   });
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);

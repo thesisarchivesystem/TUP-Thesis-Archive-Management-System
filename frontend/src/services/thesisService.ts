@@ -9,7 +9,7 @@ export interface StudentThesisPayload {
   program?: string;
   category_id: string;
   school_year: string;
-  authors?: string;
+  authors?: string | string[];
   adviser_id?: string;
   manuscript?: File | null;
   supplementary_files?: File[];
@@ -30,12 +30,13 @@ const buildStudentUploadFormData = (payload: StudentThesisPayload) => {
   formData.append('category_id', payload.category_id);
   formData.append('school_year', payload.school_year);
   formData.append('adviser_id', payload.adviser_id ?? '');
-  formData.append('authors', JSON.stringify(
-    (payload.authors ?? '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean),
-  ));
+  const normalizedAuthors = Array.isArray(payload.authors)
+    ? payload.authors
+    : (payload.authors ?? '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+  formData.append('authors', JSON.stringify(normalizedAuthors));
 
   if (payload.manuscript) {
     formData.append('manuscript', payload.manuscript);

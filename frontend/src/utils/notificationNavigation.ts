@@ -18,6 +18,7 @@ export function getNotificationNavigationTarget(
   const messageId = asString(notification.data?.message_id);
   const facultyUserId = asString(notification.data?.faculty_user_id);
   const studentUserId = asString(notification.data?.student_user_id);
+  const extensionRequestId = asString(notification.data?.extension_request_id);
 
   if (notification.type === 'new_message' && conversationId) {
     return {
@@ -53,6 +54,13 @@ export function getNotificationNavigationTarget(
       return {
         path: '/faculty/my-advisees',
         state: { studentUserId },
+      };
+    }
+
+    if (notification.type === 'extension.requested') {
+      return {
+        path: '/faculty/manage-thesis/review',
+        state: { extensionRequestId, thesisId },
       };
     }
   }

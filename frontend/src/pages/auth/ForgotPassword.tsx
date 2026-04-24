@@ -1,12 +1,13 @@
 import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, MoonStar, SunMedium } from 'lucide-react';
+import { MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { authService } from '../../services/authService';
 import tupBuilding from '../../assets/tup-building.gif';
+import BrandMarkIcon from '../../components/BrandMarkIcon';
 
 function LogoIcon() {
-  return <GraduationCap />;
+  return <BrandMarkIcon />;
 }
 
 function ForgotPasswordStyles() {
@@ -279,7 +280,7 @@ function ForgotPasswordStyles() {
         justify-content: center;
       }
 
-      .forgot-logo-icon svg { width: 20px; height: 20px; fill: white; }
+      .forgot-logo-icon svg { width: 20px; height: 20px; color: white; }
 
       .forgot-brand {
         font-size: 16px;

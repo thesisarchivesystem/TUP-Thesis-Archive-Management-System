@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Files, LibraryBig, UsersRound } from 'lucide-react';
+import { CheckCircle2, Clock3, Files, LibraryBig } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
@@ -30,9 +30,6 @@ const getProgramBadge = (program?: string | null) => {
     .slice(0, 3);
 };
 
-const matchesDatasetTag = (thesis: Thesis) =>
-  (thesis.keywords ?? []).some((keyword) => keyword.toLowerCase().includes('data'));
-
 export default function FacultyApprovedThesesPage() {
   const [theses, setTheses] = useState<Thesis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +37,7 @@ export default function FacultyApprovedThesesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [programFilter, setProgramFilter] = useState('All Programs');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
-  const [tagFilter, setTagFilter] = useState<'All' | 'This Month' | 'Most Shared' | 'With Datasets'>('All');
+  const [tagFilter, setTagFilter] = useState<'All' | 'This Month'>('All');
 
   const handleOpenManuscript = async (thesis: Thesis) => {
     const previewWindow = window.open('', '_blank');
@@ -121,8 +118,6 @@ export default function FacultyApprovedThesesPage() {
 
       const matchesTag = (() => {
         if (tagFilter === 'All') return true;
-        if (tagFilter === 'Most Shared') return (thesis.view_count ?? 0) > 0;
-        if (tagFilter === 'With Datasets') return matchesDatasetTag(thesis);
         if (!thesis.approved_at) return false;
         const approvedDate = new Date(thesis.approved_at);
         return approvedDate.getMonth() === now.getMonth() && approvedDate.getFullYear() === now.getFullYear();
@@ -151,7 +146,6 @@ export default function FacultyApprovedThesesPage() {
       { label: 'Total Approved', value: String(theses.length), icon: Files, tone: 'maroon' },
       { label: 'Recently Approved', value: formatRelativeSync(latestApproval), icon: Clock3, tone: 'gold' },
       { label: 'Departments', value: String(new Set(theses.map((item) => item.department).filter(Boolean)).size), icon: LibraryBig, tone: 'terracotta' },
-      { label: 'Shared With Admins', value: String(theses.filter((item) => (item.view_count ?? 0) > 0).length), icon: UsersRound, tone: 'sky' },
     ] as const;
   }, [theses]);
 
@@ -163,7 +157,7 @@ export default function FacultyApprovedThesesPage() {
       <div className="space-y-5">
         {error ? <div className="rounded-xl bg-[rgba(139,35,50,0.08)] px-4 py-3 text-sm font-medium text-[var(--maroon)]">{error}</div> : null}
 
-        <section className="grid gap-3 xl:grid-cols-5">
+        <section className="grid gap-3 xl:grid-cols-4">
           {stats.map(({ label, value, icon: Icon, tone }) => (
             <article key={label} className="rounded-[18px] border border-[var(--border)] bg-[var(--bg-card)] p-3.5 shadow-[var(--shadow-sm)]">
               <div className="flex items-start justify-between gap-3">
@@ -176,16 +170,14 @@ export default function FacultyApprovedThesesPage() {
                   style={{
                     background:
                       tone === 'maroon' ? 'rgba(139,35,50,0.08)'
-                        : tone === 'sky' ? 'rgba(74,143,181,0.10)'
-                          : tone === 'gold' ? 'rgba(201,150,58,0.10)'
-                            : tone === 'terracotta' ? 'rgba(196,101,74,0.10)'
-                              : 'rgba(61,139,74,0.10)',
+                        : tone === 'gold' ? 'rgba(201,150,58,0.10)'
+                          : tone === 'terracotta' ? 'rgba(196,101,74,0.10)'
+                            : 'rgba(61,139,74,0.10)',
                     color:
                       tone === 'maroon' ? 'var(--maroon)'
-                        : tone === 'sky' ? 'var(--sky)'
-                          : tone === 'gold' ? 'var(--gold)'
-                            : tone === 'terracotta' ? 'var(--terracotta)'
-                              : 'var(--sage)',
+                        : tone === 'gold' ? 'var(--gold)'
+                          : tone === 'terracotta' ? 'var(--terracotta)'
+                            : 'var(--sage)',
                   }}
                 >
                   <Icon size={18} />
@@ -203,7 +195,6 @@ export default function FacultyApprovedThesesPage() {
               </span>
               <h2 className="mb-0 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Approved Thesis Library</h2>
             </div>
-            <button type="button" className="text-sm font-semibold text-[var(--maroon)]">Export List ?</button>
           </div>
 
           <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -231,7 +222,7 @@ export default function FacultyApprovedThesesPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {(['All', 'This Month', 'Most Shared', 'With Datasets'] as const).map((filter) => (
+              {(['All', 'This Month'] as const).map((filter) => (
                 <button
                   key={filter}
                   type="button"

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpenText, ClipboardList, FileText, FolderOpen, Tags, UserRound } from 'lucide-react';
+import { BookOpenText, ClipboardList, FileText, FolderOpen, ShieldCheck, Sparkles, Tags, UserRound } from 'lucide-react';
 import axios from 'axios';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
 import { thesisService, type StudentAdviserOption } from '../../services/thesisService';
 import { vpaaCategoriesService, type VpaaCategory } from '../../services/vpaaCategoriesService';
+import type { Thesis } from '../../types/thesis.types';
 
 type UploadFormState = {
   title: string;
@@ -11,7 +13,7 @@ type UploadFormState = {
   department: string;
   school_year: string;
   category_id: string;
-  authors: string;
+  authors: string[];
   adviser_id: string;
   abstract: string;
   keywords: string;
@@ -23,7 +25,7 @@ const initialFormState: UploadFormState = {
   department: 'Computer Studies Department',
   school_year: '2026',
   category_id: '',
-  authors: '',
+  authors: [],
   adviser_id: '',
   abstract: '',
   keywords: '',
@@ -50,10 +52,18 @@ const extractApiErrorMessage = (error: unknown, fallback: string) => {
 };
 
 export default function StudentUploadThesisPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const draftFromState = (location.state as { draft?: Thesis } | null)?.draft ?? null;
+  const draftQueryId = searchParams.get('draft');
   const [form, setForm] = useState<UploadFormState>(initialFormState);
   const [categories, setCategories] = useState<VpaaCategory[]>([]);
   const [advisers, setAdvisers] = useState<StudentAdviserOption[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [loadedStatus, setLoadedStatus] = useState<Thesis['status'] | null>(draftFromState?.status ?? null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [existingManuscriptName, setExistingManuscriptName] = useState('');
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -62,6 +72,8 @@ export default function StudentUploadThesisPage() {
   const [allowReview, setAllowReview] = useState(false);
   const [manuscriptFile, setManuscriptFile] = useState<File | null>(null);
   const [supplementaryFiles, setSupplementaryFiles] = useState<File[]>([]);
+  const [authorInput, setAuthorInput] = useState('');
+  const isRevisionMode = loadedStatus === 'rejected';
 
   useEffect(() => {
     void vpaaCategoriesService.list('student')
@@ -92,6 +104,54 @@ export default function StudentUploadThesisPage() {
       });
   }, []);
 
+  useEffect(() => {
+    if (!draftQueryId) {
+      setLoadedStatus(null);
+      setDraftLoaded(true);
+      return;
+    }
+
+    const normalizedId = decodeURIComponent(draftQueryId);
+    const stateDraft = draftFromState && String(draftFromState.id) === normalizedId ? draftFromState : null;
+
+    const applyDraft = (draft: Thesis) => {
+      setDraftId(draft.id);
+      setLoadedStatus(draft.status);
+      setExistingManuscriptName(draft.file_name ?? '');
+      setForm({
+        title: draft.title ?? '',
+        program: draft.program ?? 'BS Computer Science',
+        department: draft.department ?? 'Computer Studies Department',
+        school_year: draft.school_year ?? '2026',
+        category_id: draft.category?.id ?? draft.category_id ?? '',
+        authors: draft.authors ?? [],
+        adviser_id: draft.adviser?.id ?? '',
+        abstract: draft.abstract ?? '',
+        keywords: draft.keywords?.join(', ') ?? '',
+      });
+      setAuthorInput('');
+      setDraftLoaded(true);
+    };
+
+    if (stateDraft) {
+      applyDraft(stateDraft);
+      return;
+    }
+
+    setDraftLoaded(false);
+    setError('');
+
+    void thesisService.get(normalizedId)
+      .then((response) => {
+        const data = response?.data ?? response;
+        applyDraft(data as Thesis);
+      })
+      .catch((err) => {
+        setError(extractApiErrorMessage(err, 'Unable to load this thesis right now.'));
+        setDraftLoaded(true);
+      });
+  }, [draftFromState, draftQueryId]);
+
   const checklistItems = useMemo(
     () => ['Signed Endorsement', 'Plagiarism Report', 'Final Manuscript', 'Title Page', 'Appendices'],
     [],
@@ -110,7 +170,7 @@ export default function StudentUploadThesisPage() {
     if (!form.category_id) return 'Please select a category.';
 
     if (mode === 'submit') {
-      if (!form.authors.trim()) return 'Please list at least one author.';
+      if (!form.authors.length) return 'Please list at least one author.';
       if (!form.adviser_id) return 'Please select a thesis adviser.';
       if (!form.abstract.trim()) return 'Please enter the thesis abstract.';
       if (!form.keywords.trim()) return 'Please enter at least one keyword.';
@@ -162,9 +222,9 @@ export default function StudentUploadThesisPage() {
       }
 
       await persistDraft();
-      setMessage('Draft saved successfully.');
+      setMessage(isRevisionMode ? 'Revision draft saved successfully.' : 'Draft saved successfully.');
     } catch (err) {
-      setError(extractApiErrorMessage(err, 'Unable to save your thesis draft.'));
+      setError(extractApiErrorMessage(err, isRevisionMode ? 'Unable to save your revision draft.' : 'Unable to save your thesis draft.'));
     } finally {
       setSaving(false);
     }
@@ -188,8 +248,12 @@ export default function StudentUploadThesisPage() {
       }
 
       if (!manuscriptFile) {
+        if (existingManuscriptName) {
+          // Existing draft manuscript can still be submitted without re-uploading.
+        } else {
         setError('Please attach the thesis PDF before submitting.');
         return;
+        }
       }
 
       let thesisId = draftId;
@@ -203,6 +267,8 @@ export default function StudentUploadThesisPage() {
       await thesisService.submit(thesisId);
       setMessage('Thesis submitted successfully.');
       setDraftId(null);
+      setExistingManuscriptName('');
+      navigate('/student/my-submissions');
     } catch (err) {
       setError(extractApiErrorMessage(err, 'Unable to submit your thesis.'));
     } finally {
@@ -210,15 +276,38 @@ export default function StudentUploadThesisPage() {
     }
   };
 
+  const addAuthor = (value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return;
+
+    setForm((current) => {
+      if (current.authors.includes(normalized)) {
+        return current;
+      }
+
+      return { ...current, authors: [...current.authors, normalized] };
+    });
+    setAuthorInput('');
+  };
+
+  const removeAuthor = (authorToRemove: string) => {
+    setForm((current) => ({
+      ...current,
+      authors: current.authors.filter((author) => author !== authorToRemove),
+    }));
+  };
+
   return (
     <StudentLayout
-      title="Upload Thesis"
-      description="Submit your thesis with complete metadata, abstract, and required documents for review."
+      title={draftId ? (isRevisionMode ? 'Make Revision' : 'Edit Draft') : 'Upload Thesis'}
+      description={draftId ? (isRevisionMode ? 'Revise the rejected submission, update the manuscript if needed, and resubmit it for faculty review.' : 'Update your saved draft and continue preparing it for submission.') : 'Submit your thesis with complete metadata, abstract, and required documents for review.'}
     >
       {message ? <div className="vpaa-banner-success">{message}</div> : null}
       {error ? <div className="vpaa-banner-error">{error}</div> : null}
 
-      <div className="student-upload-shell">
+      {!draftLoaded ? <div className="vpaa-card">Loading thesis...</div> : null}
+
+      <div className="student-upload-shell" style={{ display: draftLoaded ? undefined : 'none' }}>
         <section className="student-upload-main vpaa-card">
           <div className="student-upload-section-copy">
             <h2><BookOpenText size={22} /> Thesis Details</h2>
@@ -260,8 +349,31 @@ export default function StudentUploadThesisPage() {
 
             <label className="student-upload-field full">
               <span><UserRound size={14} /> Authors</span>
-              <input value={form.authors} onChange={handleChange('authors')} placeholder="List all authors separated by commas" />
-              <small>Example: Maria Santos, John Dela Cruz, Faye Lim</small>
+              <div className="student-upload-author-box">
+                <div className="student-upload-author-tags">
+                  {form.authors.map((author) => (
+                    <span className="student-upload-author-chip" key={author}>
+                      {author}
+                      <button type="button" onClick={() => removeAuthor(author)} aria-label={`Remove ${author}`}>
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  value={authorInput}
+                  onChange={(event) => setAuthorInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      addAuthor(authorInput);
+                    }
+                  }}
+                  onBlur={() => addAuthor(authorInput)}
+                  placeholder="Type an author name, then press Enter"
+                />
+              </div>
+              <small>Press Enter after each author name to add another one.</small>
             </label>
 
             <label className="student-upload-field full">
@@ -294,19 +406,27 @@ export default function StudentUploadThesisPage() {
             <div className="student-upload-field full">
               <span><FolderOpen size={14} /> Upload Files</span>
               <div className="student-upload-file-row">
-                <div className="student-upload-file-label">{manuscriptFile?.name || 'No file chosen'}</div>
+                <div className="student-upload-file-label">{manuscriptFile?.name || existingManuscriptName || 'No file chosen'}</div>
                 <div className="student-upload-file-actions">
                   <label className="student-upload-file-btn">
                     <input
                       type="file"
                       accept=".pdf"
                       hidden
-                      onChange={(event) => setManuscriptFile(event.target.files?.[0] ?? null)}
+                      onChange={(event) => {
+                        setManuscriptFile(event.target.files?.[0] ?? null);
+                        if (event.target.files?.[0]) {
+                          setExistingManuscriptName('');
+                        }
+                      }}
                     />
                     Select PDF
                   </label>
-                  {manuscriptFile ? (
-                    <button type="button" className="student-upload-file-remove" onClick={() => setManuscriptFile(null)} aria-label="Remove selected PDF">
+                  {(manuscriptFile || existingManuscriptName) ? (
+                    <button type="button" className="student-upload-file-remove" onClick={() => {
+                      setManuscriptFile(null);
+                      setExistingManuscriptName('');
+                    }} aria-label="Remove selected PDF">
                       x
                     </button>
                   ) : null}
@@ -348,7 +468,7 @@ export default function StudentUploadThesisPage() {
 
             <div className="student-upload-actions">
               <button type="button" className="student-upload-secondary" onClick={handleDraftSave} disabled={saving || submitting}>
-                {saving ? 'Saving...' : 'Save Draft'}
+                {saving ? 'Saving...' : draftId ? (isRevisionMode ? 'Save Revision' : 'Update Draft') : 'Save Draft'}
               </button>
               <button
                 type="button"
@@ -362,10 +482,24 @@ export default function StudentUploadThesisPage() {
           </div>
         </section>
 
-        <aside className="student-upload-side vpaa-card">
-          <div className="student-upload-section-copy">
-            <h2><ClipboardList size={22} /> Submission Checklist</h2>
-            <p>Ensure these items are ready before submitting.</p>
+        <aside className="student-upload-side vpaa-card thesis-details-side-card submission-accent-panel">
+          <div className="student-upload-section-copy thesis-details-side-head">
+            <div>
+              <h2>Submission Checklist</h2>
+              <p>Ensure these items are ready before submitting.</p>
+            </div>
+            <div className="thesis-details-side-graphic" aria-hidden="true">
+              <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
+              <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
+              <div className="thesis-details-side-cloud">
+                <div className="thesis-details-side-graphic-book">
+                  <ClipboardList size={24} />
+                </div>
+                <div className="thesis-details-side-shield">
+                  <ShieldCheck size={16} />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="student-upload-chip-row">

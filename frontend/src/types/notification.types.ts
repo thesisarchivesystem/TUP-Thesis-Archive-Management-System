@@ -4,6 +4,7 @@ export type NotificationType =
   | 'thesis.rejected'
   | 'thesis.submitted'
   | 'thesis.uploaded'
+  | 'extension.requested'
   | 'new_message'
   | 'faculty.created'
   | 'student.created'

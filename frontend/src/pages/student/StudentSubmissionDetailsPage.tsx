@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarDays, FileText, FolderOpen, GraduationCap, UserRound } from 'lucide-react';
+import { ArrowLeft, BookOpenText, CalendarDays, FileText, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
 import { thesisService } from '../../services/thesisService';
@@ -61,6 +61,7 @@ const buildProgressSteps = (status?: Thesis['status']) => {
 
 type LocationState = {
   submission?: Thesis;
+  focus?: 'feedback';
 };
 
 export default function StudentSubmissionDetailsPage() {
@@ -104,6 +105,15 @@ export default function StudentSubmissionDetailsPage() {
         setIsLoading(false);
       });
   }, [id, locationState?.submission]);
+
+  useEffect(() => {
+    if (locationState?.focus !== 'feedback' || isLoading) return;
+
+    const target = document.getElementById('student-feedback-section');
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [isLoading, locationState?.focus, submission]);
 
   const authorLabel = useMemo(() => {
     if (!submission) return 'Student';
@@ -196,20 +206,34 @@ export default function StudentSubmissionDetailsPage() {
               </div>
 
               {(submission.adviser_remarks || submission.rejection_reason) ? (
-                <div className="student-submission-summary">
+                <div className="student-submission-summary" id="student-feedback-section">
                   <strong>{submission.status === 'rejected' ? 'Revision Notes' : 'Approval Comment'}</strong>
                   <p>{submission.rejection_reason || submission.adviser_remarks}</p>
                 </div>
               ) : null}
             </section>
 
-            <aside className="student-submissions-side vpaa-card">
-              <div className="student-submissions-summary-head">
-                <h2>Submission Summary</h2>
-                <p>Snapshot of your research workflow</p>
+            <aside className="student-submissions-side vpaa-card thesis-details-side-card submission-accent-panel">
+              <div className="student-submissions-summary-head thesis-details-side-head">
+                <div>
+                  <h2>Submission Summary</h2>
+                  <p>Snapshot of your research workflow</p>
+                </div>
+                <div className="thesis-details-side-graphic" aria-hidden="true">
+                  <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
+                  <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
+                  <div className="thesis-details-side-cloud">
+                    <div className="thesis-details-side-graphic-book">
+                      <BookOpenText size={24} />
+                    </div>
+                    <div className="thesis-details-side-shield">
+                      <ShieldCheck size={16} />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="student-submissions-summary-grid">
+              <div className="student-submissions-summary-grid thesis-details-pane-grid submission-summary-grid">
                 <div className="student-submissions-summary-box">
                   <span>Turnaround Avg.</span>
                   <strong>{summary.turnaround} days</strong>

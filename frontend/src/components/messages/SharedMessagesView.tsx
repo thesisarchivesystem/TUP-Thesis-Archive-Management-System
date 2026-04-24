@@ -115,6 +115,15 @@ const getOtherParticipant = (
   } as User;
 };
 
+const getOtherParticipantId = (conversation: Conversation, currentUserId?: string) => {
+  return [
+    conversation.participant_one_id,
+    conversation.participant_two_id,
+    conversation.student_id,
+    conversation.faculty_id,
+  ].find((id) => id && id !== currentUserId) ?? null;
+};
+
 const formatRoleLabel = (role?: User['role']) => {
   if (!role) return 'User';
   return role === 'vpaa' ? 'VPAA' : role.charAt(0).toUpperCase() + role.slice(1);
@@ -331,6 +340,7 @@ export default function SharedMessagesView() {
 
   useEffect(() => {
     if (!activeConversationId) {
+      setActiveContactId(null);
       setMessages([]);
       return;
     }
@@ -385,6 +395,17 @@ export default function SharedMessagesView() {
     [activeConversationId, conversations],
   );
 
+  useEffect(() => {
+    if (!activeConversation) {
+      return;
+    }
+
+    const otherParticipantId = getOtherParticipantId(activeConversation, user?.id);
+    if (otherParticipantId) {
+      setActiveContactId(otherParticipantId);
+    }
+  }, [activeConversation, user?.id]);
+
   const activeContact = useMemo(
     () => contacts.find((contact) => contact.id === activeContactId) ?? null,
     [activeContactId, contacts],
@@ -398,9 +419,19 @@ export default function SharedMessagesView() {
 
     return activeContact;
   }, [activeConversation, activeContact, contacts, user?.id]);
+  const activeRecipientId = useMemo(() => {
+    if (activeConversation) {
+      const participantId = getOtherParticipantId(activeConversation, user?.id);
+      if (participantId) {
+        return participantId;
+      }
+    }
 
-  const canCompose = Boolean(activeConversationId || activeRecipient?.id);
-  const canSend = Boolean((messageInput.trim() || selectedAttachment) && activeRecipient?.id && !sending && !startingConversationId);
+    return activeContact?.id ?? null;
+  }, [activeConversation, activeContact?.id, user?.id]);
+
+  const canCompose = Boolean(activeConversationId || activeRecipientId);
+  const canSend = Boolean((messageInput.trim() || selectedAttachment) && activeRecipientId && !sending && !startingConversationId);
 
   const activeHeaderName = activeConversationView?.contact?.name || activeRecipient?.name || 'Select a conversation';
   const activeHeaderEmail = activeConversationView?.contact?.email || activeRecipient?.email || 'Choose a user to start chatting';
@@ -591,9 +622,9 @@ export default function SharedMessagesView() {
   };
 
   const handleSendMessage = async () => {
-    if ((!messageInput.trim() && !selectedAttachment) || sending || !activeRecipient?.id) return;
+    if ((!messageInput.trim() && !selectedAttachment) || sending || !activeRecipientId) return;
 
-    const receiverId = activeRecipient.id;
+    const receiverId = activeRecipientId;
     const trimmedBody = messageInput.trim();
     const attachmentToSend = selectedAttachment;
 
@@ -721,7 +752,7 @@ export default function SharedMessagesView() {
 
                   <div className="vpaa-contact-meta">
                     <div className="vpaa-contact-time">{formatRoleLabel(contact.role)}</div>
-                    <div className="vpaa-contact-unread empty">{isStarting ? '...' : contact.conversation_id ? 'Open' : 'Chat'}</div>
+                    <div className="vpaa-contact-unread empty">{isStarting ? '...' : contact.conversation_id ? '' : 'Chat'}</div>
                   </div>
                 </button>
               );

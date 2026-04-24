@@ -23,6 +23,7 @@ import VpaaSupportPage from '../pages/vpaa/VpaaSupportPage';
 import VpaaTermsPage from '../pages/vpaa/VpaaTermsPage';
 import VpaaProfilePage from '../pages/vpaa/VpaaProfilePage';
 import VpaaSettingsPage from '../pages/vpaa/VpaaSettingsPage';
+import VpaaThesisDetailsPage from '../pages/vpaa/VpaaThesisDetailsPage';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import FacultyCategoriesPage from '../pages/faculty/FacultyCategoriesPage';
 import FacultyMessagesPage from '../pages/faculty/FacultyMessagesPage';
@@ -39,6 +40,7 @@ import FacultyAdviseesPage from '../pages/faculty/FacultyAdviseesPage';
 import FacultyTermsPage from '../pages/faculty/FacultyTermsPage';
 import FacultyProfilePage from '../pages/faculty/FacultyProfilePage';
 import FacultySettingsPage from '../pages/faculty/FacultySettingsPage';
+import FacultyThesisDetailsPage from '../pages/faculty/FacultyThesisDetailsPage';
 import StudentCategoriesPage from '../pages/student/StudentCategoriesPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentMessagesPage from '../pages/student/StudentMessagesPage';
@@ -49,8 +51,10 @@ import StudentAboutPage from '../pages/student/StudentAboutPage';
 import StudentSupportPage from '../pages/student/StudentSupportPage';
 import StudentTermsPage from '../pages/student/StudentTermsPage';
 import StudentUploadThesisPage from '../pages/student/StudentUploadThesisPage';
+import StudentExtensionRequestPage from '../pages/student/StudentExtensionRequestPage';
 import StudentProfilePage from '../pages/student/StudentProfilePage';
 import StudentSettingsPage from '../pages/student/StudentSettingsPage';
+import StudentThesisDetailsPage from '../pages/student/StudentThesisDetailsPage';
 import VpaaSearchResultsPage from '../pages/vpaa/VpaaSearchResultsPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
@@ -106,6 +110,8 @@ export default function AppRouter() {
           <Route path="dashboard" element={<VpaaDashboard />} />
           <Route path="categories" element={<VpaaCategoriesPage />} />
           <Route path="search" element={<VpaaSearchResultsPage />} />
+          <Route path="thesis/:id" element={<VpaaThesisDetailsPage />} />
+          <Route path="theses/:id" element={<VpaaThesisDetailsPage />} />
           <Route path="activity-log" element={<VpaaActivityLogPage />} />
           <Route path="messages" element={<VpaaMessagesPage />} />
           <Route path="my-advisees" element={<VpaaAdviseesPage />} />
@@ -124,6 +130,8 @@ export default function AppRouter() {
           <Route path="dashboard" element={<FacultyDashboard />} />
           <Route path="categories" element={<FacultyCategoriesPage />} />
           <Route path="search" element={<FacultySearchResultsPage />} />
+          <Route path="thesis/:id" element={<FacultyThesisDetailsPage />} />
+          <Route path="theses/:id" element={<FacultyThesisDetailsPage />} />
           <Route path="activity-log" element={<FacultyActivityLogPage />} />
           <Route path="messages" element={<FacultyMessagesPage />} />
           <Route path="profile" element={<FacultyProfilePage />} />
@@ -146,9 +154,12 @@ export default function AppRouter() {
           <Route path="dashboard" element={<StudentDashboard />} />
           <Route path="categories" element={<StudentCategoriesPage />} />
           <Route path="search" element={<StudentSearchResultsPage />} />
+          <Route path="thesis/:id" element={<StudentThesisDetailsPage />} />
+          <Route path="theses/:id" element={<StudentThesisDetailsPage />} />
           <Route path="my-submissions" element={<StudentMySubmissionsPage />} />
           <Route path="my-submissions/:id" element={<StudentSubmissionDetailsPage />} />
           <Route path="upload-thesis" element={<StudentUploadThesisPage />} />
+          <Route path="extension-request" element={<StudentExtensionRequestPage />} />
           <Route path="messages" element={<StudentMessagesPage />} />
           <Route path="profile" element={<StudentProfilePage />} />
           <Route path="settings" element={<StudentSettingsPage />} />

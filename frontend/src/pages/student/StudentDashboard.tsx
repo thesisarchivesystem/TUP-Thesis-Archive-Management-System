@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, FilePlus2, LoaderCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -44,11 +45,18 @@ export default function StudentDashboard() {
   const recentlyAddedCards = useMemo(() => recentTheses.slice(0, 8), [recentTheses]);
   const topSearchCards = useMemo(() => topSearches.slice(0, 8), [topSearches]);
   const firstName = user?.first_name || user?.name?.split(' ')[0] || 'Student';
+  const thesisHref = (item: StudentDashboardThesis) => `/student/theses/${encodeURIComponent(item.id)}`;
+
   const renderDashboardCard = (item: StudentDashboardThesis) => {
     const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
 
     return (
-      <article className="vpaa-category-thesis-card" key={item.id}>
+      <Link
+        className="vpaa-category-thesis-card"
+        key={item.id}
+        to={thesisHref(item)}
+        state={{ thesis: item }}
+      >
         <div className="vpaa-cover vpaa-category-thesis-cover">
           <div className="vpaa-cover-meta">Technological University of the Philippines</div>
           <div className="vpaa-cover-meta">{item.department || item.category || 'Thesis Archive'}</div>
@@ -66,16 +74,16 @@ export default function StudentDashboard() {
             ))}
           </div>
         </div>
-      </article>
+      </Link>
     );
   };
 
   const renderCover = (item: StudentDashboardThesis) => (
-    <div className="vpaa-cover" key={item.id}>
+    <Link className="vpaa-cover" key={item.id} to={thesisHref(item)} state={{ thesis: item }}>
       <div className="vpaa-cover-meta">Technological University of the Philippines</div>
       <div className="vpaa-cover-meta">Computer Studies Department</div>
       <div className="vpaa-cover-title">{item.title}</div>
-    </div>
+    </Link>
   );
 
   return (

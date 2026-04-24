@@ -5,6 +5,8 @@ export interface VpaaCategoryThesis {
   id: string;
   title: string;
   author: string;
+  authors?: string[];
+  abstract?: string | null;
   year: string | number | null;
   department: string;
   program?: string | null;
@@ -28,6 +30,7 @@ interface RawCategoryThesis {
   title?: string;
   author?: string;
   authors?: string[];
+  abstract?: string | null;
   year?: string | number | null;
   department?: string;
   program?: string | null;
@@ -61,6 +64,8 @@ const normalizeThesis = (thesis: RawCategoryThesis): VpaaCategoryThesis => ({
   id: thesis.id ?? crypto.randomUUID(),
   title: thesis.title ?? 'Untitled thesis',
   author: thesis.author ?? thesis.authors?.filter(Boolean).join(', ') ?? 'Unknown author',
+  authors: Array.isArray(thesis.authors) ? thesis.authors.filter(Boolean) : [],
+  abstract: thesis.abstract ?? null,
   year: thesis.year ?? null,
   department: thesis.department ?? 'Unknown department',
   program: thesis.program ?? null,
