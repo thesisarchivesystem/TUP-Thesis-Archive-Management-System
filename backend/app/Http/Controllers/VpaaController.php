@@ -13,7 +13,6 @@ use App\Services\DailyQuoteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Schema;
 
 class VpaaController extends Controller
 {
@@ -33,12 +32,14 @@ class VpaaController extends Controller
     {
         $validated = $request->validate([
             'email' => 'required|email|max:255|unique:users,email,' . $request->user()->id,
+            'mobile' => 'nullable|string|max:255',
             'office' => 'nullable|string|max:255',
-            'area_of_oversight' => 'nullable|string|max:255',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'role_title' => 'required|string|max:255',
+            'supervised_units' => 'nullable|string|max:255',
             'office_hours' => 'nullable|string|max:255',
+            'signature_title' => 'nullable|string|max:255',
         ]);
 
         $user = $request->user();
@@ -50,28 +51,14 @@ class VpaaController extends Controller
             'email' => $validated['email'],
         ]);
 
-        $profileColumns = $this->resolveVpaaProfileColumns();
-        $profileUpdates = [];
-
-        if ($profileColumns['office']) {
-            $profileUpdates[$profileColumns['office']] = $validated['office'] ?? null;
-        }
-
-        if ($profileColumns['area_of_oversight']) {
-            $profileUpdates[$profileColumns['area_of_oversight']] = $validated['area_of_oversight'] ?? null;
-        }
-
-        if ($profileColumns['role_title']) {
-            $profileUpdates[$profileColumns['role_title']] = $validated['role_title'];
-        }
-
-        if ($profileColumns['office_hours']) {
-            $profileUpdates[$profileColumns['office_hours']] = $validated['office_hours'] ?? null;
-        }
-
-        if ($profileUpdates !== []) {
-            $profile->forceFill($profileUpdates)->save();
-        }
+        $profile->update([
+            'mobile' => $validated['mobile'] ?? null,
+            'office' => $validated['office'] ?? null,
+            'role_title' => $validated['role_title'],
+            'supervised_units' => $validated['supervised_units'] ?? null,
+            'office_hours' => $validated['office_hours'] ?? null,
+            'signature_title' => $validated['signature_title'] ?? null,
+        ]);
 
         $profile->refresh()->load('user');
 
@@ -169,51 +156,27 @@ class VpaaController extends Controller
 
     private function resolveVpaaProfile(User $user): VpaaProfile
     {
-        $profile = VpaaProfile::where('user_id', $user->id)
+        return VpaaProfile::where('user_id', $user->id)
             ->with('user')
             ->firstOrFail();
-
-        $normalizedEmployeeId = VpaaProfile::normalizeEmployeeId($profile->employee_id, $profile->id);
-
-        if ($profile->employee_id !== $normalizedEmployeeId) {
-            $profile->employee_id = $normalizedEmployeeId;
-            $profile->save();
-            $profile->refresh();
-        }
-
-        return $profile;
     }
 
     private function formatVpaaProfile(VpaaProfile $profile): array
     {
-        $profileColumns = $this->resolveVpaaProfileColumns();
-
         return [
             'id' => $profile->id,
             'employee_id' => $profile->employee_id,
             'email' => $profile->user?->email,
-            'office' => $profileColumns['office'] ? $profile->getAttribute($profileColumns['office']) : null,
-            'area_of_oversight' => $profileColumns['area_of_oversight'] ? $profile->getAttribute($profileColumns['area_of_oversight']) : null,
+            'mobile' => $profile->mobile,
+            'office' => $profile->office,
             'first_name' => $profile->user?->first_name,
             'last_name' => $profile->user?->last_name,
             'full_name' => $profile->user?->name,
-            'role_title' => $profileColumns['role_title'] ? $profile->getAttribute($profileColumns['role_title']) : null,
-            'office_hours' => $profileColumns['office_hours'] ? $profile->getAttribute($profileColumns['office_hours']) : null,
+            'role_title' => $profile->role_title,
+            'supervised_units' => $profile->supervised_units,
+            'office_hours' => $profile->office_hours,
+            'signature_title' => $profile->signature_title,
             'updated_at' => optional($profile->updated_at)?->toISOString(),
-        ];
-    }
-
-    private function resolveVpaaProfileColumns(): array
-    {
-        return [
-            'office' => Schema::hasColumn('vpaa_profiles', 'office')
-                ? 'office'
-                : (Schema::hasColumn('vpaa_profiles', 'department') ? 'department' : null),
-            'area_of_oversight' => Schema::hasColumn('vpaa_profiles', 'area_of_oversight')
-                ? 'area_of_oversight'
-                : (Schema::hasColumn('vpaa_profiles', 'college') ? 'college' : null),
-            'role_title' => Schema::hasColumn('vpaa_profiles', 'role_title') ? 'role_title' : null,
-            'office_hours' => Schema::hasColumn('vpaa_profiles', 'office_hours') ? 'office_hours' : null,
         ];
     }
 
@@ -326,7 +289,7 @@ class VpaaController extends Controller
     public function categories(Request $request): JsonResponse
     {
         $categories = Category::query()
-            ->where('is_active', true)
+            ->whereRaw('is_active = true')
             ->withCount(['theses as document_count' => function ($query) {
                 $query->where('status', 'approved');
             }])
