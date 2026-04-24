@@ -64,7 +64,7 @@ class MessageController extends Controller
                     ->orWhere('participant_two_id', $user->id);
             })
             ->withCount(['messages as unread_count' => fn($q) =>
-                $q->where('receiver_id', $user->id)->where('is_read', false)
+                $q->where('receiver_id', $user->id)->whereRaw('is_read = false')
             ])
             ->orderByDesc('last_message_at');
 
@@ -126,7 +126,7 @@ class MessageController extends Controller
 
         Message::where('conversation_id', $conversationId)
             ->where('receiver_id', $user->id)
-            ->where('is_read', false)
+            ->whereRaw('is_read = false')
             ->update(['is_read' => true]);
 
         return response()->json(['data' => $messages]);
