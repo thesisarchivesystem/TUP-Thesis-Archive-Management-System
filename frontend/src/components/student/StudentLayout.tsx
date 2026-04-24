@@ -25,6 +25,7 @@ import { useNotificationChannel } from '../../hooks/useNotificationChannel';
 import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
 import type { AppNotification } from '../../types/notification.types';
+import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
 
 type ChatMessage = {
@@ -113,6 +114,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const setNotifications = useNotificationStore((state) => state.setNotifications);
   const markRead = useNotificationStore((state) => state.markRead);
+  const clearNotifications = useNotificationStore((state) => state.clearNotifications);
 
   useNotificationChannel(user?.id ?? null);
 
@@ -215,18 +217,17 @@ export default function StudentLayout({ title, description, children, hidePageIn
     }
 
     setNotifOpen(false);
+
+    const target = getNotificationNavigationTarget('student', notification);
+    if (target) {
+      navigate(target.path, { state: target.state });
+    }
   };
 
   const handleMarkAllNotificationsRead = async () => {
-    const nextNotifications = notifications.map((notification) => ({
-      ...notification,
-      read_at: notification.read_at ?? new Date().toISOString(),
-    }));
-
-    setNotifications(nextNotifications);
-
     try {
       await notificationService.markAllRead();
+      clearNotifications();
     } catch {
       // Keep optimistic UI behavior for now.
     }
@@ -347,7 +348,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
                         <span>{new Date(notification.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                       </div>
                     </button>
-                  )) : <div className="vpaa-dropdown-item">No notifications yet.</div>}
+                  )) : <div className="vpaa-dropdown-item vpaa-dropdown-item-empty">No notifications yet.</div>}
                 </div>
               </div>
             </div>

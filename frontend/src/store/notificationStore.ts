@@ -6,6 +6,7 @@ interface NotificationState {
   unreadCount: number;
   addNotification: (notification: AppNotification) => void;
   removeNotification: (id: string) => void;
+  clearNotifications: () => void;
   markRead: (id: string) => void;
   incrementUnread: () => void;
   decrementUnread: () => void;
@@ -28,11 +29,14 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     })),
+  clearNotifications: () =>
+    set({
+      notifications: [],
+      unreadCount: 0,
+    }),
   markRead: (id) =>
     set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n.id === id ? { ...n, read_at: new Date().toISOString() } : n
-      ),
+      notifications: state.notifications.filter((n) => n.id !== id),
       unreadCount: Math.max(0, state.unreadCount - 1),
     })),
   incrementUnread: () =>

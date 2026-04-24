@@ -14,6 +14,7 @@ class NotificationController extends Controller
 
         $notifications = Notification::where('user_id', $request->user()->id)
             ->whereIn('type', $allowedTypes)
+            ->whereNull('read_at')
             ->orderByDesc('created_at')
             ->paginate(20);
 

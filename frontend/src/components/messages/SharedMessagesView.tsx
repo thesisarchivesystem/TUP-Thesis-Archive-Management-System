@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, Paperclip } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getAblyClient } from '../../hooks/useAbly';
 import { useChatChannel } from '../../hooks/useChatChannel';
@@ -189,6 +190,7 @@ const hydrateConversationContact = (
 };
 
 export default function SharedMessagesView() {
+  const location = useLocation();
   const { user } = useAuth();
   const [conversationSearch, setConversationSearch] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -211,10 +213,27 @@ export default function SharedMessagesView() {
   const optimisticMessageIdRef = useRef(0);
   const typingTimeoutRef = useRef<number | null>(null);
   const activeConversationIdRef = useRef<string | null>(null);
+  const pendingConversationIdRef = useRef<string | null>(
+    typeof location.state === 'object' && location.state && 'conversationId' in location.state
+      ? String((location.state as { conversationId?: string }).conversationId ?? '') || null
+      : null,
+  );
 
   useEffect(() => {
     activeConversationIdRef.current = activeConversationId;
   }, [activeConversationId]);
+
+  useEffect(() => {
+    const nextConversationId = typeof location.state === 'object' && location.state && 'conversationId' in location.state
+      ? String((location.state as { conversationId?: string }).conversationId ?? '') || null
+      : null;
+
+    pendingConversationIdRef.current = nextConversationId;
+
+    if (nextConversationId) {
+      setActiveConversationId(nextConversationId);
+    }
+  }, [location.state]);
 
   const upsertConversation = (conversation: Conversation, unreadCount?: number) => {
     setConversations((current) => {
@@ -318,6 +337,16 @@ export default function SharedMessagesView() {
 
     void loadMessages(activeConversationId);
   }, [activeConversationId]);
+
+  useEffect(() => {
+    const pendingConversationId = pendingConversationIdRef.current;
+    if (!pendingConversationId) return;
+
+    if (conversations.some((conversation) => conversation.id === pendingConversationId)) {
+      setActiveConversationId(pendingConversationId);
+      pendingConversationIdRef.current = null;
+    }
+  }, [conversations]);
 
   const conversationViews = useMemo<ConversationView[]>(
     () => conversations.map((conversation) => ({

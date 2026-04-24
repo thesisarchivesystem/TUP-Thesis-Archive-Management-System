@@ -178,7 +178,7 @@ class VpaaController extends Controller
     {
         $logs = ActivityLog::with([
                 'user:id,name,avatar_url,role',
-                'user.faculty:user_id,department',
+                'user.faculty:user_id,department,college',
                 'user.student:user_id,department',
             ])
             ->orderByDesc('created_at')
@@ -195,7 +195,7 @@ class VpaaController extends Controller
             ->keyBy('id');
 
         $subjectUsers = User::query()
-            ->with(['faculty:user_id,department', 'student:user_id,department'])
+            ->with(['faculty:user_id,department,college', 'student:user_id,department'])
             ->select(['id', 'name', 'role'])
             ->whereIn('id', $userIds)
             ->get()
@@ -207,7 +207,21 @@ class VpaaController extends Controller
             ->get()
             ->keyBy('id');
 
-        $formattedLogs = $logs->map(function (ActivityLog $log) use ($theses, $subjectUsers, $facultyProfiles) {
+        $departmentCollegeMap = FacultyProfile::query()
+            ->whereNotNull('department')
+            ->whereNotNull('college')
+            ->get(['department', 'college'])
+            ->pluck('college', 'department');
+
+        $allColleges = FacultyProfile::query()
+            ->whereNotNull('college')
+            ->where('college', '!=', '')
+            ->orderBy('college')
+            ->pluck('college')
+            ->unique()
+            ->values();
+
+        $formattedLogs = $logs->map(function (ActivityLog $log) use ($theses, $subjectUsers, $facultyProfiles, $departmentCollegeMap) {
             $subjectThesis = $log->subject_type === 'thesis' ? $theses->get($log->subject_id) : null;
             $subjectUser = $log->subject_type === 'user' ? $subjectUsers->get($log->subject_id) : null;
             $subjectFaculty = $log->subject_type === 'faculty' ? $facultyProfiles->get($log->subject_id) : null;
@@ -229,17 +243,23 @@ class VpaaController extends Controller
                 ?? $subjectUser?->faculty?->department
                 ?? $subjectUser?->student?->department
                 ?? $log->user?->faculty?->department
-                ?? $log->user?->student?->department
-                ?? 'All Departments';
+                ?? $log->user?->student?->department;
+
+            $college = $subjectFaculty?->college
+                ?? $subjectUser?->faculty?->college
+                ?? $log->user?->faculty?->college
+                ?? ($department ? $departmentCollegeMap->get($department) : null)
+                ?? 'No College Assigned';
 
             return [
                 'id' => $log->id,
+                'user_id' => $log->user_id,
                 'badge' => $badge,
                 'tone' => $tone,
                 'request_record' => $this->buildActivityRecordLabel($log, $subjectThesis, $subjectUser, $subjectFaculty),
                 'account' => $accountName,
                 'role' => $accountRole,
-                'department' => $department,
+                'college' => $college,
                 'time' => $log->created_at?->diffForHumans(),
                 'timestamp' => optional($log->created_at)?->toISOString(),
                 'action' => $cta,
@@ -261,6 +281,7 @@ class VpaaController extends Controller
         return response()->json([
             'data' => [
                 'summary' => $summary,
+                'colleges' => $allColleges,
                 'logs' => $formattedLogs,
             ],
         ]);

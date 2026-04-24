@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, RefreshCw, Search, SquareSplitVertical, Users2 } from 'lucide-react';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
+import { useAuth } from '../../hooks/useAuth';
 import { vpaaDashboardService, type VpaaActivityLogResponse, type VpaaActivityRow } from '../../services/vpaaDashboardService';
 
 const ACTIVITY_LOG_CACHE_KEY = 'vpaa-activity-log-cache';
@@ -41,6 +42,7 @@ const formatRelativeTime = (timestamp: string) => {
 };
 
 export default function VpaaActivityLogPage() {
+  const { user } = useAuth();
   const [activityData, setActivityData] = useState<VpaaActivityLogResponse | null>(() => {
     if (typeof window === 'undefined') return null;
 
@@ -55,7 +57,7 @@ export default function VpaaActivityLogPage() {
   });
   const [search, setSearch] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [collegeFilter, setCollegeFilter] = useState('all');
   const [quickFilter, setQuickFilter] = useState<'all' | 'today' | 'week' | 'mine'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,35 +93,46 @@ export default function VpaaActivityLogPage() {
     [activityData],
   );
 
-  const departmentOptions = useMemo(
-    () => ['all', ...new Set((activityData?.logs ?? []).map((item) => item.department))],
+  const collegeOptions = useMemo(
+    () => ['all', ...(activityData?.colleges ?? [])],
     [activityData],
   );
 
   const filteredLogs = useMemo(() => {
     const logs = activityData?.logs ?? [];
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTomorrow = new Date(startOfToday);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    const dayOfWeek = startOfToday.getDay();
+    const daysSinceMonday = (dayOfWeek + 6) % 7;
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 7);
 
     return logs.filter((item) => {
       const normalizedSearch = search.trim().toLowerCase();
-      const matchesSearch = !normalizedSearch || [item.badge, item.request_record, item.account, item.department]
+      const matchesSearch = !normalizedSearch || [item.badge, item.request_record, item.account, item.college]
         .join(' ')
         .toLowerCase()
         .includes(normalizedSearch);
 
       const matchesActivity = activityFilter === 'all' || item.badge === activityFilter;
-      const matchesDepartment = departmentFilter === 'all' || item.department === departmentFilter;
+      const matchesCollege = collegeFilter === 'all' || item.college === collegeFilter;
 
       const itemDate = new Date(item.timestamp);
-      const now = new Date();
-      const dayDiff = Number.isNaN(itemDate.getTime()) ? Number.POSITIVE_INFINITY : (now.getTime() - itemDate.getTime()) / (1000 * 60 * 60 * 24);
+      const hasValidDate = !Number.isNaN(itemDate.getTime());
+      const isToday = hasValidDate && itemDate >= startOfToday && itemDate < startOfTomorrow;
+      const isThisWeek = hasValidDate && itemDate >= startOfWeek && itemDate < endOfWeek;
       const matchesQuick = quickFilter === 'all'
-        || (quickFilter === 'today' && dayDiff < 1)
-        || (quickFilter === 'week' && dayDiff <= 7)
-        || (quickFilter === 'mine' && item.account.toLowerCase().includes('vpaa'));
+        || (quickFilter === 'today' && isToday)
+        || (quickFilter === 'week' && isThisWeek)
+        || (quickFilter === 'mine' && item.user_id === user?.id);
 
-      return matchesSearch && matchesActivity && matchesDepartment && matchesQuick;
+      return matchesSearch && matchesActivity && matchesCollege && matchesQuick;
     });
-  }, [activityData, search, activityFilter, departmentFilter, quickFilter]);
+  }, [activityData, search, activityFilter, collegeFilter, quickFilter, user?.id]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ACTIVITY_PAGE_SIZE));
 
@@ -130,7 +143,7 @@ export default function VpaaActivityLogPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, activityFilter, departmentFilter, quickFilter]);
+  }, [search, activityFilter, collegeFilter, quickFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -153,7 +166,7 @@ export default function VpaaActivityLogPage() {
   ];
 
   return (
-    <VpaaLayout title="Activity Log" description="Track approvals, faculty account updates, and policy changes across departments.">
+    <VpaaLayout title="Activity Log" description="Track approvals, faculty account updates, and policy changes across colleges.">
       <div className="vpaa-grid-4 student-submissions-stats vpaa-activity-summary-grid" style={{ marginBottom: 28 }}>
         {summaryCards.map((card) => (
           <article className="student-submissions-stat-card vpaa-card vpaa-activity-summary-card" key={card.label}>
@@ -189,7 +202,7 @@ export default function VpaaActivityLogPage() {
                 type="text"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by action, account, or department..."
+                placeholder="Search by action, account, or college..."
               />
             </label>
 
@@ -199,9 +212,9 @@ export default function VpaaActivityLogPage() {
               ))}
             </select>
 
-            <select className="filter-select" value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}>
-              {departmentOptions.map((option) => (
-                <option key={option} value={option}>{option === 'all' ? 'All Departments' : option}</option>
+            <select className="filter-select" value={collegeFilter} onChange={(event) => setCollegeFilter(event.target.value)}>
+              {collegeOptions.map((option) => (
+                <option key={option} value={option}>{option === 'all' ? 'All Colleges' : option}</option>
               ))}
             </select>
           </div>
@@ -233,7 +246,7 @@ export default function VpaaActivityLogPage() {
                 <th>Request / Record</th>
                 <th>Account</th>
                 <th>Role</th>
-                <th>Department</th>
+                <th>College</th>
                 <th>Time</th>
               </tr>
             </thead>
@@ -244,7 +257,7 @@ export default function VpaaActivityLogPage() {
                   <td className="rt-title">{entry.request_record}</td>
                   <td>{entry.account}</td>
                   <td>{formatRoleLabel(entry.role)}</td>
-                  <td>{entry.department}</td>
+                  <td>{entry.college}</td>
                   <td>{formatRelativeTime(entry.timestamp)}</td>
                 </tr>
               )) : (

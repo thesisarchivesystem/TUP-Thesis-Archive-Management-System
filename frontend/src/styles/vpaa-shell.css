@@ -336,6 +336,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .vpaa-search-bar {
@@ -502,6 +503,18 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 12px;
+}
+
+.vpaa-dropdown-item-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 .vpaa-dropdown-icon {

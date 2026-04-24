@@ -21,12 +21,13 @@ export interface VpaaActivitySummary {
 
 export interface VpaaActivityRow {
   id: string;
+  user_id?: string | null;
   badge: string;
   tone: 'maroon' | 'sky' | 'sage' | 'terracotta' | 'gold';
   request_record: string;
   account: string;
   role: string;
-  department: string;
+  college: string;
   time: string;
   timestamp: string;
   action: string;
@@ -34,6 +35,7 @@ export interface VpaaActivityRow {
 
 export interface VpaaActivityLogResponse {
   summary: VpaaActivitySummary;
+  colleges?: string[];
   logs: VpaaActivityRow[];
 }
 
