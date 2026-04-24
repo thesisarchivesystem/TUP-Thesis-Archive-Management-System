@@ -39,7 +39,7 @@ export interface VpaaActivityLogResponse {
 
 export interface VpaaDashboardStats {
   total_faculty: number;
-  department_chairs: number;
+  deans: number;
   role_changes_this_month: number;
   new_accounts_this_month: number;
   on_leave: number;

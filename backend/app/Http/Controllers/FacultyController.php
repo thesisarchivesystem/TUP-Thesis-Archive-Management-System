@@ -455,7 +455,7 @@ class FacultyController extends Controller
     private function formatFacultyProfile(FacultyProfile $profile, int $adviseeCount): array
     {
         $roleTitle = match ($profile->faculty_role) {
-            'Department Chair' => 'Faculty - Department Chair',
+            'Dean' => 'Faculty - Dean',
             'Co-Adviser' => 'Faculty - Co-Adviser',
             default => 'Faculty - Thesis Adviser',
         };
@@ -474,7 +474,7 @@ class FacultyController extends Controller
             'rank' => $profile->rank,
             'mobile' => null,
             'advisee_count' => $adviseeCount,
-            'committee_role' => $profile->faculty_role === 'Department Chair' ? 'Academic Committee Lead' : 'Thesis Committee',
+            'committee_role' => $profile->faculty_role === 'Dean' ? 'Academic Committee Lead' : 'Thesis Committee',
             'consultation_hours' => null,
             'specialization' => null,
             'status' => $profile->status,
@@ -676,7 +676,7 @@ class FacultyController extends Controller
 
         $facultyId = $request->filled('faculty_id')
             ? (string) $request->faculty_id
-            : $this->generateNextFacultyId();
+            : $this->generateNextFacultyId((string) $request->faculty_role);
 
         $facultyProfile = DB::transaction(function () use ($request, $facultyId) {
             $user = User::create([
@@ -719,13 +719,16 @@ class FacultyController extends Controller
         return response()->json(['data' => $facultyProfile->load('user:id,first_name,last_name,name,email,created_at')], 201);
     }
 
-    private function generateNextFacultyId(): string
+    private function generateNextFacultyId(string $facultyRole): string
     {
         $yearCode = now()->format('y');
-        $prefix = "FAC-{$yearCode}-";
+        $prefix = $facultyRole === 'Dean'
+            ? "DEAN-{$yearCode}-"
+            : "FAC-{$yearCode}-";
 
         $latestMatch = FacultyProfile::query()
             ->pluck('faculty_id')
+            ->filter(fn (string $facultyId) => str_starts_with($facultyId, $prefix))
             ->map(function (string $facultyId) {
                 if (!preg_match('/(\d+)$/', $facultyId, $matches)) {
                     return 0;

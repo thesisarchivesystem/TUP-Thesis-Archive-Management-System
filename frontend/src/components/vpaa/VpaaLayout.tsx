@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, ChevronRight, Clock3, FileClock, FileText, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, User } from 'lucide-react';
+import { Bell, CalendarDays, ChevronRight, Clock3, FileClock, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, User } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -280,7 +280,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
           <div className="vpaa-topbar-right">
             <div className="vpaa-topbar-info">
               <span className="vpaa-topbar-info-item"><Clock3 size={15} /><span>{currentTime}</span></span>
-              <span className="vpaa-topbar-info-item"><FileText size={15} /><span>{currentDate}</span></span>
+              <span className="vpaa-topbar-info-item"><CalendarDays size={15} /><span>{currentDate}</span></span>
             </div>
             <Link to="/vpaa/messages" className="vpaa-topbar-icon-btn" aria-label="Messages"><MessageSquare size={18} /></Link>
 

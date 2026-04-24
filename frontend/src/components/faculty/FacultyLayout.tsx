@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FileText, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, Upload, User, Users } from 'lucide-react';
+import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, Upload, User, Users } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -311,7 +311,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
           <div className="vpaa-topbar-right">
             <div className="vpaa-topbar-info">
               <span className="vpaa-topbar-info-item"><Clock3 size={15} /><span>{currentTime}</span></span>
-              <span className="vpaa-topbar-info-item"><FileText size={15} /><span>{currentDate}</span></span>
+              <span className="vpaa-topbar-info-item"><CalendarDays size={15} /><span>{currentDate}</span></span>
             </div>
 
             <Link to="/faculty/messages" className="vpaa-topbar-icon-btn" aria-label="Messages">

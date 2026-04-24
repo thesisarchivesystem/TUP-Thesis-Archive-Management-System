@@ -34,7 +34,7 @@ export interface FacultyProfile {
   department: string;
   college?: string | null;
   rank: string;
-  faculty_role: 'Department Chair' | 'Adviser' | 'Co-Adviser';
+  faculty_role: 'Dean' | 'Adviser' | 'Co-Adviser';
   assigned_chair_id?: string;
   notes?: string;
   status: 'active' | 'on_leave' | 'inactive';

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
+  CalendarDays,
   ChevronRight,
   Clock3,
-  FileText,
   GraduationCap,
   Home,
   LogOut,
@@ -299,7 +299,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
           <div className="vpaa-topbar-right">
             <div className="vpaa-topbar-info">
               <span className="vpaa-topbar-info-item"><Clock3 size={15} /><span>{currentTime}</span></span>
-              <span className="vpaa-topbar-info-item"><FileText size={15} /><span>{currentDate}</span></span>
+              <span className="vpaa-topbar-info-item"><CalendarDays size={15} /><span>{currentDate}</span></span>
             </div>
 
             <Link to="/student/messages" className="vpaa-topbar-icon-btn" aria-label="Messages">

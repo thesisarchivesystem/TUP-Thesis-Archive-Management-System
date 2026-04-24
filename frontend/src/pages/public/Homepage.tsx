@@ -452,7 +452,7 @@ export default function Homepage() {
           <div className="hero-content">
             <div className="hero-badge">
               <span className="hero-badge-dot" />
-              Computer Studies Department
+              Manila Campus
             </div>
 
             <h1>
@@ -461,7 +461,7 @@ export default function Homepage() {
               Management System
             </h1>
 
-            <div className="hero-sub">Technological University of the Philippines - Manila</div>
+            <div className="hero-sub">Technological University of the Philippines</div>
 
             <p className="hero-copy">
               A comprehensive digital repository for academic research and scholarly works. Browse, search, and access

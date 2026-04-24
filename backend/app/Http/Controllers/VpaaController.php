@@ -70,7 +70,7 @@ class VpaaController extends Controller
     public function dashboard(Request $request): JsonResponse
     {
         $totalFaculty = \App\Models\User::where('role', 'faculty')->count();
-        $departmentChairs = \App\Models\FacultyProfile::where('faculty_role', 'Department Chair')->count();
+        $deans = \App\Models\FacultyProfile::where('faculty_role', 'Dean')->count();
         $roleChangesThisMonth = ActivityLog::whereMonth('created_at', now()->month)
             ->where('action', 'faculty.role_changed')
             ->count();
@@ -98,7 +98,7 @@ class VpaaController extends Controller
         return response()->json([
             'stats' => [
                 'total_faculty' => $totalFaculty,
-                'department_chairs' => $departmentChairs,
+                'deans' => $deans,
                 'role_changes_this_month' => $roleChangesThisMonth,
                 'new_accounts_this_month' => $newAccountsThisMonth,
                 'on_leave' => $onLeave,

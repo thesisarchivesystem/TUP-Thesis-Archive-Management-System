@@ -9,18 +9,59 @@ const generateTemporaryPassword = () => {
 };
 
 const collegeOptions = [
-  'COLLEGE OF INDUSTRIAL TECHNOLOGY',
-  'COLLEGE OF INDUSTRIAL EDUCATION',
-  'COLLEGE OF ENGINEERING',
-  'COLLEGE OF MANAGEMENT AND MULTIDISCIPLINARY STUDIES',
-  'COLLEGE OF SCIENCE',
   'COLLEGE OF ARCHITECTURE AND FINE ARTS',
+  'COLLEGE OF ENGINEERING',
+  'COLLEGE OF INDUSTRIAL EDUCATION',
+  'COLLEGE OF INDUSTRIAL TECHNOLOGY',
+  'COLLEGE OF SCIENCE',
 ];
 
-const generateNextFacultyId = (faculty: FacultyProfile[]) => {
+const departmentOptionsByCollege: Record<string, string[]> = {
+  'COLLEGE OF ARCHITECTURE AND FINE ARTS': [
+    'Architecture Department',
+    'Fine Arts Department',
+    'Graphics Department',
+  ],
+  'COLLEGE OF SCIENCE': [
+    'Mathematics Department',
+    'Chemistry Department',
+    'Physics Department',
+    'Computer Studies Department',
+  ],
+  'COLLEGE OF INDUSTRIAL EDUCATION': [
+    'Student Teaching Department',
+    'Technical Arts Department',
+    'Home Economics Department',
+    'Professional Industrial Education',
+  ],
+  'COLLEGE OF ENGINEERING': [
+    'Electrical Engineering',
+    'Electronics Communication Engineering',
+    'Mechanical Engineering',
+    'Civil Engineering',
+  ],
+  'COLLEGE OF INDUSTRIAL TECHNOLOGY': [
+    'Basic Industrial Technology',
+    'Civil Engineering Technology',
+    'Food and Apparel Technology',
+    'Graphic Arts and Printing Technology',
+    'Mechanical Engineering Technology',
+    'Power Plant Engineering Technology',
+  ],
+  'COLLEGE OF LIBERAL ARTS': [
+    'Languages Department',
+    'Entrepreneurship and Management Department',
+    'Social Science Department',
+    'Physical Education',
+    'Hospitality Management Department',
+  ],
+};
+
+const generateNextFacultyId = (faculty: FacultyProfile[], role: string) => {
   const yearCode = new Date().getFullYear().toString().slice(-2);
-  const prefix = `FAC-${yearCode}-`;
+  const prefix = role === 'Dean' ? `DEAN-${yearCode}-` : `FAC-${yearCode}-`;
   const maxSequence = faculty.reduce((highest, member) => {
+    if (!member.faculty_id.startsWith(prefix)) return highest;
     const match = member.faculty_id.match(/(\d+)$/);
     if (!match) return highest;
     const numericPart = Number(match[1]);
@@ -49,11 +90,9 @@ const statusLabel: Record<FacultyProfile['status'], string> = {
   inactive: 'Inactive',
 };
 
-const roleLabel = (role: FacultyProfile['faculty_role']) => (
-  role === 'Department Chair' ? 'Dean' : role
-);
+const roleLabel = (role: FacultyProfile['faculty_role']) => role;
 
-const needsAssignedDean = (role: string) => role !== 'Department Chair';
+const needsAssignedDean = (role: string) => role !== 'Dean';
 
 export default function FacultyManagementPage() {
   const [faculty, setFaculty] = useState<FacultyProfile[]>([]);
@@ -82,10 +121,14 @@ export default function FacultyManagementPage() {
   }, []);
 
   const chairOptions = useMemo(
-    () => faculty.filter((member) => member.faculty_role === 'Department Chair' && member.status === 'active'),
+    () => faculty.filter((member) => member.faculty_role === 'Dean' && member.status === 'active'),
     [faculty],
   );
-  const nextFacultyId = useMemo(() => generateNextFacultyId(faculty), [faculty]);
+  const departmentOptions = useMemo(
+    () => departmentOptionsByCollege[form.college || ''] ?? [],
+    [form.college],
+  );
+  const nextFacultyId = useMemo(() => generateNextFacultyId(faculty, form.faculty_role), [faculty, form.faculty_role]);
 
   const resetForm = () => {
     setForm({
@@ -199,13 +242,22 @@ export default function FacultyManagementPage() {
             <input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} placeholder="Last name" disabled={submitting} required />
             <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Faculty email" type="email" disabled={submitting} required />
             <input value={editingId ? form.faculty_id : nextFacultyId} onChange={(e) => setForm({ ...form, faculty_id: e.target.value })} placeholder="Faculty ID" disabled={submitting || !editingId} />
-            <select value={form.college || ''} onChange={(e) => setForm({ ...form, college: e.target.value })} disabled={submitting}>
+            <select value={form.college || ''} onChange={(e) => setForm({ ...form, college: e.target.value, department: '' })} disabled={submitting}>
               <option value="">Select college</option>
               {collegeOptions.map((college) => (
                 <option key={college} value={college}>{college}</option>
               ))}
             </select>
-            <input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Department" disabled={submitting} required />
+            {departmentOptions.length ? (
+              <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} disabled={submitting} required>
+                <option value="">Select department</option>
+                {departmentOptions.map((department) => (
+                  <option key={department} value={department}>{department}</option>
+                ))}
+              </select>
+            ) : (
+              <input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Department" disabled={submitting} required />
+            )}
             <input value={form.rank} onChange={(e) => setForm({ ...form, rank: e.target.value })} placeholder="Academic rank" disabled={submitting} />
             <div className="flex gap-3">
               <input value={form.temporary_password} onChange={(e) => setForm({ ...form, temporary_password: e.target.value })} placeholder={editingId ? 'Leave blank to keep the current password' : 'Temporary password'} type="text" disabled={submitting} required={!editingId} />
@@ -218,11 +270,11 @@ export default function FacultyManagementPage() {
               onChange={(e) => setForm({
                 ...form,
                 faculty_role: e.target.value,
-                assigned_chair_id: e.target.value === 'Department Chair' ? '' : form.assigned_chair_id,
+                assigned_chair_id: e.target.value === 'Dean' ? '' : form.assigned_chair_id,
               })}
               disabled={submitting}
             >
-              <option value="Department Chair">Dean</option>
+              <option value="Dean">Dean</option>
               <option value="Adviser">Adviser</option>
               <option value="Co-Adviser">Co-Adviser</option>
             </select>
@@ -276,6 +328,7 @@ export default function FacultyManagementPage() {
                       </div>
                       <div className="flex flex-wrap gap-4 text-sm text-text-secondary">
                         <span className="inline-flex items-center gap-2"><Mail size={14} />{member.user.email}</span>
+                        <span className="inline-flex items-center gap-2"><Briefcase size={14} />{member.college || 'No college set'}</span>
                         <span className="inline-flex items-center gap-2"><Briefcase size={14} />{member.department}</span>
                         <span className="inline-flex items-center gap-2"><ShieldCheck size={14} />{member.rank || 'No rank set'}</span>
                       </div>
