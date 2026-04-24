@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, CalendarDays, ChevronRight, Clock3, FileClock, GraduationCap, Home, LogOut, Menu, MessageSquare, Moon, Search, Settings, Shapes, Sun, User } from 'lucide-react';
+import { Bell, CalendarDays, ChevronRight, Clock3, FileClock, GraduationCap, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Settings, Shapes, SunMedium, User } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -9,40 +9,13 @@ import { notificationService } from '../../services/notificationService';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
+import tamsBot from '../../assets/tams-bot.png';
 
 type ChatMessage = {
   id: string;
   type: 'bot' | 'user';
   text: string;
 };
-
-function BotFabIcon() {
-  return (
-    <svg viewBox="0 0 64 64" aria-hidden="true">
-      <path
-        className="bot-fill"
-        d="M24 10a8 8 0 0 1 16 0v2h6.4a9.6 9.6 0 0 1 9.6 9.6V40a9.6 9.6 0 0 1-9.6 9.6H38l-6 7.2L26 49.6h-8.4A9.6 9.6 0 0 1 8 40V21.6A9.6 9.6 0 0 1 17.6 12H24zm0 8h16v-8a8 8 0 1 0-16 0z"
-      />
-      <circle className="bot-cut" cx="24" cy="31" r="4.4" />
-      <circle className="bot-cut" cx="40" cy="31" r="4.4" />
-      <path
-        className="bot-cut"
-        d="M22.5 40.5c2.4 2 5.7 3.2 9.5 3.2s7.1-1.2 9.5-3.2c.9-.8 1-2.1.3-3.1-.8-.9-2.1-1-3.1-.3-1.6 1.3-3.9 2.1-6.7 2.1s-5.1-.8-6.7-2.1c-.9-.7-2.3-.6-3.1.3-.7 1-.6 2.3.3 3.1Z"
-      />
-    </svg>
-  );
-}
-
-function HeadsetIcon() {
-  return (
-    <svg viewBox="0 0 48 48" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M24 8C14.6 8 7 15.6 7 25v6c0 3.3 2.7 6 6 6h3.5c1.4 0 2.5-1.1 2.5-2.5v-8c0-1.4-1.1-2.5-2.5-2.5H11c.4-7.1 6.3-12.8 13-12.8S36.6 16.9 37 24h-5.5c-1.4 0-2.5 1.1-2.5 2.5v8c0 1.4 1.1 2.5 2.5 2.5H35c.7 0 1.4-.1 2-.4V38a4 4 0 0 1-4 4h-4.7a3.3 3.3 0 0 0-6.3 1.4 3.4 3.4 0 0 0 3.4 3.4h7.6A7 7 0 0 0 40 38v-13C40 15.6 32.4 8 24 8Z"
-      />
-    </svg>
-  );
-}
 
 const prompts = ['Show thesis categories', 'Where do students sign in?', 'Browse departments'];
 
@@ -240,7 +213,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
 
       <aside className="vpaa-sidebar" onClick={(event) => event.stopPropagation()}>
         <Link className="vpaa-sidebar-brand" to="/vpaa/dashboard">
-          <span className="vpaa-sidebar-logo"><GraduationCap size={18} /></span>
+          <span className="vpaa-sidebar-logo"><GraduationCap size={24} /></span>
           <span className="vpaa-sidebar-brand-text">Thesis <span>Archive</span></span>
         </Link>
 
@@ -326,7 +299,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
             </div>
 
             <button type="button" className="vpaa-topbar-icon-btn" onClick={toggle} aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              {theme === 'dark' ? <SunMedium size={18} /> : <MoonStar size={18} />}
             </button>
 
             <div className="vpaa-topbar-dropdown">
@@ -363,7 +336,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
       <div className={`vpaa-ai-chatbot-panel ${chatOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
         <div className="vpaa-ai-chatbot-header">
           <div className="vpaa-ai-chatbot-title">
-            <div className="vpaa-ai-chatbot-avatar"><HeadsetIcon /></div>
+            <div className="vpaa-ai-chatbot-avatar"><img src={tamsBot} alt="TAMS chatbot" /></div>
             <div><h3>Archive Assistant</h3><p>Ask about theses, departments, and access.</p></div>
           </div>
           <button type="button" className="vpaa-ai-chatbot-close" onClick={() => setChatOpen(false)} aria-label="Close AI chatbot">&times;</button>
@@ -393,7 +366,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
         event.stopPropagation();
         setChatOpen((current) => !current);
       }}>
-        <BotFabIcon />
+        <img src={tamsBot} alt="TAMS chatbot" />
       </button>
     </div>
   );

@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MoonStar, SunMedium } from 'lucide-react';
+import { GraduationCap, MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import tupBuilding from '../../assets/tup-building.gif';
 
@@ -36,11 +36,7 @@ type RoleSignInLayoutProps = {
 };
 
 function LogoIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-    </svg>
-  );
+  return <GraduationCap />;
 }
 
 function BackIcon() {
@@ -304,8 +300,8 @@ function AuthStyles() {
 
       .auth-theme-toggle .sun-icon { color: var(--gold); }
       .auth-theme-toggle .moon-icon { color: var(--sky); }
-      .role-signin-shell[data-theme='light'] .auth-theme-toggle .moon-icon { display: none; }
-      .role-signin-shell[data-theme='dark'] .auth-theme-toggle .sun-icon { display: none; }
+      .role-signin-shell[data-theme='light'] .auth-theme-toggle .sun-icon { display: none; }
+      .role-signin-shell[data-theme='dark'] .auth-theme-toggle .moon-icon { display: none; }
 
       .auth-back-link {
         display: inline-flex;

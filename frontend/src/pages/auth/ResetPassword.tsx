@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { MoonStar, SunMedium } from 'lucide-react';
+import { GraduationCap, MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { authService } from '../../services/authService';
 import tupBuilding from '../../assets/tup-building.gif';
@@ -8,11 +8,7 @@ import tupBuilding from '../../assets/tup-building.gif';
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LogoIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-    </svg>
-  );
+  return <GraduationCap />;
 }
 
 function BackIcon() {
@@ -309,8 +305,8 @@ function ResetPasswordStyles() {
 
       .reset-theme-toggle .sun-icon { color: var(--gold); }
       .reset-theme-toggle .moon-icon { color: var(--sky); }
-      .reset-shell[data-theme='light'] .reset-theme-toggle .moon-icon { display: none; }
-      .reset-shell[data-theme='dark'] .reset-theme-toggle .sun-icon { display: none; }
+      .reset-shell[data-theme='light'] .reset-theme-toggle .sun-icon { display: none; }
+      .reset-shell[data-theme='dark'] .reset-theme-toggle .moon-icon { display: none; }
 
       .reset-back-link,
       .reset-inline-link {
