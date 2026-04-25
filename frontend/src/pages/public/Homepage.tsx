@@ -5,6 +5,7 @@ import { useTheme } from '../../hooks/useTheme';
 import BrandMarkIcon from '../../components/BrandMarkIcon';
 import tupBuilding from '../../assets/tup-building.gif';
 import tamsBot from '../../assets/tams-bot.png';
+import '../../styles/vpaa-shell.css';
 
 const sections = [
   { id: 'home', label: 'Home' },
@@ -283,8 +284,11 @@ function HomePageStyles() {
       .cta{background:var(--cta-bg);text-align:center;overflow:hidden}.cta-bg{position:absolute;inset:0;background:radial-gradient(circle at top,rgba(255,255,255,.12),transparent 48%)}.cta-pattern{position:absolute;inset:0;opacity:.08;background-image:linear-gradient(135deg,rgba(255,255,255,.1) 25%,transparent 25%),linear-gradient(225deg,rgba(255,255,255,.1) 25%,transparent 25%);background-size:26px 26px}.cta-content{position:relative;z-index:1;max-width:680px;margin:0 auto}.cta h2{font-size:clamp(28px,3.8vw,44px);line-height:1.08;margin:0 0 14px;color:#fff7f7}.homepage-shell[data-theme='dark'] .cta h2{color:#f0e4e6}.cta p{margin:0 auto 24px;max-width:560px;font-size:15px;line-height:1.65;color:rgba(255,240,240,.82)}.homepage-shell[data-theme='dark'] .cta p{color:rgba(240,228,230,.5)}.cta-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.btn-role{min-width:124px;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.02);color:#fff;cursor:pointer;transition:all .3s ease}.btn-role:hover{transform:translateY(-2px);background:#fff;color:var(--maroon);border-color:#fff;box-shadow:0 10px 24px rgba(0,0,0,.18)}
       footer{background:var(--footer-bg);padding:34px 36px 18px}.footer-main{max-width:1040px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:28px;border-bottom:1px solid var(--border)}.footer-brand{display:flex;align-items:center;gap:10px}.footer-brand-text h4,.footer-uni-text h4{font-size:17px;margin:0 0 3px;color:var(--text-primary)}.footer-brand-text span,.footer-uni-text span{font-size:12px;color:var(--text-tertiary)}.footer-uni{display:flex;align-items:center;gap:10px;text-align:right}.footer-uni-seal{width:46px;height:46px;border-radius:14px;background:rgba(139,35,50,.08);border:1px solid rgba(139,35,50,.16);display:flex;align-items:center;justify-content:center;padding:4px}.homepage-shell[data-theme='dark'] .footer-uni-seal{background:rgba(184,58,78,.08);border-color:rgba(200,160,170,.14)}.footer-uni-seal svg{width:24px;height:24px;color:var(--maroon)}.footer-bottom{max-width:1040px;margin:0 auto;padding-top:18px;text-align:center}.footer-bottom p{font-size:11px;color:var(--text-tertiary);margin:0}
       .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}.reveal.visible{opacity:1;transform:translateY(0)}.reveal-delay-1{transition-delay:.1s}.reveal-delay-2{transition-delay:.2s}.reveal-delay-3{transition-delay:.3s}.reveal-delay-4{transition-delay:.4s}
+      .homepage-shell .vpaa-ai-chatbot-suggestions .vpaa-chat-suggestion{font-size:11px !important;line-height:1.2 !important;font-family:'Plus Jakarta Sans',sans-serif !important;padding:7px 10px !important}
+      .homepage-shell .vpaa-chat-bubble.self{max-width:78%;padding:10px 16px;border-radius:999px;align-self:flex-end}
+      .homepage-shell .vpaa-chat-bubble.other{max-width:88%}
       .ai-chatbot-fab{position:fixed;right:28px;bottom:28px;width:74px;height:74px;border:0;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1200;transition:transform .25s ease,box-shadow .25s ease}.ai-chatbot-fab:hover{transform:translateY(-2px) scale(1.02)}.ai-chatbot-fab img{width:84%;height:84%;object-fit:contain;display:block}
-      .ai-chatbot-panel{position:fixed;right:28px;bottom:118px;width:360px;max-width:calc(100vw - 32px);border-radius:26px;overflow:hidden;border:1px solid var(--border);background:var(--bg-card);box-shadow:var(--shadow-xl);transform:translateY(16px);opacity:0;pointer-events:none;z-index:1190;transition:opacity .3s ease,transform .3s ease}.ai-chatbot-panel.open{transform:translateY(0);opacity:1;pointer-events:auto}.ai-chatbot-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 16px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--bg-tertiary),var(--bg-card))}.ai-chatbot-title{display:flex;align-items:center;gap:12px}.ai-chatbot-avatar{width:44px;height:44px}.ai-chatbot-avatar img{width:100%;height:100%;object-fit:contain;display:block}.ai-chatbot-title h3{margin:0 0 2px;font-size:16px;color:var(--text-primary)}.ai-chatbot-title p{margin:0;font-size:13px;color:var(--text-tertiary)}.ai-chatbot-close{width:36px;height:36px;border:0;background:transparent;color:var(--text-tertiary);border-radius:12px;cursor:pointer;font-size:26px;line-height:1;transition:all .25s ease}.ai-chatbot-close:hover{background:rgba(139,35,50,.06);color:var(--maroon)}.ai-chatbot-body{padding:18px}.ai-chatbot-messages{max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px}.chat-bubble{max-width:90%;border-radius:18px;padding:12px 14px;font-size:14px;line-height:1.6}.chat-bubble.bot{background:var(--bg-secondary);color:var(--text-secondary);border-top-left-radius:6px}.chat-bubble.user{margin-left:auto;background:var(--maroon);color:#fff;border-top-right-radius:6px}.ai-chatbot-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.chat-suggestion{border-radius:999px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);padding:8px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:all .25s ease}.chat-suggestion:hover{border-color:var(--maroon);color:var(--maroon)}.ai-chatbot-form{margin-top:14px;display:flex;align-items:center;gap:8px;border-radius:18px;border:1px solid var(--border);background:var(--bg-card);padding:8px}.ai-chatbot-input{flex:1;border:0;outline:none;background:transparent;color:var(--text-primary);padding:8px 10px}.ai-chatbot-input::placeholder{color:var(--text-tertiary)}.ai-chatbot-send{width:40px;height:40px;border:0;border-radius:14px;background:var(--maroon);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s ease}.ai-chatbot-send:hover{background:var(--maroon-dark)}.ai-chatbot-send svg{width:17px;height:17px;fill:currentColor}
+      .ai-chatbot-panel{position:fixed;right:28px;bottom:118px;width:320px;max-width:calc(100vw - 32px);border-radius:26px;overflow:hidden;border:1px solid var(--border);background:var(--bg-card);box-shadow:var(--shadow-xl);transform:translateY(16px);opacity:0;pointer-events:none;z-index:120;transition:opacity .3s ease,transform .3s ease}.ai-chatbot-panel.open{transform:translateY(0);opacity:1;pointer-events:auto}.ai-chatbot-header,.ai-chatbot-title,.ai-chatbot-form{display:flex;align-items:center}.ai-chatbot-header{justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 14px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--bg-tertiary),var(--bg-card))}.ai-chatbot-title{gap:10px}.ai-chatbot-avatar{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.ai-chatbot-avatar img{width:100%;height:100%;object-fit:contain;display:block}.ai-chatbot-title h3{margin:0 0 2px;font-size:14px;color:var(--text-primary)}.ai-chatbot-title p{margin:0;font-size:11px;color:var(--text-tertiary)}.ai-chatbot-close{width:32px;height:32px;border:0;background:transparent;color:var(--text-tertiary);border-radius:12px;cursor:pointer;font-size:22px;line-height:1;transition:all .25s ease}.ai-chatbot-close:hover{background:rgba(139,35,50,.06);color:var(--maroon)}.ai-chatbot-body{padding:14px;display:flex;flex-direction:column}.ai-chatbot-messages{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}.chat-bubble{max-width:90%;border-radius:18px;padding:9px 11px;font-size:12px;line-height:1.45}.chat-bubble.bot{background:var(--bg-secondary);color:var(--text-secondary);border-top-left-radius:6px}.chat-bubble.user{margin-left:auto;background:var(--maroon);color:#fff;border-top-right-radius:6px}.ai-chatbot-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.chat-suggestion{border-radius:999px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);padding:7px 10px;font-size:11px !important;line-height:1.2 !important;font-weight:500;cursor:pointer;transition:all .25s ease;font-family:'Plus Jakarta Sans',sans-serif}.chat-suggestion:hover{border-color:var(--maroon);color:var(--maroon)}.ai-chatbot-form{margin-top:10px;gap:6px;border-radius:16px;border:1px solid var(--border);background:var(--bg-card);padding:6px}.ai-chatbot-input{flex:1;border:0;outline:none;background:transparent;color:var(--text-primary);padding:7px 9px;font-size:11px}.ai-chatbot-input::placeholder{color:var(--text-tertiary)}.ai-chatbot-send{width:34px;height:34px;border:0;border-radius:12px;background:var(--maroon);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s ease}.ai-chatbot-send:hover{background:var(--maroon-dark)}.ai-chatbot-send svg{width:14px;height:14px;fill:currentColor}
       @keyframes homepagePulse{0%,100%{opacity:1}50%{opacity:.3}}@keyframes homepageFadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}@keyframes homepageFadeInDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
       @media (max-width:1024px){.homepage-shell nav{padding:0 24px}.features-grid,.dept-grid{grid-template-columns:1fr}.cat-grid{grid-template-columns:1fr}.footer-main{flex-direction:column;align-items:flex-start}.footer-uni{text-align:left}}
       @media (max-width:768px){.nav-links{display:none}.features,.departments,.categories,.cta{padding:68px 24px}.hero-content{padding:0 20px}.hero-stats{gap:18px;flex-wrap:wrap}.hero-actions,.cta-buttons{flex-direction:column;align-items:center}footer{padding:30px 24px 18px}.ai-chatbot-panel{right:16px;left:16px;bottom:102px;width:auto;max-width:none}.ai-chatbot-fab{right:16px;bottom:16px;width:68px;height:68px}.ai-chatbot-fab svg{width:32px;height:32px}}
@@ -301,7 +305,7 @@ export default function Homepage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { type: 'bot', text: 'Hi! I can help you find thesis collections, browse categories, or guide you to the right sign-in page.' },
+    { type: 'bot', text: 'Hi! I can help with thesis review, faculty workflows, and archive support questions.' },
     { type: 'bot', text: 'Try one of the quick prompts below.' },
   ]);
   const chatPanelRef = useRef<HTMLDivElement | null>(null);
@@ -309,7 +313,7 @@ export default function Homepage() {
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
 
   const chatSuggestions = useMemo(
-    () => ['Show thesis categories', 'Where do students sign in?', 'Browse departments'],
+    () => ['How do I review submissions?', 'Where can I manage theses?', 'How do I contact support?'],
     []
   );
 
@@ -380,16 +384,16 @@ export default function Homepage() {
 
   const buildReply = (message: string) => {
     const normalized = message.toLowerCase();
-    if (normalized.includes('student') || normalized.includes('sign in') || normalized.includes('login')) {
-      return 'Students can use the Student button in the Ready to Access Our Thesis Collection section near the bottom of the page.';
+    if (normalized.includes('review') || normalized.includes('submission')) {
+      return 'Open Review Submissions to check pending work, provide feedback, and track student revisions.';
     }
-    if (normalized.includes('category') || normalized.includes('categories') || normalized.includes('browse')) {
-      return 'You can browse topics like Web and Mobile Development, AI and ML, Cybersecurity, Data Science, Game Development, and more in the Browse by Category section.';
+    if (normalized.includes('manage') || normalized.includes('thesis') || normalized.includes('approved')) {
+      return 'The Manage Thesis section lets you add new records, review submissions, and browse approved theses.';
     }
-    if (normalized.includes('department') || normalized.includes('program')) {
-      return 'The homepage currently highlights Computer Science, Information Technology, and Information Systems in the Thesis by Department section.';
+    if (normalized.includes('support') || normalized.includes('contact') || normalized.includes('help')) {
+      return 'Use the Support page for quick contacts, FAQs, and ticket requests related to archive workflows.';
     }
-    return 'I can help you explore categories, departments, or where to sign in. Try asking about theses, programs, or access options.';
+    return 'I can help with thesis review, faculty workflows, and archive support guidance.';
   };
 
   const handleChat = (message: string) => {
@@ -632,56 +636,56 @@ export default function Homepage() {
         </footer>
       </main>
 
-      <div ref={chatPanelRef} className={`ai-chatbot-panel${isChatOpen ? ' open' : ''}`} aria-hidden={!isChatOpen}>
-        <div className="ai-chatbot-header">
-          <div className="ai-chatbot-title">
-            <div className="ai-chatbot-avatar" aria-hidden="true">
+      <div ref={chatPanelRef} className={`vpaa-ai-chatbot-panel ${isChatOpen ? 'open' : ''}`} aria-hidden={!isChatOpen}>
+        <div className="vpaa-ai-chatbot-header">
+          <div className="vpaa-ai-chatbot-title">
+            <div className="vpaa-ai-chatbot-avatar" aria-hidden="true">
               <img src={tamsBot} alt="TAMS chatbot" />
             </div>
             <div>
               <h3>Archive Assistant</h3>
-              <p>Ask about theses, departments, and access.</p>
+              <p>Ask about reviews, faculty workflows, and support.</p>
             </div>
           </div>
 
-          <button type="button" className="ai-chatbot-close" onClick={() => setIsChatOpen(false)} aria-label="Close AI chatbot">
+          <button type="button" className="vpaa-ai-chatbot-close" onClick={() => setIsChatOpen(false)} aria-label="Close AI chatbot">
             ×
           </button>
         </div>
 
-        <div className="ai-chatbot-body">
-          <div className="ai-chatbot-messages" ref={chatMessagesRef}>
+        <div className="vpaa-ai-chatbot-body">
+          <div className="vpaa-ai-chatbot-messages" ref={chatMessagesRef}>
             {messages.map((message, index) => (
-              <div key={`${message.type}-${index}`} className={`chat-bubble ${message.type}`}>
+              <div key={`${message.type}-${index}`} className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`}>
                 {message.text}
               </div>
             ))}
           </div>
 
-          <div className="ai-chatbot-suggestions">
+          <div className="vpaa-ai-chatbot-suggestions">
             {chatSuggestions.map((suggestion) => (
-              <button key={suggestion} type="button" className="chat-suggestion" onClick={() => handleChat(suggestion)}>
+              <button key={suggestion} type="button" className="vpaa-chat-suggestion" onClick={() => handleChat(suggestion)}>
                 {suggestion}
               </button>
             ))}
           </div>
 
           <form
-            className="ai-chatbot-form"
+            className="vpaa-ai-chatbot-form"
             onSubmit={(event) => {
               event.preventDefault();
               handleChat(chatInput);
             }}
           >
             <input
-              className="ai-chatbot-input"
+              className="vpaa-ai-chatbot-input"
               type="text"
               value={chatInput}
               onChange={(event) => setChatInput(event.target.value)}
               placeholder="Type your question..."
               aria-label="Chat message"
             />
-            <button type="submit" className="ai-chatbot-send" aria-label="Send message">
+            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message">
               <SendIcon />
             </button>
           </form>
@@ -691,7 +695,7 @@ export default function Homepage() {
       <button
         ref={chatFabRef}
         type="button"
-        className="ai-chatbot-fab"
+        className="vpaa-ai-chatbot-fab"
         aria-label="Open AI chatbot"
         aria-expanded={isChatOpen}
         onClick={() => setIsChatOpen((current) => !current)}

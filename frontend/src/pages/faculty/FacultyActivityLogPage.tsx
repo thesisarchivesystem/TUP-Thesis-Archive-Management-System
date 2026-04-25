@@ -161,7 +161,6 @@ export default function FacultyActivityLogPage() {
               <span className="panel-header-icon phi-maroon"><SquareSplitVertical size={17} /></span>
               <h3 className="panel-title">Recent Activity</h3>
             </div>
-            <button type="button" className="recent-see-all">Export Log ?</button>
           </div>
 
           <div className="filter-row">

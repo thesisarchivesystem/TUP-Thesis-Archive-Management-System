@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/advisees', [FacultyController::class, 'advisees']);
         Route::get('/library-items', [FacultyController::class, 'libraryIndex']);
         Route::post('/library-items', [FacultyController::class, 'storeLibraryItem']);
+        Route::get('/share-users', [FacultyController::class, 'searchableShareUsers']);
         Route::post('/theses', [FacultyController::class, 'storeManagedThesis']);
         Route::apiResource('students', StudentController::class);
         Route::get('/thesis-submissions', [ThesisController::class, 'pendingReview']);

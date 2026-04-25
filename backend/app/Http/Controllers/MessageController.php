@@ -285,9 +285,11 @@ class MessageController extends Controller
             ->whereRaw('is_active = true');
 
         return match ($user->role) {
-            'student' => $query->where('role', 'faculty')->orderBy('name'),
+            'student' => $query->whereIn('role', ['student', 'faculty'])->orderBy('name'),
             'faculty' => $query->where(function (Builder $nested) {
-                $nested->where('role', 'student')->orWhere('role', 'vpaa');
+                $nested->where('role', 'student')
+                    ->orWhere('role', 'faculty')
+                    ->orWhere('role', 'vpaa');
             })->orderBy('name'),
             'vpaa' => $query->where('role', 'faculty')->orderBy('name'),
             default => $query->whereRaw('1 = 0'),
@@ -297,8 +299,8 @@ class MessageController extends Controller
     private function canChatWith(User $user, User $contact): bool
     {
         return match ($user->role) {
-            'student' => $contact->role === 'faculty',
-            'faculty' => in_array($contact->role, ['student', 'vpaa'], true),
+            'student' => in_array($contact->role, ['student', 'faculty'], true),
+            'faculty' => in_array($contact->role, ['faculty', 'student', 'vpaa'], true),
             'vpaa' => $contact->role === 'faculty',
             default => false,
         };

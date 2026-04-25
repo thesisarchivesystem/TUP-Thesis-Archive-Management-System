@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
   CalendarDays,
@@ -81,6 +81,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
     { id: 'bot-1', type: 'bot', text: 'Hi! I can help with thesis uploads, archive browsing, and student support questions.' },
     { id: 'bot-2', type: 'bot', text: 'Try one of the quick prompts below.' },
   ]);
+  const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
   const notifications = useNotificationStore((state) => state.notifications);
@@ -134,6 +135,11 @@ export default function StudentLayout({ title, description, children, hidePageIn
   useEffect(() => {
     setSearchQuery(searchParams.get('q') ?? '');
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!chatMessagesRef.current) return;
+    chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+  }, [chatMessages, chatOpen]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -378,7 +384,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
           <button type="button" className="vpaa-ai-chatbot-close" onClick={() => setChatOpen(false)} aria-label="Close AI chatbot">&times;</button>
         </div>
         <div className="vpaa-ai-chatbot-body">
-          <div className="vpaa-ai-chatbot-messages">
+          <div className="vpaa-ai-chatbot-messages" ref={chatMessagesRef}>
             {chatMessages.map((message) => (
               <div className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`} key={message.id}>{message.text}</div>
             ))}

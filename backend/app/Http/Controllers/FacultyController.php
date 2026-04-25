@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\FacultyProfile;
 use App\Models\SearchLog;
+use App\Models\SharedFile;
+use App\Models\SharedFileRecipient;
 use App\Models\StudentProfile;
 use App\Models\Thesis;
 use App\Models\Category;
@@ -114,12 +116,11 @@ class FacultyController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        $items = Thesis::query()
-            ->where('status', 'draft')
-            ->where('department', $facultyProfile->department)
-            ->with(['submitter:id,name', 'category:id,name,slug'])
+        $items = SharedFile::query()
+            ->with(['uploader:id,name,email', 'category:id,name,slug', 'recipients.user:id,name,email'])
+            ->where('uploaded_by', $request->user()->id)
             ->orderByDesc('created_at')
-            ->limit(12)
+            ->limit(20)
             ->get();
 
         $latestTimestamp = $items
@@ -130,27 +131,57 @@ class FacultyController extends Controller
         return response()->json([
             'data' => [
                 'department' => $facultyProfile->department,
+                'college' => $facultyProfile->college,
                 'stats' => [
                     'total_files' => $items->count(),
-                    'shared_libraries' => $items->pluck('category_id')->filter()->unique()->count(),
-                    'files_needing_review' => 0,
+                    'shared_libraries' => $items->where('is_draft', false)->count(),
+                    'files_needing_review' => $items->where('is_draft', true)->count(),
                     'storage_used' => $items->isEmpty()
                         ? 0
-                        : (int) round(($items->filter(fn (Thesis $thesis) => filled($thesis->file_url))->count() / $items->count()) * 100),
+                        : (int) round(($items->filter(fn (SharedFile $file) => filled($file->file_url))->count() / $items->count()) * 100),
                     'last_sync' => $this->formatIsoTimestamp($latestTimestamp),
                 ],
-                'items' => $items->map(function (Thesis $thesis) {
+                'share_options' => [
+                    'scopes' => [
+                        ['value' => 'all_colleges', 'label' => 'All Colleges'],
+                        ['value' => 'all_departments', 'label' => 'All Departments'],
+                        ['value' => 'specific_college', 'label' => 'Specific College'],
+                        ['value' => 'specific_department', 'label' => 'Specific Department'],
+                        ['value' => 'specific_users', 'label' => 'Specific User'],
+                    ],
+                ],
+                'items' => $items->map(function (SharedFile $file) {
                     return [
-                        'id' => $thesis->id,
-                        'title' => $thesis->title,
-                        'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
-                        'department' => $thesis->department,
-                        'program' => $thesis->program,
-                        'category' => $thesis->category?->name,
-                        'year' => $thesis->created_at?->format('Y'),
-                        'file_url' => $thesis->file_url,
-                        'file_name' => $thesis->file_name,
-                        'created_at' => $this->formatIsoTimestamp($thesis->created_at),
+                        'id' => $file->id,
+                        'title' => $file->title,
+                        'type' => $file->resource_type,
+                        'author' => collect($file->authors ?? [])->filter()->implode(', ') ?: ($file->uploader?->name ?? 'Unknown author'),
+                        'department' => $file->department,
+                        'college' => $file->college,
+                        'program' => $file->program,
+                        'category' => $file->category?->name,
+                        'year' => $file->created_at?->format('Y'),
+                        'file_url' => $file->file_url,
+                        'file_name' => $file->file_name,
+                        'is_draft' => (bool) $file->is_draft,
+                        'share_scope' => $file->share_scope,
+                        'share_scope_label' => $this->presentShareScopeLabel($file),
+                        'shared_with_count' => $file->share_scope === 'specific_users'
+                            ? $file->recipients->count()
+                            : null,
+                        'shared_with_users' => $file->share_scope === 'specific_users'
+                            ? $file->recipients
+                                ->map(fn (SharedFileRecipient $recipient) => [
+                                    'id' => $recipient->user?->id,
+                                    'name' => $recipient->user?->name,
+                                    'email' => $recipient->user?->email,
+                                ])
+                                ->filter(fn (array $recipient) => filled($recipient['id']))
+                                ->values()
+                                ->all()
+                            : [],
+                        'created_at' => $this->formatIsoTimestamp($file->created_at),
+                        'shared_at' => $this->formatIsoTimestamp($file->shared_at),
                     ];
                 })->values(),
             ],
@@ -165,6 +196,7 @@ class FacultyController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:500',
+            'resource_type' => 'required|string|max:100',
             'abstract' => 'nullable|string',
             'keywords' => 'nullable|array',
             'keywords.*' => 'string|max:100',
@@ -173,51 +205,136 @@ class FacultyController extends Controller
             'school_year' => 'required|string|max:255',
             'authors' => 'nullable|array',
             'authors.*' => 'string|max:255',
+            'share_scope' => 'required|in:all_colleges,all_departments,specific_college,specific_department,specific_users',
+            'target_college' => 'nullable|string|max:255|required_if:share_scope,specific_college',
+            'target_department' => 'nullable|string|max:255|required_if:share_scope,specific_department',
+            'recipient_ids' => 'nullable|array|required_if:share_scope,specific_users|min:1',
+            'recipient_ids.*' => 'uuid|exists:users,id',
+            'is_draft' => 'nullable|boolean',
+            'file' => 'nullable|file|max:51200',
             'file_url' => 'nullable|url',
             'file_name' => 'nullable|string|max:255',
             'file_size' => 'nullable|integer',
         ]);
 
         $category = Category::query()->findOrFail($validated['category_id']);
+        $isDraft = (bool) ($validated['is_draft'] ?? false);
+        $shareScope = (string) $validated['share_scope'];
+        $recipientIds = collect($validated['recipient_ids'] ?? [])
+            ->filter()
+            ->unique()
+            ->values();
+        $uploadedFile = $request->file('file');
+        $fileUpload = $uploadedFile ? $this->uploadToSupabase($uploadedFile, 'shared-resources') : null;
 
-        $thesis = Thesis::create([
-            'title' => $validated['title'],
-            'abstract' => $validated['abstract'] ?? null,
-            'keywords' => $validated['keywords'] ?? [],
-            'department' => $facultyProfile->department,
-            'program' => $validated['program'] ?? null,
-            'category_id' => $category->id,
-            'school_year' => $validated['school_year'],
-            'authors' => $validated['authors'] ?? [],
-            'file_url' => $validated['file_url'] ?? null,
-            'file_name' => $validated['file_name'] ?? null,
-            'file_size' => $validated['file_size'] ?? null,
-            'status' => 'draft',
-            'submitted_by' => $request->user()->id,
-        ]);
+        $sharedFile = DB::transaction(function () use (
+            $request,
+            $facultyProfile,
+            $category,
+            $validated,
+            $isDraft,
+            $shareScope,
+            $recipientIds,
+            $fileUpload
+        ) {
+            $file = SharedFile::create([
+                'uploaded_by' => $request->user()->id,
+                'category_id' => $category->id,
+                'title' => $validated['title'],
+                'resource_type' => $validated['resource_type'],
+                'abstract' => $validated['abstract'] ?? null,
+                'keywords' => $validated['keywords'] ?? [],
+                'authors' => $validated['authors'] ?? [],
+                'program' => $validated['program'] ?? null,
+                'department' => $facultyProfile->department,
+                'college' => $facultyProfile->college,
+                'school_year' => $validated['school_year'],
+                'share_scope' => $shareScope,
+                'target_college' => $validated['target_college'] ?? null,
+                'target_department' => $validated['target_department'] ?? null,
+                'file_url' => $fileUpload['url'] ?? ($validated['file_url'] ?? null),
+                'file_name' => $fileUpload['name'] ?? ($validated['file_name'] ?? null),
+                'file_size' => $fileUpload['size'] ?? ($validated['file_size'] ?? null),
+                'mime_type' => $fileUpload['mime_type'] ?? null,
+                'is_draft' => $isDraft,
+                'shared_at' => $isDraft ? null : now(),
+            ]);
 
-        $this->logger->log($request->user(), 'faculty.library_item_created', 'thesis', $thesis->id, [
+            if ($shareScope === 'specific_users') {
+                $file->recipients()->createMany(
+                    $recipientIds->map(fn (string $userId) => ['user_id' => $userId])->all()
+                );
+            }
+
+            return $file->load(['category:id,name,slug', 'recipients.user:id,name,email']);
+        });
+
+        $this->logger->log($request->user(), 'faculty.library_item_created', 'shared_file', $sharedFile->id, [
             'department' => $facultyProfile->department,
+            'college' => $facultyProfile->college,
             'category' => $category->name,
+            'scope' => $shareScope,
+            'is_draft' => $isDraft,
         ]);
 
-        $this->notifyDepartmentFacultyOfSharedFile(
-            $request->user(),
-            $facultyProfile->department,
-            $thesis
-        );
+        if (!$isDraft) {
+            $this->notifyRecipientsOfSharedFile(
+                $request->user(),
+                $facultyProfile,
+                $sharedFile
+            );
+        }
 
         return response()->json([
             'data' => [
-                'id' => $thesis->id,
-                'title' => $thesis->title,
-                'department' => $thesis->department,
-                'program' => $thesis->program,
-                'category_id' => $thesis->category_id,
-                'status' => $thesis->status,
-                'created_at' => $this->formatIsoTimestamp($thesis->created_at),
+                'id' => $sharedFile->id,
+                'title' => $sharedFile->title,
+                'department' => $sharedFile->department,
+                'college' => $sharedFile->college,
+                'program' => $sharedFile->program,
+                'category_id' => $sharedFile->category_id,
+                'share_scope' => $sharedFile->share_scope,
+                'is_draft' => $sharedFile->is_draft,
+                'created_at' => $this->formatIsoTimestamp($sharedFile->created_at),
             ],
         ], 201);
+    }
+
+    public function searchableShareUsers(Request $request): JsonResponse
+    {
+        $facultyProfile = FacultyProfile::query()
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $search = trim((string) $request->input('search', ''));
+        $users = User::query()
+            ->with(['faculty:user_id,department,college', 'student:user_id,department'])
+            ->where('id', '!=', $request->user()->id)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('name', 'ilike', "%{$search}%")
+                        ->orWhere('email', 'ilike', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->limit($search === '' ? 12 : 20)
+            ->get();
+
+        return response()->json([
+            'data' => $users->map(function (User $user) use ($facultyProfile) {
+                $department = $user->faculty?->department ?? $user->student?->department ?? $facultyProfile->department;
+                $college = $user->faculty?->college ?? null;
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'department' => $department,
+                    'college' => $college,
+                ];
+            })->values(),
+        ]);
     }
 
     public function storeManagedThesis(Request $request): JsonResponse
@@ -308,10 +425,18 @@ class FacultyController extends Controller
             'status' => $status,
         ]);
 
-        $this->notifyDepartmentFacultyOfSharedFile(
+        $sharedSnapshot = new SharedFile([
+            'id' => $thesis->id,
+            'title' => $thesis->title,
+            'share_scope' => 'specific_department',
+            'target_department' => $facultyProfile->department,
+        ]);
+        $sharedSnapshot->setRelation('recipients', collect());
+
+        $this->notifyRecipientsOfSharedFile(
             $request->user(),
-            $facultyProfile->department,
-            $thesis
+            $facultyProfile,
+            $sharedSnapshot
         );
 
         return response()->json([
@@ -383,17 +508,38 @@ class FacultyController extends Controller
             ->get();
 
         $studentUserIds = $students->pluck('user_id')->filter()->values();
-        $theses = Thesis::query()
-            ->whereIn('submitted_by', $studentUserIds)
-            ->orderByDesc('updated_at')
-            ->orderByDesc('created_at')
-            ->get()
-            ->groupBy('submitted_by');
+        $thesisRows = $studentUserIds->isEmpty()
+            ? collect()
+            : Thesis::query()
+                ->select([
+                    'submitted_by',
+                    'status',
+                    'updated_at',
+                    'created_at',
+                    DB::raw('ROW_NUMBER() OVER (PARTITION BY submitted_by ORDER BY updated_at DESC, created_at DESC) as thesis_rank'),
+                    DB::raw("COUNT(*) FILTER (WHERE status IN ('pending', 'under_review')) OVER (PARTITION BY submitted_by) as proposal_count"),
+                    DB::raw("COUNT(*) FILTER (WHERE status = 'approved') OVER (PARTITION BY submitted_by) as approved_count"),
+                    DB::raw("MAX(CASE WHEN status IN ('pending', 'under_review') THEN 1 ELSE 0 END) OVER (PARTITION BY submitted_by) as has_active"),
+                    DB::raw("MAX(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) OVER (PARTITION BY submitted_by) as has_approved"),
+                ])
+                ->whereIn('submitted_by', $studentUserIds)
+                ->orderBy('submitted_by')
+                ->orderByDesc('updated_at')
+                ->orderByDesc('created_at')
+                ->get();
 
-        $advisees = $students->map(function (StudentProfile $student) use ($theses, $request, $facultyProfile) {
-            $studentTheses = $theses->get($student->user_id, collect());
-            $latestThesis = $studentTheses->first();
-            $status = $this->presentAdviseeStatus($studentTheses);
+        $thesisSummaries = $thesisRows
+            ->where('thesis_rank', 1)
+            ->keyBy('submitted_by');
+
+        $advisees = $students->map(function (StudentProfile $student) use ($thesisSummaries, $request, $facultyProfile) {
+            $summary = $thesisSummaries->get($student->user_id);
+            $proposalCount = (int) ($summary?->proposal_count ?? 0);
+            $approvedCount = (int) ($summary?->approved_count ?? 0);
+            $status = $this->presentAdviseeStatusFromSummary(
+                (bool) ($summary?->has_active ?? false),
+                (bool) ($summary?->has_approved ?? false),
+            );
 
             return [
                 'id' => $student->id,
@@ -408,9 +554,9 @@ class FacultyController extends Controller
                 'status' => $status['label'],
                 'status_tone' => $status['tone'],
                 'action' => $status['action'],
-                'last_update' => $this->formatIsoTimestamp($latestThesis?->updated_at ?? $student->updated_at ?? $student->created_at),
-                'proposal_count' => $studentTheses->whereIn('status', ['pending', 'under_review'])->count(),
-                'approved_count' => $studentTheses->where('status', 'approved')->count(),
+                'last_update' => $this->formatIsoTimestamp($summary?->updated_at ?? $student->updated_at ?? $student->created_at),
+                'proposal_count' => $proposalCount,
+                'approved_count' => $approvedCount,
                 'needs_guidance' => $status['label'] === 'Needs Guidance',
                 'is_recent' => optional($student->created_at)?->gte(now()->subDays(120)) ?? false,
                 'adviser_name' => $request->user()->name,
@@ -504,6 +650,31 @@ class FacultyController extends Controller
         }
 
         if ($studentTheses->contains(fn (Thesis $thesis) => $thesis->status === 'approved')) {
+            return [
+                'label' => 'On Track',
+                'tone' => 'sage',
+                'action' => 'Checklist',
+            ];
+        }
+
+        return [
+            'label' => 'Needs Guidance',
+            'tone' => 'terracotta',
+            'action' => 'Review',
+        ];
+    }
+
+    private function presentAdviseeStatusFromSummary(bool $hasActive, bool $hasApproved): array
+    {
+        if ($hasActive) {
+            return [
+                'label' => 'Active',
+                'tone' => 'gold',
+                'action' => 'Open',
+            ];
+        }
+
+        if ($hasApproved) {
             return [
                 'label' => 'On Track',
                 'tone' => 'sage',
@@ -872,26 +1043,67 @@ class FacultyController extends Controller
         return response()->json(['csv' => $csv]);
     }
 
-    private function notifyDepartmentFacultyOfSharedFile(User $actor, string $department, Thesis $thesis): void
+    private function notifyRecipientsOfSharedFile(User $actor, FacultyProfile $facultyProfile, SharedFile $file): void
     {
-        User::query()
-            ->where('role', 'faculty')
-            ->where('id', '!=', $actor->id)
-            ->whereHas('faculty', fn ($query) => $query->where('department', $department))
-            ->get()
-            ->each(function (User $facultyUser) use ($actor, $department, $thesis) {
-                $this->notifications->notify(
-                    $facultyUser,
-                    'department.file_shared',
-                    'New file shared in your department',
-                    $thesis->title,
-                    [
-                        'thesis_id' => $thesis->id,
-                        'department' => $department,
-                        'shared_by' => $actor->id,
-                    ],
-                );
-            });
+        $recipients = match ($file->share_scope) {
+            'all_colleges' => User::query()
+                ->where('id', '!=', $actor->id)
+                ->get(),
+            'all_departments' => User::query()
+                ->where('id', '!=', $actor->id)
+                ->where(function ($query) {
+                    $query->whereHas('faculty')
+                        ->orWhereHas('student');
+                })
+                ->get(),
+            'specific_college' => User::query()
+                ->where('id', '!=', $actor->id)
+                ->whereHas('faculty', fn ($query) => $query->where('college', $file->target_college))
+                ->get(),
+            'specific_department' => User::query()
+                ->where('id', '!=', $actor->id)
+                ->where(function ($query) use ($file) {
+                    $query->whereHas('faculty', fn ($facultyQuery) => $facultyQuery->where('department', $file->target_department))
+                        ->orWhereHas('student', fn ($studentQuery) => $studentQuery->where('department', $file->target_department));
+                })
+                ->get(),
+            'specific_users' => User::query()
+                ->whereIn('id', $file->recipients->pluck('user_id')->filter()->values())
+                ->where('id', '!=', $actor->id)
+                ->get(),
+            default => collect(),
+        };
+
+        $scopeLabel = $this->presentShareScopeLabel($file);
+
+        $recipients->each(function (User $recipient) use ($actor, $file, $scopeLabel, $facultyProfile) {
+            $this->notifications->notify(
+                $recipient,
+                'department.file_shared',
+                'New file shared with you',
+                $file->title,
+                [
+                    'shared_file_id' => $file->id,
+                    'scope' => $file->share_scope,
+                    'scope_label' => $scopeLabel,
+                    'department' => $facultyProfile->department,
+                    'college' => $facultyProfile->college,
+                    'shared_by' => $actor->id,
+                ],
+            );
+        });
+    }
+
+    private function presentShareScopeLabel(SharedFile $file): string
+    {
+        return match ($file->share_scope) {
+            'all_colleges' => 'All Colleges',
+            'all_departments' => 'All Departments',
+            'specific_college' => $file->target_college ? 'College: ' . $file->target_college : 'Specific College',
+            'specific_department' => $file->target_department ? 'Department: ' . $file->target_department : 'Specific Department',
+            'specific_users' => 'Specific Users',
+            default => 'Shared File',
+        };
     }
 
     private function resolveCollegeForDepartment(string $department, ?string $college): ?string

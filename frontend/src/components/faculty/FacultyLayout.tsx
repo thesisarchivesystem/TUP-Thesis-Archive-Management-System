@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, GraduationCap, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Settings, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -64,6 +64,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
     { id: 'bot-1', type: 'bot', text: 'Hi! I can help with thesis review, faculty workflows, and archive support questions.' },
     { id: 'bot-2', type: 'bot', text: 'Try one of the quick prompts below.' },
   ]);
+  const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
   const notifications = useNotificationStore((state) => state.notifications);
@@ -121,6 +122,11 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   useEffect(() => {
     setManageThesisOpen(location.pathname.startsWith('/faculty/manage-thesis'));
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!chatMessagesRef.current) return;
+    chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+  }, [chatMessages, chatOpen]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -390,7 +396,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
           <button type="button" className="vpaa-ai-chatbot-close" onClick={() => setChatOpen(false)} aria-label="Close AI chatbot">&times;</button>
         </div>
         <div className="vpaa-ai-chatbot-body">
-          <div className="vpaa-ai-chatbot-messages">
+          <div className="vpaa-ai-chatbot-messages" ref={chatMessagesRef}>
             {chatMessages.map((message) => (
               <div className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`} key={message.id}>{message.text}</div>
             ))}

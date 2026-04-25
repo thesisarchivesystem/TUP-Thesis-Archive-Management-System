@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, CheckCircle2, Clock3, List, Upload, UserPlus, Users2 } from 'lucide-react';
+import { ChevronDown, CheckCircle2, Clock3, List, UserPlus, Users2 } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { facultyAdviseesService, type FacultyAdviseeRecord, type FacultyAdviseesResponse, type StudentAccountPayload } from '../../services/facultyAdviseesService';
 
@@ -159,8 +159,7 @@ export default function FacultyAdviseesPage() {
   const stats = [
     { label: 'Total Advisees', value: summary?.total_advisees ?? 0, icon: <Users2 size={20} />, tone: 'si-sky' },
     { label: 'Active Proposals', value: summary?.active_proposals ?? 0, icon: <Clock3 size={20} />, tone: 'si-gold' },
-    { label: 'Archived', value: summary?.for_defense ?? 0, icon: <CheckCircle2 size={20} />, tone: 'si-sage' },
-    { label: 'Needs Guidance', value: summary?.needs_guidance ?? 0, icon: <Upload size={20} />, tone: 'si-terracotta' },
+    { label: 'Near Defense', value: summary?.for_defense ?? 0, icon: <CheckCircle2 size={20} />, tone: 'si-sage' },
     { label: 'New This Term', value: summary?.new_this_term ?? 0, icon: <UserPlus size={20} />, tone: 'si-maroon' },
   ];
 
@@ -296,7 +295,7 @@ export default function FacultyAdviseesPage() {
         {error ? <div className="vpaa-banner-error">{error}</div> : null}
         {success ? <div className="vpaa-banner-success">{success}</div> : null}
 
-        <div className="vpaa-grid-5" style={{ marginBottom: 8 }}>
+        <div className="vpaa-grid-4" style={{ marginBottom: 8 }}>
           {stats.map((card) => (
             <div className="vpaa-card vpaa-stat-card" key={card.label}>
               <div>
@@ -316,7 +315,6 @@ export default function FacultyAdviseesPage() {
                 <span className="panel-title">Create Student Account</span>
               </span>
               <span className="vpaa-panel-toggle-actions">
-                <span className="recent-see-all">Bulk Import ?</span>
                 <ChevronDown size={18} className={`vpaa-panel-chevron${createOpen ? ' open' : ''}`} />
               </span>
             </button>
@@ -407,7 +405,6 @@ export default function FacultyAdviseesPage() {
                 <span className="panel-title">Advisee List</span>
               </span>
               <span className="vpaa-panel-toggle-actions">
-                <span className="recent-see-all">Export List ?</span>
                 <ChevronDown size={18} className={`vpaa-panel-chevron${listOpen ? ' open' : ''}`} />
               </span>
             </button>

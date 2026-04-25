@@ -429,10 +429,10 @@ class ThesisController extends Controller
             ->orderBy('name')
             ->get();
 
-        $data = $categories->map(function (Category $category) {
-            $theses = Thesis::query()
-                ->where('category_id', $category->id)
-                ->where('status', 'approved')
+        $categoryIds = $categories->pluck('id')->filter()->values();
+        $categoryTheses = $categoryIds->isEmpty()
+            ? collect()
+            : Thesis::query()
                 ->select([
                     'id',
                     'title',
@@ -445,11 +445,19 @@ class ThesisController extends Controller
                     'approved_at',
                     'created_at',
                     'submitted_by',
+                    'category_id',
                 ])
                 ->with('submitter:id,name')
+                ->whereIn('category_id', $categoryIds)
+                ->where('status', 'approved')
+                ->orderBy('category_id')
                 ->orderByDesc('approved_at')
-                ->limit(6)
-                ->get();
+                ->get()
+                ->groupBy('category_id')
+                ->map(fn ($theses) => $theses->take(6)->values());
+
+        $data = $categories->map(function (Category $category) use ($categoryTheses) {
+            $theses = $categoryTheses->get($category->id, collect());
 
             return [
                 'id' => $category->id,
