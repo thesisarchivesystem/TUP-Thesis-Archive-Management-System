@@ -680,7 +680,7 @@ export default function ForgotPassword() {
 
           {submitted ? (
             <div className="forgot-success">
-              {successMessage || <>A reset link has been sent for <strong>{identifier}</strong>.</>}
+              {successMessage ? successMessage : `A reset link has been sent for ${identifier}.`}
             </div>
           ) : null}
 
