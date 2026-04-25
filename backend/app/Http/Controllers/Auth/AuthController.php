@@ -16,6 +16,32 @@ class AuthController extends Controller
 {
     public function __construct(private ActivityLogService $logger) {}
 
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'identifier' => 'required|string',
+            'role' => 'nullable|in:student,faculty,vpaa',
+        ]);
+
+        $identifier = trim((string) $request->input('identifier'));
+        $role = (string) $request->input('role', '');
+
+        $user = $this->resolveUserFromIdentifier($identifier);
+
+        if ($user && ($role === '' || $user->role === $role)) {
+            $this->logger->log($user, 'auth.forgot_password.requested', 'user', $user->id, [
+                'identifier' => $identifier,
+                'role' => $role,
+                'ip_address' => $request->ip(),
+                'user_agent' => (string) $request->userAgent(),
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'If the account exists, your password recovery request has been received.',
+        ]);
+    }
+
     public function login(Request $request): JsonResponse
     {
         $request->validate([
