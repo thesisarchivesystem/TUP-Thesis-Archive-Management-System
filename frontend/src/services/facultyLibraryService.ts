@@ -22,16 +22,23 @@ export interface FacultyLibraryItem {
   title: string;
   type: string;
   author: string;
+  abstract?: string | null;
+  keywords?: string[] | null;
+  authors?: string[] | null;
   department: string;
   college?: string | null;
   program?: string | null;
   category?: string | null;
+  school_year?: string | null;
   year?: string | null;
   file_url?: string | null;
   file_name?: string | null;
   is_draft: boolean;
   share_scope: string;
   share_scope_label: string;
+  category_id?: string;
+  target_college?: string | null;
+  target_department?: string | null;
   shared_with_count?: number | null;
   shared_with_users: ShareUserOption[];
   created_at?: string | null;
@@ -45,6 +52,8 @@ export interface FacultyLibraryResponse {
   items: FacultyLibraryItem[];
   share_options?: {
     scopes: Array<{ value: string; label: string }>;
+    colleges?: string[];
+    departments_by_college?: Record<string, string[]>;
   };
 }
 
@@ -53,7 +62,8 @@ export interface FacultyLibraryPayload {
   resource_type: string;
   abstract?: string;
   keywords?: string[];
-  program?: string;
+  college?: string;
+  department?: string;
   category_id: string;
   school_year: string;
   authors?: string[];
@@ -70,6 +80,11 @@ export interface FacultyLibraryPayload {
 export const facultyLibraryService = {
   async getLibrary(): Promise<FacultyLibraryResponse> {
     const response = await api.get<{ data: FacultyLibraryResponse }>('/faculty/library-items');
+    return response.data.data;
+  },
+
+  async getLibraryItem(id: string): Promise<FacultyLibraryItem> {
+    const response = await api.get<{ data: FacultyLibraryItem }>(`/faculty/library-items/${id}`);
     return response.data.data;
   },
 
@@ -91,7 +106,8 @@ export const facultyLibraryService = {
     formData.append('is_draft', payload.is_draft ? '1' : '0');
 
     if (payload.abstract) formData.append('abstract', payload.abstract);
-    if (payload.program) formData.append('program', payload.program);
+    if (payload.college) formData.append('college', payload.college);
+    if (payload.department) formData.append('department', payload.department);
     if (payload.target_college) formData.append('target_college', payload.target_college);
     if (payload.target_department) formData.append('target_department', payload.target_department);
     if (payload.file) formData.append('file', payload.file);
@@ -105,6 +121,39 @@ export const facultyLibraryService = {
     const response = await api.post('/faculty/library-items', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return response.data;
+  },
+
+  async updateLibraryItem(id: string, payload: FacultyLibraryPayload) {
+    const formData = new FormData();
+    formData.append('title', payload.title);
+    formData.append('resource_type', payload.resource_type);
+    formData.append('category_id', payload.category_id);
+    formData.append('school_year', payload.school_year);
+    formData.append('share_scope', payload.share_scope);
+    formData.append('is_draft', payload.is_draft ? '1' : '0');
+    formData.append('_method', 'PATCH');
+
+    if (payload.abstract) formData.append('abstract', payload.abstract);
+    if (payload.college) formData.append('college', payload.college);
+    if (payload.department) formData.append('department', payload.department);
+    if (payload.target_college) formData.append('target_college', payload.target_college);
+    if (payload.target_department) formData.append('target_department', payload.target_department);
+    if (payload.file) formData.append('file', payload.file);
+    if (payload.file_name) formData.append('file_name', payload.file_name);
+
+    payload.keywords?.forEach((keyword) => formData.append('keywords[]', keyword));
+    payload.authors?.forEach((author) => formData.append('authors[]', author));
+    payload.recipient_ids?.forEach((entryId) => formData.append('recipient_ids[]', entryId));
+
+    const response = await api.post(`/faculty/library-items/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async deleteLibraryItem(id: string) {
+    const response = await api.delete(`/faculty/library-items/${id}`);
     return response.data;
   },
 };

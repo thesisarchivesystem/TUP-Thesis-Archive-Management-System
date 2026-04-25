@@ -48,10 +48,10 @@ export default function FacultySignIn() {
         { label: 'VPAA', to: '/sign-in/vpaa' },
       ]}
       accent={{
-        successBgLight: 'rgba(74,143,181,0.1)',
-        successTextLight: '#4A8FB5',
-        successBgDark: 'rgba(123,184,212,0.12)',
-        successTextDark: '#7BB8D4',
+        successBgLight: 'rgba(214,106,154,0.12)',
+        successTextLight: '#C24F87',
+        successBgDark: 'rgba(232,145,187,0.16)',
+        successTextDark: '#E891BB',
       }}
       error={error}
       isLoading={isLoading}

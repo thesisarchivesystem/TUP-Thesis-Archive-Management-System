@@ -30,11 +30,15 @@ class StudentController extends Controller
         $studentProfile = StudentProfile::query()
             ->where('user_id', $request->user()->id)
             ->first();
+        $facultyProfile = FacultyProfile::query()
+            ->where('user_id', $request->user()->id)
+            ->first();
+        $department = $studentProfile?->department ?? $facultyProfile?->department;
 
         $faculty = FacultyProfile::query()
             ->with('user:id,name,email')
             ->where('status', 'active')
-            ->when($studentProfile?->department, fn ($query, $department) => $query->where('department', $department))
+            ->when($department, fn ($query, $department) => $query->where('department', $department))
             ->orderBy('department')
             ->orderBy('faculty_role')
             ->get();

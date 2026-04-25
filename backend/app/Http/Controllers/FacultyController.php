@@ -127,6 +127,42 @@ class FacultyController extends Controller
             ->pluck('created_at')
             ->filter()
             ->max();
+        $configuredColleges = collect(config('academic.colleges', []))
+            ->filter()
+            ->map(fn ($college) => trim((string) $college))
+            ->unique()
+            ->sort()
+            ->values();
+        $configuredDepartmentMap = collect(config('academic.department_college_map', []))
+            ->filter(fn ($college, $department) => filled($department) && filled($college));
+        $profileDepartmentMap = FacultyProfile::query()
+            ->whereNotNull('department')
+            ->where('department', '!=', '')
+            ->get(['department', 'college'])
+            ->mapWithKeys(function (FacultyProfile $profile) {
+                $department = trim((string) $profile->department);
+                $college = trim((string) ($profile->college ?? ''));
+
+                return $department !== '' && $college !== ''
+                    ? [$department => $college]
+                    : [];
+            });
+        $mergedDepartmentMap = $configuredDepartmentMap
+            ->merge($profileDepartmentMap)
+            ->mapWithKeys(fn ($college, $department) => [trim((string) $department) => trim((string) $college)])
+            ->filter(fn ($college, $department) => $department !== '' && $college !== '');
+        $departmentsByCollege = $configuredColleges
+            ->mapWithKeys(function (string $college) use ($mergedDepartmentMap) {
+                $departments = $mergedDepartmentMap
+                    ->filter(fn ($mappedCollege) => $mappedCollege === $college)
+                    ->keys()
+                    ->sort()
+                    ->values()
+                    ->all();
+
+                return [$college => $departments];
+            });
+        $availableColleges = $configuredColleges->all();
 
         return response()->json([
             'data' => [
@@ -149,6 +185,8 @@ class FacultyController extends Controller
                         ['value' => 'specific_department', 'label' => 'Specific Department'],
                         ['value' => 'specific_users', 'label' => 'Specific User'],
                     ],
+                    'colleges' => $availableColleges,
+                    'departments_by_college' => $departmentsByCollege,
                 ],
                 'items' => $items->map(function (SharedFile $file) {
                     return [
@@ -188,6 +226,161 @@ class FacultyController extends Controller
         ]);
     }
 
+    public function libraryShow(Request $request, string $id): JsonResponse
+    {
+        $facultyProfile = FacultyProfile::query()
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $file = SharedFile::query()
+            ->with(['category:id,name,slug', 'uploader:id,name', 'recipients.user:id,name,email'])
+            ->where('uploaded_by', $request->user()->id)
+            ->findOrFail($id);
+
+        return response()->json([
+            'data' => [
+                'id' => $file->id,
+                'title' => $file->title,
+                'type' => $file->resource_type,
+                'author' => collect($file->authors ?? [])->filter()->implode(', ') ?: ($file->uploader?->name ?? 'Unknown author'),
+                'authors' => collect($file->authors ?? [])->filter()->values()->all(),
+                'abstract' => $file->abstract,
+                'keywords' => collect($file->keywords ?? [])->filter()->values()->all(),
+                'category_id' => $file->category_id,
+                'department' => $file->department ?: $facultyProfile->department,
+                'college' => $file->college ?: $facultyProfile->college,
+                'program' => $file->program,
+                'category' => $file->category?->name,
+                'school_year' => $file->school_year,
+                'year' => $file->created_at?->format('Y'),
+                'file_url' => $file->file_url,
+                'file_name' => $file->file_name,
+                'is_draft' => (bool) $file->is_draft,
+                'share_scope' => $file->share_scope,
+                'share_scope_label' => $this->presentShareScopeLabel($file),
+                'target_college' => $file->target_college,
+                'target_department' => $file->target_department,
+                'shared_with_count' => $file->share_scope === 'specific_users' ? $file->recipients->count() : null,
+                'shared_with_users' => $file->share_scope === 'specific_users'
+                    ? $file->recipients
+                        ->map(fn (SharedFileRecipient $recipient) => [
+                            'id' => $recipient->user?->id,
+                            'name' => $recipient->user?->name,
+                            'email' => $recipient->user?->email,
+                        ])
+                        ->filter(fn (array $recipient) => filled($recipient['id']))
+                        ->values()
+                        ->all()
+                    : [],
+                'created_at' => $this->formatIsoTimestamp($file->created_at),
+                'shared_at' => $this->formatIsoTimestamp($file->shared_at),
+            ],
+        ]);
+    }
+
+    public function updateLibraryItem(Request $request, string $id): JsonResponse
+    {
+        $facultyProfile = FacultyProfile::query()
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $file = SharedFile::query()
+            ->where('uploaded_by', $request->user()->id)
+            ->findOrFail($id);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:500',
+            'resource_type' => 'required|string|max:100',
+            'abstract' => 'nullable|string',
+            'keywords' => 'nullable|array',
+            'keywords.*' => 'string|max:100',
+            'college' => 'nullable|string|max:255',
+            'department' => 'nullable|string|max:255',
+            'category_id' => 'required|uuid|exists:categories,id',
+            'school_year' => 'required|string|max:255',
+            'authors' => 'nullable|array',
+            'authors.*' => 'string|max:255',
+            'share_scope' => 'required|in:all_colleges,all_departments,specific_college,specific_department,specific_users',
+            'target_college' => 'nullable|string|max:255|required_if:share_scope,specific_college',
+            'target_department' => 'nullable|string|max:255|required_if:share_scope,specific_department',
+            'recipient_ids' => 'nullable|array|required_if:share_scope,specific_users|min:1',
+            'recipient_ids.*' => 'uuid|exists:users,id',
+            'is_draft' => 'nullable|boolean',
+            'file' => 'nullable|file|max:51200',
+            'file_name' => 'nullable|string|max:255',
+        ]);
+
+        $isDraft = (bool) ($validated['is_draft'] ?? false);
+        $shareScope = (string) $validated['share_scope'];
+        $recipientIds = collect($validated['recipient_ids'] ?? [])
+            ->filter()
+            ->unique()
+            ->values();
+        $uploadedFile = $request->file('file');
+        $fileUpload = $uploadedFile ? $this->uploadToSupabase($uploadedFile, 'shared-resources') : null;
+
+        DB::transaction(function () use ($file, $validated, $isDraft, $shareScope, $recipientIds, $fileUpload, $facultyProfile) {
+            $file->update([
+                'category_id' => $validated['category_id'],
+                'title' => $validated['title'],
+                'resource_type' => $validated['resource_type'],
+                'abstract' => $validated['abstract'] ?? null,
+                'keywords' => $validated['keywords'] ?? [],
+                'authors' => $validated['authors'] ?? [],
+                'program' => null,
+                'department' => $validated['department'] ?? $facultyProfile->department,
+                'college' => $validated['college'] ?? $facultyProfile->college,
+                'school_year' => $validated['school_year'],
+                'share_scope' => $shareScope,
+                'target_college' => $validated['target_college'] ?? null,
+                'target_department' => $validated['target_department'] ?? null,
+                'file_url' => $fileUpload['url'] ?? $file->file_url,
+                'file_name' => $fileUpload['name'] ?? ($validated['file_name'] ?? $file->file_name),
+                'file_size' => $fileUpload['size'] ?? $file->file_size,
+                'mime_type' => $fileUpload['mime_type'] ?? $file->mime_type,
+                'is_draft' => $isDraft,
+                'shared_at' => $isDraft ? null : ($file->shared_at ?? now()),
+            ]);
+
+            if ($shareScope === 'specific_users') {
+                $file->recipients()->delete();
+                $file->recipients()->createMany(
+                    $recipientIds->map(fn (string $userId) => ['user_id' => $userId])->all()
+                );
+            } else {
+                $file->recipients()->delete();
+            }
+        });
+
+        $file->refresh();
+
+        return response()->json([
+            'data' => [
+                'id' => $file->id,
+                'title' => $file->title,
+                'department' => $file->department,
+                'college' => $file->college,
+                'category_id' => $file->category_id,
+                'share_scope' => $file->share_scope,
+                'is_draft' => $file->is_draft,
+                'created_at' => $this->formatIsoTimestamp($file->created_at),
+            ],
+        ]);
+    }
+
+    public function destroyLibraryItem(Request $request, string $id): JsonResponse
+    {
+        $file = SharedFile::query()
+            ->where('uploaded_by', $request->user()->id)
+            ->findOrFail($id);
+
+        $file->delete();
+
+        return response()->json([
+            'message' => 'Shared file deleted successfully.',
+        ]);
+    }
+
     public function storeLibraryItem(Request $request): JsonResponse
     {
         $facultyProfile = FacultyProfile::query()
@@ -200,7 +393,8 @@ class FacultyController extends Controller
             'abstract' => 'nullable|string',
             'keywords' => 'nullable|array',
             'keywords.*' => 'string|max:100',
-            'program' => 'nullable|string|max:255',
+            'college' => 'nullable|string|max:255',
+            'department' => 'nullable|string|max:255',
             'category_id' => 'required|uuid|exists:categories,id',
             'school_year' => 'required|string|max:255',
             'authors' => 'nullable|array',
@@ -245,9 +439,9 @@ class FacultyController extends Controller
                 'abstract' => $validated['abstract'] ?? null,
                 'keywords' => $validated['keywords'] ?? [],
                 'authors' => $validated['authors'] ?? [],
-                'program' => $validated['program'] ?? null,
-                'department' => $facultyProfile->department,
-                'college' => $facultyProfile->college,
+                'program' => null,
+                'department' => $validated['department'] ?? $facultyProfile->department,
+                'college' => $validated['college'] ?? $facultyProfile->college,
                 'school_year' => $validated['school_year'],
                 'share_scope' => $shareScope,
                 'target_college' => $validated['target_college'] ?? null,
@@ -351,12 +545,11 @@ class FacultyController extends Controller
             'category_id' => 'required|uuid|exists:categories,id',
             'school_year' => 'required|string|max:255',
             'authors' => 'nullable|string',
-            'adviser' => 'nullable|string|max:255',
+            'adviser_id' => 'nullable|uuid|exists:users,id',
             'submission_mode' => 'required|in:draft,submit',
             'confirm_original' => 'nullable|boolean',
             'allow_review' => 'nullable|boolean',
             'manuscript' => 'nullable|file|mimes:pdf|max:51200',
-            'cover' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'supplementary_files' => 'nullable|array',
             'supplementary_files.*' => 'file|max:51200',
         ]);
@@ -374,7 +567,6 @@ class FacultyController extends Controller
             ->all();
 
         $manuscript = $request->file('manuscript');
-        $cover = $request->file('cover');
         $supplementaryFiles = collect($request->file('supplementary_files', []))
             ->filter();
 
@@ -389,7 +581,6 @@ class FacultyController extends Controller
         }
 
         $manuscriptUpload = $manuscript ? $this->uploadToSupabase($manuscript, 'manuscripts') : null;
-        $coverUpload = $cover ? $this->uploadToSupabase($cover, 'covers') : null;
         $supplementaryUploads = $supplementaryFiles
             ->map(fn ($file) => $this->uploadToSupabase($file, 'supplementary'))
             ->values()
@@ -410,14 +601,12 @@ class FacultyController extends Controller
             'file_url' => $manuscriptUpload['url'] ?? null,
             'file_name' => $manuscriptUpload['name'] ?? null,
             'file_size' => $manuscriptUpload['size'] ?? null,
-            'cover_file_url' => $coverUpload['url'] ?? null,
-            'cover_file_name' => $coverUpload['name'] ?? null,
             'supplementary_files' => $supplementaryUploads,
             'status' => $status,
             'submitted_by' => $request->user()->id,
             'approved_at' => $status === 'approved' ? $timestamp : null,
             'submitted_at' => $status === 'approved' ? $timestamp : null,
-            'adviser_remarks' => $validated['adviser'] ?? null,
+            'adviser_id' => $validated['adviser_id'] ?? null,
         ]);
 
         $this->logger->log($request->user(), 'faculty.thesis_created', 'thesis', $thesis->id, [
@@ -445,7 +634,6 @@ class FacultyController extends Controller
                 'title' => $thesis->title,
                 'status' => $thesis->status,
                 'file_name' => $thesis->file_name,
-                'cover_file_name' => $thesis->cover_file_name,
                 'supplementary_files' => $thesis->supplementary_files,
             ],
         ], 201);

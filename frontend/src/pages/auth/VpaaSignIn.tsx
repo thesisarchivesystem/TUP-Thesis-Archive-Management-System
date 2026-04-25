@@ -46,10 +46,10 @@ export default function VpaaSignIn() {
         { label: 'Faculty', to: '/sign-in/faculty' },
       ]}
       accent={{
-        successBgLight: 'rgba(201,150,58,0.1)',
-        successTextLight: '#A07A28',
-        successBgDark: 'rgba(218,186,94,0.12)',
-        successTextDark: '#DABA5E',
+        successBgLight: 'rgba(98,102,214,0.12)',
+        successTextLight: '#5D63D8',
+        successBgDark: 'rgba(147,132,235,0.16)',
+        successTextDark: '#9384EB',
       }}
       error={error}
       isLoading={isLoading}

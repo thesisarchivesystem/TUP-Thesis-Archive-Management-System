@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpenText, ClipboardList, FileText, FolderOpen, ShieldCheck, Sparkles, Tags, UserRound } from 'lucide-react';
+import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, ShieldCheck, Sparkles, Tags, UserRound } from 'lucide-react';
 import axios from 'axios';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
@@ -18,6 +18,11 @@ type UploadFormState = {
   abstract: string;
   keywords: string;
 };
+
+type UploadFieldErrors = Partial<Record<
+  'title' | 'department' | 'school_year' | 'category_id' | 'authors' | 'adviser_id' | 'abstract' | 'keywords' | 'manuscript' | 'confirmations',
+  string
+>>;
 
 const initialFormState: UploadFormState = {
   title: '',
@@ -68,6 +73,7 @@ export default function StudentUploadThesisPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<UploadFieldErrors>({});
   const [confirmOriginal, setConfirmOriginal] = useState(false);
   const [allowReview, setAllowReview] = useState(false);
   const [manuscriptFile, setManuscriptFile] = useState<File | null>(null);
@@ -160,23 +166,26 @@ export default function StudentUploadThesisPage() {
   const handleChange = (field: keyof UploadFormState) => (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
 
   const validateSubmissionForm = (mode: 'draft' | 'submit') => {
-    if (!form.title.trim()) return 'Please enter the thesis title.';
-    if (!form.department.trim()) return 'Please enter the department.';
-    if (!form.school_year.trim()) return 'Please enter the school year.';
-    if (!form.category_id) return 'Please select a category.';
+    const nextErrors: UploadFieldErrors = {};
+
+    if (!form.title.trim()) nextErrors.title = 'Please enter the thesis title.';
+    if (!form.department.trim()) nextErrors.department = 'Please enter the department.';
+    if (!form.school_year.trim()) nextErrors.school_year = 'Please enter the school year.';
+    if (!form.category_id) nextErrors.category_id = 'Please select a category.';
 
     if (mode === 'submit') {
-      if (!form.authors.length) return 'Please list at least one author.';
-      if (!form.adviser_id) return 'Please select a thesis adviser.';
-      if (!form.abstract.trim()) return 'Please enter the thesis abstract.';
-      if (!form.keywords.trim()) return 'Please enter at least one keyword.';
+      if (!form.authors.length) nextErrors.authors = 'Please list at least one author.';
+      if (!form.adviser_id) nextErrors.adviser_id = 'Please select a thesis adviser.';
+      if (!form.abstract.trim()) nextErrors.abstract = 'Please enter the thesis abstract.';
+      if (!form.keywords.trim()) nextErrors.keywords = 'Please enter at least one keyword.';
     }
 
-    return '';
+    return nextErrors;
   };
 
   const buildUploadPayload = () => ({
@@ -214,10 +223,12 @@ export default function StudentUploadThesisPage() {
       setSaving(true);
       setError('');
       setMessage('');
+      setFieldErrors({});
 
-      const validationError = validateSubmissionForm('draft');
-      if (validationError) {
-        setError(validationError);
+      const validationErrors = validateSubmissionForm('draft');
+      if (Object.keys(validationErrors).length) {
+        setFieldErrors(validationErrors);
+        setError('Please complete the required fields before saving.');
         return;
       }
 
@@ -235,15 +246,18 @@ export default function StudentUploadThesisPage() {
       setSubmitting(true);
       setError('');
       setMessage('');
+      setFieldErrors({});
 
       if (!confirmOriginal || !allowReview) {
+        setFieldErrors({ confirmations: 'Please confirm both submission statements before submitting.' });
         setError('Please confirm the submission statements before submitting.');
         return;
       }
 
-      const validationError = validateSubmissionForm('submit');
-      if (validationError) {
-        setError(validationError);
+      const validationErrors = validateSubmissionForm('submit');
+      if (Object.keys(validationErrors).length) {
+        setFieldErrors(validationErrors);
+        setError('Please complete the required fields before submitting.');
         return;
       }
 
@@ -251,8 +265,9 @@ export default function StudentUploadThesisPage() {
         if (existingManuscriptName) {
           // Existing draft manuscript can still be submitted without re-uploading.
         } else {
-        setError('Please attach the thesis PDF before submitting.');
-        return;
+          setFieldErrors({ manuscript: 'Please attach the thesis PDF before submitting.' });
+          setError('Please attach the thesis PDF before submitting.');
+          return;
         }
       }
 
@@ -315,39 +330,43 @@ export default function StudentUploadThesisPage() {
           </div>
 
           <div className="student-upload-form">
-            <label className="student-upload-field full">
-              <span>Thesis Title</span>
-              <input value={form.title} onChange={handleChange('title')} placeholder="Enter full thesis title" />
+            <label className={`student-upload-field full${fieldErrors.title ? ' has-error' : ''}`}>
+              <span><BookOpenText size={14} /> Thesis Title</span>
+              <input value={form.title} onChange={handleChange('title')} placeholder="Enter full thesis title" aria-invalid={Boolean(fieldErrors.title)} />
+              {fieldErrors.title ? <small className="student-upload-field-error">{fieldErrors.title}</small> : null}
             </label>
 
             <div className="student-upload-grid">
               <label className="student-upload-field">
-                <span>Program</span>
+                <span><GraduationCap size={14} /> Program</span>
                 <input value={form.program} onChange={handleChange('program')} />
               </label>
 
-              <label className="student-upload-field">
-                <span>Department</span>
-                <input value={form.department} onChange={handleChange('department')} />
+              <label className={`student-upload-field${fieldErrors.department ? ' has-error' : ''}`}>
+                <span><LibraryBig size={14} /> Department</span>
+                <input value={form.department} onChange={handleChange('department')} aria-invalid={Boolean(fieldErrors.department)} />
+                {fieldErrors.department ? <small className="student-upload-field-error">{fieldErrors.department}</small> : null}
               </label>
 
-              <label className="student-upload-field">
-                <span>Year</span>
-                <input value={form.school_year} onChange={handleChange('school_year')} />
+              <label className={`student-upload-field${fieldErrors.school_year ? ' has-error' : ''}`}>
+                <span><ClipboardList size={14} /> Year</span>
+                <input value={form.school_year} onChange={handleChange('school_year')} aria-invalid={Boolean(fieldErrors.school_year)} />
+                {fieldErrors.school_year ? <small className="student-upload-field-error">{fieldErrors.school_year}</small> : null}
               </label>
 
-              <label className="student-upload-field">
-                <span>Category</span>
-                <select value={form.category_id} onChange={handleChange('category_id')}>
+              <label className={`student-upload-field${fieldErrors.category_id ? ' has-error' : ''}`}>
+                <span><Layers3 size={14} /> Category</span>
+                <select value={form.category_id} onChange={handleChange('category_id')} aria-invalid={Boolean(fieldErrors.category_id)}>
                   <option value="">Select a category</option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>{category.label}</option>
                   ))}
                 </select>
+                {fieldErrors.category_id ? <small className="student-upload-field-error">{fieldErrors.category_id}</small> : null}
               </label>
             </div>
 
-            <label className="student-upload-field full">
+            <label className={`student-upload-field full${fieldErrors.authors ? ' has-error' : ''}`}>
               <span><UserRound size={14} /> Authors</span>
               <div className="student-upload-author-box">
                 <div className="student-upload-author-tags">
@@ -373,12 +392,12 @@ export default function StudentUploadThesisPage() {
                   placeholder="Type an author name, then press Enter"
                 />
               </div>
-              <small>Press Enter after each author name to add another one.</small>
+              {fieldErrors.authors ? <small className="student-upload-field-error">{fieldErrors.authors}</small> : <small>Press Enter after each author name to add another one.</small>}
             </label>
 
-            <label className="student-upload-field full">
+            <label className={`student-upload-field full${fieldErrors.adviser_id ? ' has-error' : ''}`}>
               <span><UserRound size={14} /> Thesis Adviser</span>
-              <select value={form.adviser_id} onChange={handleChange('adviser_id')}>
+              <select value={form.adviser_id} onChange={handleChange('adviser_id')} aria-invalid={Boolean(fieldErrors.adviser_id)}>
                 <option value="">Select an adviser</option>
                 {advisers.map((adviser) => (
                   <option key={adviser.id} value={adviser.id}>
@@ -386,24 +405,26 @@ export default function StudentUploadThesisPage() {
                   </option>
                 ))}
               </select>
-              <small>
+              {fieldErrors.adviser_id ? <small className="student-upload-field-error">{fieldErrors.adviser_id}</small> : <small>
                 {form.adviser_id
                   ? advisers.find((adviser) => adviser.id === form.adviser_id)?.email || 'Selected adviser'
                   : 'Choose from active faculty profiles in the database.'}
-              </small>
+              </small>}
             </label>
 
-            <label className="student-upload-field full">
+            <label className={`student-upload-field full${fieldErrors.abstract ? ' has-error' : ''}`}>
               <span><FileText size={14} /> Abstract</span>
-              <textarea value={form.abstract} onChange={handleChange('abstract')} placeholder="Paste your abstract here" rows={6} />
+              <textarea value={form.abstract} onChange={handleChange('abstract')} placeholder="Paste your abstract here" rows={6} aria-invalid={Boolean(fieldErrors.abstract)} />
+              {fieldErrors.abstract ? <small className="student-upload-field-error">{fieldErrors.abstract}</small> : null}
             </label>
 
-            <label className="student-upload-field full">
+            <label className={`student-upload-field full${fieldErrors.keywords ? ' has-error' : ''}`}>
               <span><Tags size={14} /> Keywords</span>
-              <input value={form.keywords} onChange={handleChange('keywords')} placeholder="E.g. LMS, adaptive learning, analytics" />
+              <input value={form.keywords} onChange={handleChange('keywords')} placeholder="E.g. LMS, adaptive learning, analytics" aria-invalid={Boolean(fieldErrors.keywords)} />
+              {fieldErrors.keywords ? <small className="student-upload-field-error">{fieldErrors.keywords}</small> : null}
             </label>
 
-            <div className="student-upload-field full">
+            <div className={`student-upload-field full${fieldErrors.manuscript ? ' has-error' : ''}`}>
               <span><FolderOpen size={14} /> Upload Files</span>
               <div className="student-upload-file-row">
                 <div className="student-upload-file-label">{manuscriptFile?.name || existingManuscriptName || 'No file chosen'}</div>
@@ -432,6 +453,7 @@ export default function StudentUploadThesisPage() {
                   ) : null}
                 </div>
               </div>
+              {fieldErrors.manuscript ? <small className="student-upload-field-error">{fieldErrors.manuscript}</small> : null}
 
               <div className="student-upload-file-row">
                 <div className="student-upload-file-label">
@@ -456,15 +478,22 @@ export default function StudentUploadThesisPage() {
               </div>
             </div>
 
-            <label className="student-upload-check">
-              <input type="checkbox" checked={confirmOriginal} onChange={(event) => setConfirmOriginal(event.target.checked)} />
+            <label className={`student-upload-check${fieldErrors.confirmations ? ' has-error' : ''}`}>
+              <input type="checkbox" checked={confirmOriginal} onChange={(event) => {
+                setConfirmOriginal(event.target.checked);
+                setFieldErrors((current) => ({ ...current, confirmations: undefined }));
+              }} />
               <span>I confirm that this submission is original, properly cited, and approved for upload to the thesis archive. <strong className="student-upload-required">*</strong></span>
             </label>
 
-            <label className="student-upload-check">
-              <input type="checkbox" checked={allowReview} onChange={(event) => setAllowReview(event.target.checked)} />
+            <label className={`student-upload-check${fieldErrors.confirmations ? ' has-error' : ''}`}>
+              <input type="checkbox" checked={allowReview} onChange={(event) => {
+                setAllowReview(event.target.checked);
+                setFieldErrors((current) => ({ ...current, confirmations: undefined }));
+              }} />
               <span>I agree to share the thesis for academic purposes and allow the archive committee to review the content. <strong className="student-upload-required">*</strong></span>
             </label>
+            {fieldErrors.confirmations ? <small className="student-upload-field-error">{fieldErrors.confirmations}</small> : null}
 
             <div className="student-upload-actions">
               <button type="button" className="student-upload-secondary" onClick={handleDraftSave} disabled={saving || submitting}>

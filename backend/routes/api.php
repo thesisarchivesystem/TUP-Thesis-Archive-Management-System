@@ -67,8 +67,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [FacultyController::class, 'profile']);
         Route::get('/activity-log', [FacultyController::class, 'activityLog']);
         Route::get('/advisees', [FacultyController::class, 'advisees']);
+        Route::get('/advisers', [StudentController::class, 'advisers']);
         Route::get('/library-items', [FacultyController::class, 'libraryIndex']);
+        Route::get('/library-items/{id}', [FacultyController::class, 'libraryShow']);
         Route::post('/library-items', [FacultyController::class, 'storeLibraryItem']);
+        Route::patch('/library-items/{id}', [FacultyController::class, 'updateLibraryItem']);
+        Route::delete('/library-items/{id}', [FacultyController::class, 'destroyLibraryItem']);
         Route::get('/share-users', [FacultyController::class, 'searchableShareUsers']);
         Route::post('/theses', [FacultyController::class, 'storeManagedThesis']);
         Route::apiResource('students', StudentController::class);
