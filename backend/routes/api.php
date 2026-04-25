@@ -10,11 +10,14 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\AiChatbotController;
+use App\Http\Controllers\ExtensionRequestController;
 use App\Http\Controllers\SupportTicketController;
 use Illuminate\Support\Facades\Route;
 
 // ── Public ──────────────────────────────────────────────────
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
 // ── Authenticated ────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -38,9 +41,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/ai/chat', [AiChatbotController::class, 'chat']);
     Route::get('/categories', [ThesisController::class, 'categories']);
     Route::post('/support-tickets', [SupportTicketController::class, 'store']);
+    Route::post('/extension-requests', [ExtensionRequestController::class, 'store']);
 
     // Thesis (shared for all roles)
-    Route::apiResource('thesis', ThesisController::class)->except(['destroy']);
+    Route::apiResource('thesis', ThesisController::class);
     Route::post('/thesis/{id}/submit', [ThesisController::class, 'submit']);
     Route::get('/thesis/{id}/manuscript', [ThesisController::class, 'manuscript']);
 
@@ -63,13 +67,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [FacultyController::class, 'profile']);
         Route::get('/activity-log', [FacultyController::class, 'activityLog']);
         Route::get('/advisees', [FacultyController::class, 'advisees']);
+        Route::get('/advisers', [StudentController::class, 'advisers']);
         Route::get('/library-items', [FacultyController::class, 'libraryIndex']);
+        Route::get('/library-items/{id}', [FacultyController::class, 'libraryShow']);
         Route::post('/library-items', [FacultyController::class, 'storeLibraryItem']);
+        Route::patch('/library-items/{id}', [FacultyController::class, 'updateLibraryItem']);
+        Route::delete('/library-items/{id}', [FacultyController::class, 'destroyLibraryItem']);
+        Route::get('/share-users', [FacultyController::class, 'searchableShareUsers']);
         Route::post('/theses', [FacultyController::class, 'storeManagedThesis']);
         Route::apiResource('students', StudentController::class);
         Route::get('/thesis-submissions', [ThesisController::class, 'pendingReview']);
         Route::patch('/thesis/{id}/review', [ThesisController::class, 'review']);
         Route::get('/approved-thesis', [ThesisController::class, 'approved']);
+        Route::get('/extension-requests', [ExtensionRequestController::class, 'indexForFaculty']);
     });
 
     // ── Student ────────────────────────────────────────────
