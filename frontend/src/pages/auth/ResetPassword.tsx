@@ -76,8 +76,9 @@ function ResetPasswordStyles() {
         --gold: #c9963a;
         --sky: #4a8fb5;
         --transition-speed: 0.35s;
-        min-height: 100vh;
+        height: 100vh;
         display: flex;
+        overflow: hidden;
         font-family: 'Plus Jakarta Sans', sans-serif;
         -webkit-font-smoothing: antialiased;
         background: var(--bg-primary);
@@ -159,7 +160,7 @@ function ResetPasswordStyles() {
         display: flex;
         align-items: flex-end;
         padding: 40px;
-        min-height: 100vh;
+        height: 100vh;
       }
 
       .reset-showcase-bg {
@@ -182,6 +183,13 @@ function ResetPasswordStyles() {
       .reset-panel-inner {
         position: relative;
         z-index: 2;
+      }
+
+      .reset-panel-inner {
+        width: 100%;
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
       }
 
       .reset-showcase-content {
@@ -271,7 +279,7 @@ function ResetPasswordStyles() {
 
       .reset-panel {
         width: 470px;
-        min-height: 100vh;
+        height: 100vh;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -536,7 +544,7 @@ function ResetPasswordStyles() {
       }
 
       .reset-footer {
-        margin-top: 30px;
+        margin-top: auto;
         padding-top: 18px;
         border-top: 1px solid var(--border);
         text-align: center;
