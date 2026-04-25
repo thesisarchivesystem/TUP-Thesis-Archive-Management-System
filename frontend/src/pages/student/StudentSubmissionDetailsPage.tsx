@@ -239,7 +239,7 @@ export default function StudentSubmissionDetailsPage() {
                   <strong>{summary.turnaround} days</strong>
                 </div>
                 <div className="student-submissions-summary-box">
-                  <span>Panel Comments</span>
+                  <span>Faculty Comments</span>
                   <strong>{summary.panelComments}</strong>
                 </div>
                 <div className="student-submissions-summary-box">
@@ -250,11 +250,6 @@ export default function StudentSubmissionDetailsPage() {
                   <span>Pending Tasks</span>
                   <strong>{summary.pendingTasks}</strong>
                 </div>
-              </div>
-
-              <div className="student-submissions-note">
-                <h3>Next Deadline</h3>
-                <p>{submission.status === 'approved' ? 'No pending deadlines for this submission.' : 'Review in progress.'}</p>
               </div>
 
               <div className="student-submission-detail-grid">

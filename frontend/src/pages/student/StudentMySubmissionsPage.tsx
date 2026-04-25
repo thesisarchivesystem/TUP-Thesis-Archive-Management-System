@@ -253,7 +253,7 @@ export default function StudentMySubmissionsPage() {
       .slice(0, 3)
       .map((item) => ({
         id: item.id,
-        title: item.status === 'rejected' ? 'Panel' : item.status === 'approved' ? 'Library' : 'Adviser',
+        title: item.status === 'rejected' ? 'Faculty' : item.status === 'approved' ? 'Faculty Approval' : 'Thesis Adviser',
         body: item.rejection_reason || item.adviser_remarks || 'No message available.',
       }));
 
@@ -278,10 +278,6 @@ export default function StudentMySubmissionsPage() {
       panelComments: recentMessages.length,
       filesUploaded,
       pendingTasks,
-      nextDeadline: nextDeadlineItem
-        ? `${getStatusLabel(nextDeadlineItem.status)} for ${nextDeadlineItem.title}`
-        : 'No active deadlines right now.',
-      recentMessages,
     };
   }, [items]);
 
@@ -489,7 +485,7 @@ export default function StudentMySubmissionsPage() {
                 <strong>{loading ? '--' : `${summary.turnaround} days`}</strong>
               </div>
               <div className="student-submissions-summary-box">
-                <span>Panel Comments</span>
+                <span>Faculty Comments</span>
                 <strong>{loading ? '--' : summary.panelComments}</strong>
               </div>
               <div className="student-submissions-summary-box">
@@ -500,24 +496,6 @@ export default function StudentMySubmissionsPage() {
                 <span>Pending Tasks</span>
                 <strong>{loading ? '--' : summary.pendingTasks}</strong>
               </div>
-            </div>
-
-            <div className="student-submissions-note">
-              <h3>Next Deadline</h3>
-              <p>{summary.nextDeadline}</p>
-            </div>
-
-            <div className="student-submissions-message-block">
-              <h3>Recent Messages</h3>
-              {summary.recentMessages.length ? (
-                summary.recentMessages.map((message) => (
-                  <div key={message.id} className="student-submissions-message">
-                    <strong>{message.title}:</strong> {message.body}
-                  </div>
-                ))
-              ) : (
-                <div className="student-submissions-message">No recent feedback messages yet.</div>
-              )}
             </div>
 
           </aside>

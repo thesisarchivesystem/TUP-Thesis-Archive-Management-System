@@ -19,6 +19,7 @@ class Thesis extends Model
         'department',
         'program',
         'category_id',
+        'category_ids',
         'school_year',
         'authors',
         'file_url',
@@ -41,6 +42,7 @@ class Thesis extends Model
     protected $casts = [
         'keywords' => 'array',
         'authors' => 'array',
+        'category_ids' => 'array',
         'supplementary_files' => 'array',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',

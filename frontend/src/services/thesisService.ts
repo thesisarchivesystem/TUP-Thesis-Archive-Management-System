@@ -4,10 +4,10 @@ import type { Thesis } from '../types/thesis.types';
 export interface StudentThesisPayload {
   title: string;
   abstract?: string;
-  keywords?: string;
   department: string;
   program?: string;
   category_id: string;
+  category_ids?: string[];
   school_year: string;
   authors?: string | string[];
   adviser_id?: string;
@@ -19,15 +19,10 @@ const buildStudentUploadFormData = (payload: StudentThesisPayload) => {
   const formData = new FormData();
   formData.append('title', payload.title);
   formData.append('abstract', payload.abstract ?? '');
-  formData.append('keywords', JSON.stringify(
-    (payload.keywords ?? '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean),
-  ));
   formData.append('department', payload.department);
   formData.append('program', payload.program ?? '');
   formData.append('category_id', payload.category_id);
+  formData.append('category_ids', JSON.stringify(payload.category_ids ?? [payload.category_id].filter(Boolean)));
   formData.append('school_year', payload.school_year);
   formData.append('adviser_id', payload.adviser_id ?? '');
   const normalizedAuthors = Array.isArray(payload.authors)

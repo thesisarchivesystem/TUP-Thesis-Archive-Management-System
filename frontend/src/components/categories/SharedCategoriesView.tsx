@@ -21,7 +21,7 @@ interface SharedCategoriesViewProps {
 
 export default function SharedCategoriesView({ role = null }: SharedCategoriesViewProps) {
   const [categories, setCategories] = useState<VpaaCategory[]>([]);
-  const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
+  const [selectedSlug, setSelectedSlug] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [revealed, setRevealed] = useState(false);
@@ -39,7 +39,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
       .then((response) => {
         if (!isMounted) return;
         setCategories(response);
-        setSelectedSlugs((current) => (current.length ? current : (response[0]?.slug ? [response[0].slug] : [])));
+        setSelectedSlug((current) => (current || response[0]?.slug || ''));
       })
       .catch(() => {
         if (!isMounted) return;
@@ -55,11 +55,11 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
     };
   }, [role]);
 
-  const selectedCategories = useMemo(
-    () => categories.filter((category) => selectedSlugs.includes(category.slug)),
-    [categories, selectedSlugs],
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.slug === selectedSlug) ?? categories[0] ?? null,
+    [categories, selectedSlug],
   );
-  const visibleCategories = selectedCategories.length ? selectedCategories : categories.slice(0, 1);
+  const visibleCategories = selectedCategory ? [selectedCategory] : categories.slice(0, 1);
   const combinedTheses = useMemo(
     () => visibleCategories.flatMap((category) => category.theses.map((thesis) => ({ ...thesis, categoryLabel: category.label }))),
     [visibleCategories],
@@ -68,6 +68,11 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
   const thesisBasePath = role === 'vpaa' ? '/vpaa/theses' : role === 'faculty' ? '/faculty/theses' : '/student/theses';
 
   const thesisHref = (thesis: VpaaCategory['theses'][number]) => `${thesisBasePath}/${encodeURIComponent(thesis.id)}`;
+
+  useEffect(() => {
+    if (!selectedSlug) return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedSlug]);
 
   if (error) return <div className="vpaa-banner-error">{error}</div>;
 
@@ -80,18 +85,14 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
       <div className="vpaa-category-list">
         {categories.map((category, index) => {
           const Icon = categoryIcons[index % categoryIcons.length];
-          const isActive = selectedSlugs.includes(category.slug);
+          const isActive = selectedSlug === category.slug;
 
           return (
             <button
               type="button"
               key={category.id}
               className={`vpaa-category-item vpaa-category-delay-${(index % 4) + 1}${isActive ? ' active' : ''}${revealed ? ' revealed' : ''}`}
-              onClick={() => setSelectedSlugs((current) => (
-                current.includes(category.slug)
-                  ? current.filter((slug) => slug !== category.slug)
-                  : [...current, category.slug]
-              ))}
+              onClick={() => setSelectedSlug(category.slug)}
             >
               <span className={`vpaa-category-icon vpaa-category-tone-${index % 6}`}>
                 <Icon size={20} />
@@ -110,22 +111,14 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
       </div>
 
       <section className="vpaa-category-panel">
-        <div className="vpaa-category-panel-content" key={selectedSlugs.join('|') || 'empty'}>
+        <div className="vpaa-category-panel-content" key={selectedSlug || 'empty'}>
           <div className="vpaa-category-panel-header">
             <div>
-              <h2>{selectedCategories.length > 1 ? 'Selected Categories' : visibleCategories[0]?.label}</h2>
-              <p>{selectedCategories.length > 1 ? `${selectedCategories.length} categories selected` : `Highlighted category - ${formatDocumentCount(visibleCategories[0]?.document_count ?? 0)}`}</p>
+              <h2>{visibleCategories[0]?.label}</h2>
+              <p>{`Highlighted category - ${formatDocumentCount(visibleCategories[0]?.document_count ?? 0)}`}</p>
             </div>
-            <span>{selectedCategories.length > 1 ? `${combinedTheses.length} thesis records` : formatUpdatedAt(visibleCategories[0]?.updated_at)}</span>
+            <span>{formatUpdatedAt(visibleCategories[0]?.updated_at)}</span>
           </div>
-
-          {selectedCategories.length > 1 ? (
-            <div className="vpaa-category-selection-summary">
-              {selectedCategories.map((category) => (
-                <span className="vpaa-pill vpaa-category-tag" key={category.id}>{category.label}</span>
-              ))}
-            </div>
-          ) : null}
 
           {!combinedTheses.length ? (
             <div className="vpaa-card">No thesis has been assigned to this category yet.</div>

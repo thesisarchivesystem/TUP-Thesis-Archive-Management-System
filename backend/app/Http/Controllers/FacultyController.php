@@ -537,12 +537,21 @@ class FacultyController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
+        $categoryIds = $this->normalizeJsonArrayInput($request->input('category_ids'));
+
+        $request->merge([
+            'category_ids' => $categoryIds,
+            'category_id' => $categoryIds[0] ?? $request->input('category_id'),
+        ]);
+
         $validated = $request->validate([
             'title' => 'required|string|max:500',
             'abstract' => 'nullable|string',
-            'keywords' => 'nullable|string',
+            'department' => 'nullable|string|max:255',
             'program' => 'nullable|string|max:255',
             'category_id' => 'required|uuid|exists:categories,id',
+            'category_ids' => 'required|array|min:1|max:5',
+            'category_ids.*' => 'uuid|exists:categories,id|distinct',
             'school_year' => 'required|string|max:255',
             'authors' => 'nullable|string',
             'adviser_id' => 'nullable|uuid|exists:users,id',
@@ -559,12 +568,7 @@ class FacultyController extends Controller
             ->filter()
             ->values()
             ->all();
-
-        $keywords = collect(explode(',', (string) ($validated['keywords'] ?? '')))
-            ->map(fn (string $keyword) => trim($keyword))
-            ->filter()
-            ->values()
-            ->all();
+        $primaryCategoryId = $validated['category_ids'][0] ?? $validated['category_id'];
 
         $manuscript = $request->file('manuscript');
         $supplementaryFiles = collect($request->file('supplementary_files', []))
@@ -592,10 +596,10 @@ class FacultyController extends Controller
         $thesis = Thesis::create([
             'title' => $validated['title'],
             'abstract' => $validated['abstract'] ?? null,
-            'keywords' => $keywords,
-            'department' => $facultyProfile->department,
+            'department' => $validated['department'] ?? $facultyProfile->department,
             'program' => $validated['program'] ?? null,
-            'category_id' => $validated['category_id'],
+            'category_id' => $primaryCategoryId,
+            'category_ids' => $validated['category_ids'],
             'school_year' => $validated['school_year'],
             'authors' => $authors,
             'file_url' => $manuscriptUpload['url'] ?? null,
@@ -942,6 +946,33 @@ class FacultyController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function normalizeJsonArrayInput(mixed $value): array
+    {
+        if (is_array($value)) {
+            return collect($value)
+                ->map(fn ($item) => is_string($item) ? trim($item) : $item)
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return collect($decoded)
+                ->map(fn ($item) => is_string($item) ? trim($item) : $item)
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        return [];
     }
 
     private function presentFacultyActivityAction(string $action): array

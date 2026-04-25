@@ -10,6 +10,7 @@ export interface Thesis {
   department: string;
   program?: string;
   category_id?: string;
+  category_ids?: string[];
   school_year: string;
   authors: string[];
   file_url?: string;

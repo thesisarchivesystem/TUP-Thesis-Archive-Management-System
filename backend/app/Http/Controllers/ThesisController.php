@@ -38,22 +38,23 @@ class ThesisController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $keywords = $this->normalizeArrayField($request->input('keywords'));
         $authors = $this->normalizeArrayField($request->input('authors'));
+        $categoryIds = $this->normalizeArrayField($request->input('category_ids'));
 
         $request->merge([
-            'keywords' => $keywords,
             'authors' => $authors,
+            'category_ids' => $categoryIds,
+            'category_id' => $categoryIds[0] ?? $request->input('category_id'),
         ]);
 
         $request->validate([
             'title'       => 'required|string|max:500',
             'abstract'    => 'nullable|string',
-            'keywords'    => 'nullable|array',
-            'keywords.*'  => 'string|max:100',
             'department'  => 'required|string',
             'program'     => 'nullable|string',
             'category_id' => 'required|uuid|exists:categories,id',
+            'category_ids' => 'required|array|min:1|max:5',
+            'category_ids.*' => 'uuid|exists:categories,id|distinct',
             'school_year' => 'required|string',
             'authors'     => 'nullable|array',
             'authors.*'   => 'string|max:255',
@@ -77,10 +78,10 @@ class ThesisController extends Controller
         $thesis = Thesis::create([
             'title'        => $request->title,
             'abstract'     => $request->abstract,
-            'keywords'     => $keywords,
             'department'   => $request->department,
             'program'      => $request->program,
             'category_id'  => $request->category_id,
+            'category_ids' => $categoryIds,
             'school_year'  => $request->school_year,
             'authors'      => $authors,
             'file_url'     => $manuscriptUpload['url'] ?? $request->file_url,
@@ -141,22 +142,25 @@ class ThesisController extends Controller
             return response()->json(['error' => 'You are not allowed to update this thesis.'], 403);
         }
 
-        $keywords = $this->normalizeArrayField($request->input('keywords'));
         $authors = $this->normalizeArrayField($request->input('authors'));
+        $categoryIds = $request->has('category_ids')
+            ? $this->normalizeArrayField($request->input('category_ids'))
+            : null;
 
         $request->merge([
-            'keywords' => $keywords,
             'authors' => $authors,
+            'category_ids' => $categoryIds,
+            'category_id' => $categoryIds[0] ?? $request->input('category_id'),
         ]);
 
         $request->validate([
             'title' => 'sometimes|required|string|max:500',
             'abstract' => 'nullable|string',
-            'keywords' => 'nullable|array',
-            'keywords.*' => 'string|max:100',
             'department' => 'sometimes|required|string',
             'program' => 'nullable|string',
             'category_id' => 'sometimes|required|uuid|exists:categories,id',
+            'category_ids' => 'sometimes|required|array|min:1|max:5',
+            'category_ids.*' => 'uuid|exists:categories,id|distinct',
             'school_year' => 'sometimes|required|string',
             'authors' => 'nullable|array',
             'authors.*' => 'string|max:255',
@@ -167,7 +171,7 @@ class ThesisController extends Controller
         ]);
 
         $payload = $request->only([
-            'title', 'abstract', 'keywords', 'department', 'program', 'category_id', 'school_year', 'authors', 'adviser_id',
+            'title', 'abstract', 'department', 'program', 'category_id', 'category_ids', 'school_year', 'authors', 'adviser_id',
         ]);
 
         if ($request->hasFile('manuscript')) {

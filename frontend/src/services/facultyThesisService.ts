@@ -4,9 +4,10 @@ import type { StudentAdviserOption } from './thesisService';
 export interface FacultyThesisPayload {
   title: string;
   abstract?: string;
-  keywords?: string;
+  department?: string;
   program?: string;
   category_id: string;
+  category_ids?: string[];
   school_year: string;
   authors?: string;
   adviser_id?: string;
@@ -22,9 +23,10 @@ export const facultyThesisService = {
     const formData = new FormData();
     formData.append('title', payload.title);
     formData.append('abstract', payload.abstract ?? '');
-    formData.append('keywords', payload.keywords ?? '');
+    formData.append('department', payload.department ?? '');
     formData.append('program', payload.program ?? '');
     formData.append('category_id', payload.category_id);
+    formData.append('category_ids', JSON.stringify(payload.category_ids ?? [payload.category_id].filter(Boolean)));
     formData.append('school_year', payload.school_year);
     formData.append('authors', payload.authors ?? '');
     formData.append('adviser_id', payload.adviser_id ?? '');

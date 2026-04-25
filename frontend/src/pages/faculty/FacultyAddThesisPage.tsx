@@ -1,27 +1,43 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, ShieldCheck, Sparkles, Tags, UserRound } from 'lucide-react';
+import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { categoryService, type CategoryOption } from '../../services/categoryService';
+import { facultyAdviseesService } from '../../services/facultyAdviseesService';
+import { facultyLibraryService } from '../../services/facultyLibraryService';
 import { facultyThesisService } from '../../services/facultyThesisService';
 import type { StudentAdviserOption } from '../../services/thesisService';
 
 const checklistItems = ['Signed Endorsement', 'Plagiarism Report', 'Final Manuscript', 'Title Page', 'Appendices'];
 
 type UploadFieldErrors = Partial<Record<
-  'title' | 'program' | 'department' | 'schoolYear' | 'categoryId' | 'authors' | 'adviserId' | 'abstract' | 'keywords' | 'manuscript' | 'confirmations',
+  'title' | 'program' | 'department' | 'schoolYear' | 'categoryId' | 'authors' | 'adviserId' | 'abstract' | 'manuscript' | 'confirmations',
   string
 >>;
 
+const MAX_CATEGORY_SELECTIONS = 5;
+const COMPUTER_STUDIES_PROGRAMS = ['BSCS', 'BSIT', 'BSIS'];
+
+const normalizeProgramLabel = (program?: string | null) => {
+  const normalized = (program ?? '').trim().toUpperCase();
+
+  if (!normalized) return '';
+  if (normalized === 'BSCS' || normalized.includes('COMPUTER SCIENCE')) return 'BSCS';
+  if (normalized === 'BSIT' || normalized.includes('INFORMATION TECHNOLOGY')) return 'BSIT';
+  if (normalized === 'BSIS' || normalized.includes('INFORMATION SYSTEM')) return 'BSIS';
+
+  return program ?? '';
+};
+
 const initialForm = {
   title: '',
-  program: 'BS Computer Science',
-  department: 'Computer Studies Department',
+  college: '',
+  department: '',
+  program: '',
   schoolYear: String(new Date().getFullYear()),
-  categoryId: '',
+  categoryIds: [] as string[],
   authors: [] as string[],
   adviserId: '',
   abstract: '',
-  keywords: '',
   confirmOriginal: false,
   allowReview: false,
 };
@@ -29,6 +45,10 @@ const initialForm = {
 export default function FacultyAddThesisPage() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [advisers, setAdvisers] = useState<StudentAdviserOption[]>([]);
+  const [availableColleges, setAvailableColleges] = useState<string[]>([]);
+  const [departmentsByCollege, setDepartmentsByCollege] = useState<Record<string, string[]>>({});
+  const [programOptions, setProgramOptions] = useState<string[]>([]);
+  const [schoolYearOptions, setSchoolYearOptions] = useState<string[]>([]);
   const [form, setForm] = useState(initialForm);
   const [authorInput, setAuthorInput] = useState('');
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -39,8 +59,65 @@ export default function FacultyAddThesisPage() {
   const [fieldErrors, setFieldErrors] = useState<UploadFieldErrors>({});
   const [manuscriptFile, setManuscriptFile] = useState<File | null>(null);
   const [supplementaryFiles, setSupplementaryFiles] = useState<File[]>([]);
+  const [adviserSearch, setAdviserSearch] = useState('');
   const manuscriptInputRef = useRef<HTMLInputElement | null>(null);
   const supplementaryInputRef = useRef<HTMLInputElement | null>(null);
+  const availableDepartments = departmentsByCollege[form.college] ?? [];
+  const selectedAdviser = advisers.find((adviser) => adviser.id === form.adviserId) ?? null;
+  const filteredAdvisers = advisers.filter((adviser) => {
+    const query = adviserSearch.trim().toLowerCase();
+    if (!query) return true;
+
+    return [
+      adviser.name,
+      adviser.email,
+      adviser.faculty_role,
+      adviser.department,
+    ].join(' ').toLowerCase().includes(query);
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void Promise.all([
+      facultyLibraryService.getLibrary(),
+      facultyAdviseesService.getAdvisees(),
+    ])
+      .then(([libraryResponse, adviseesResponse]) => {
+        if (!isMounted) return;
+
+        const libraryPrograms = libraryResponse.items
+          .map((item) => normalizeProgramLabel(item.program))
+          .filter(Boolean) as string[];
+        const adviseePrograms = adviseesResponse.advisees
+          .map((item) => normalizeProgramLabel(item.program))
+          .filter(Boolean);
+        const yearsFromLibrary = libraryResponse.items.map((item) => item.school_year).filter(Boolean) as string[];
+        const fallbackYear = String(new Date().getFullYear());
+        const isComputerStudiesDepartment = (libraryResponse.department ?? '').trim().toLowerCase() === 'computer studies department';
+        const preferredPrograms = isComputerStudiesDepartment ? COMPUTER_STUDIES_PROGRAMS : [];
+
+        setAvailableColleges(libraryResponse.share_options?.colleges ?? []);
+        setDepartmentsByCollege(libraryResponse.share_options?.departments_by_college ?? {});
+        setProgramOptions(Array.from(new Set([...preferredPrograms, ...adviseePrograms, ...libraryPrograms])).sort());
+        setSchoolYearOptions(Array.from(new Set([fallbackYear, ...yearsFromLibrary])).sort().reverse());
+        setForm((current) => ({
+          ...current,
+          college: current.college || libraryResponse.college || '',
+          department: current.department || libraryResponse.department || '',
+          program: current.program || preferredPrograms[0] || adviseePrograms[0] || libraryPrograms[0] || '',
+          schoolYear: current.schoolYear || fallbackYear,
+        }));
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setSchoolYearOptions([String(new Date().getFullYear())]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -51,7 +128,7 @@ export default function FacultyAddThesisPage() {
         setCategories(records);
         setForm((current) => ({
           ...current,
-          categoryId: current.categoryId || records[0]?.id || '',
+          categoryIds: current.categoryIds.length ? current.categoryIds : (records[0]?.id ? [records[0].id] : []),
         }));
       })
       .catch(() => {
@@ -78,6 +155,7 @@ export default function FacultyAddThesisPage() {
           ...current,
           adviserId: current.adviserId || records[0]?.id || '',
         }));
+        setAdviserSearch((current) => current || records[0]?.name || '');
       })
       .catch(() => {
         if (!isMounted) return;
@@ -95,9 +173,14 @@ export default function FacultyAddThesisPage() {
   const resetForm = () => {
     setForm({
       ...initialForm,
-      categoryId: categories[0]?.id ?? '',
+      college: availableColleges[0] ?? '',
+      department: departmentsByCollege[availableColleges[0] ?? '']?.[0] ?? '',
+      program: programOptions[0] ?? '',
+      schoolYear: schoolYearOptions[0] ?? String(new Date().getFullYear()),
+      categoryIds: categories[0]?.id ? [categories[0].id] : [],
       adviserId: advisers[0]?.id ?? '',
     });
+    setAdviserSearch(advisers[0]?.name ?? '');
     setAuthorInput('');
     setManuscriptFile(null);
     setSupplementaryFiles([]);
@@ -130,16 +213,17 @@ export default function FacultyAddThesisPage() {
     const nextErrors: UploadFieldErrors = {};
 
     if (!form.title.trim()) nextErrors.title = 'Please enter the thesis title.';
+    if (!form.college.trim()) nextErrors.department = 'Please select the college.';
     if (!form.program.trim()) nextErrors.program = 'Please enter the program.';
     if (!form.department.trim()) nextErrors.department = 'Please enter the department.';
     if (!form.schoolYear.trim()) nextErrors.schoolYear = 'Please enter the school year.';
-    if (!form.categoryId.trim()) nextErrors.categoryId = 'Please select a category.';
+    if (!form.categoryIds.length) nextErrors.categoryId = 'Please select at least one category.';
+    if (form.categoryIds.length > MAX_CATEGORY_SELECTIONS) nextErrors.categoryId = `You can select up to ${MAX_CATEGORY_SELECTIONS} categories only.`;
 
     if (mode === 'submit') {
       if (!form.authors.length) nextErrors.authors = 'Please list at least one author.';
       if (!form.adviserId.trim()) nextErrors.adviserId = 'Please select a thesis adviser.';
       if (!form.abstract.trim()) nextErrors.abstract = 'Please enter the thesis abstract.';
-      if (!form.keywords.trim()) nextErrors.keywords = 'Please enter at least one keyword.';
       if (!manuscriptFile) nextErrors.manuscript = 'Please attach the thesis PDF before submitting.';
       if (!form.confirmOriginal || !form.allowReview) nextErrors.confirmations = 'Please complete the submission confirmations before submitting the thesis.';
     }
@@ -165,9 +249,10 @@ export default function FacultyAddThesisPage() {
       await facultyThesisService.create({
         title: form.title,
         abstract: form.abstract,
-        keywords: form.keywords,
+        department: form.department,
         program: form.program,
-        category_id: form.categoryId,
+        category_id: form.categoryIds[0] ?? '',
+        category_ids: form.categoryIds,
         school_year: form.schoolYear,
         authors: form.authors.join(', '),
         adviser_id: form.adviserId,
@@ -191,11 +276,41 @@ export default function FacultyAddThesisPage() {
     }
   };
 
-  const handleChange = (field: 'title' | 'program' | 'department' | 'schoolYear' | 'categoryId' | 'adviserId' | 'abstract' | 'keywords') => (
+  const handleChange = (field: 'title' | 'college' | 'program' | 'department' | 'schoolYear' | 'adviserId' | 'abstract') => (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
-    setForm((current) => ({ ...current, [field]: event.target.value }));
+    setForm((current) => {
+      if (field === 'college') {
+        const nextCollege = event.target.value;
+        const nextDepartments = departmentsByCollege[nextCollege] ?? [];
+        return {
+          ...current,
+          college: nextCollege,
+          department: nextDepartments.includes(current.department) ? current.department : (nextDepartments[0] ?? ''),
+        };
+      }
+
+      return { ...current, [field]: event.target.value };
+    });
+  };
+
+  const toggleCategory = (categoryId: string) => {
+    setFieldErrors((current) => ({ ...current, categoryId: undefined }));
+    setError((current) => (current.startsWith('You can select up to') ? '' : current));
+
+    setForm((current) => {
+      if (current.categoryIds.includes(categoryId)) {
+        return { ...current, categoryIds: current.categoryIds.filter((id) => id !== categoryId) };
+      }
+
+      if (current.categoryIds.length >= MAX_CATEGORY_SELECTIONS) {
+        setError(`You can select up to ${MAX_CATEGORY_SELECTIONS} categories only.`);
+        return current;
+      }
+
+      return { ...current, categoryIds: [...current.categoryIds, categoryId] };
+    });
   };
 
   return (
@@ -224,34 +339,80 @@ export default function FacultyAddThesisPage() {
             </label>
 
             <div className="student-upload-grid">
-              <label className={`student-upload-field${fieldErrors.program ? ' has-error' : ''}`}>
-                <span><GraduationCap size={14} /> Program</span>
-                <input value={form.program} onChange={handleChange('program')} aria-invalid={Boolean(fieldErrors.program)} />
-                {fieldErrors.program ? <small className="student-upload-field-error">{fieldErrors.program}</small> : null}
+              <label className={`student-upload-field${fieldErrors.department ? ' has-error' : ''}`}>
+                <span><LibraryBig size={14} /> College</span>
+                <select value={form.college} onChange={handleChange('college')} aria-invalid={Boolean(fieldErrors.department)}>
+                  <option value="">Select a college</option>
+                  {availableColleges.map((college) => (
+                    <option key={college} value={college}>{college}</option>
+                  ))}
+                </select>
+                {fieldErrors.department ? <small className="student-upload-field-error">{fieldErrors.department}</small> : null}
               </label>
 
               <label className={`student-upload-field${fieldErrors.department ? ' has-error' : ''}`}>
                 <span><LibraryBig size={14} /> Department</span>
-                <input value={form.department} onChange={handleChange('department')} aria-invalid={Boolean(fieldErrors.department)} />
+                <select value={form.department} onChange={handleChange('department')} aria-invalid={Boolean(fieldErrors.department)}>
+                  <option value="">Select a department</option>
+                  {availableDepartments.map((department) => (
+                    <option key={department} value={department}>{department}</option>
+                  ))}
+                </select>
                 {fieldErrors.department ? <small className="student-upload-field-error">{fieldErrors.department}</small> : null}
+              </label>
+
+              <label className={`student-upload-field${fieldErrors.program ? ' has-error' : ''}`}>
+                <span><GraduationCap size={14} /> Program</span>
+                <select value={form.program} onChange={handleChange('program')} aria-invalid={Boolean(fieldErrors.program)}>
+                  <option value="">Select a program</option>
+                  {programOptions.map((program) => (
+                    <option key={program} value={program}>{program}</option>
+                  ))}
+                </select>
+                {fieldErrors.program ? <small className="student-upload-field-error">{fieldErrors.program}</small> : null}
               </label>
 
               <label className={`student-upload-field${fieldErrors.schoolYear ? ' has-error' : ''}`}>
                 <span><ClipboardList size={14} /> Year</span>
-                <input value={form.schoolYear} onChange={handleChange('schoolYear')} placeholder="2026" aria-invalid={Boolean(fieldErrors.schoolYear)} />
+                <select value={form.schoolYear} onChange={handleChange('schoolYear')} aria-invalid={Boolean(fieldErrors.schoolYear)}>
+                  <option value="">Select year</option>
+                  {schoolYearOptions.map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
                 {fieldErrors.schoolYear ? <small className="student-upload-field-error">{fieldErrors.schoolYear}</small> : null}
               </label>
 
-              <label className={`student-upload-field${fieldErrors.categoryId ? ' has-error' : ''}`}>
+              <div className={`student-upload-field full${fieldErrors.categoryId ? ' has-error' : ''}`}>
                 <span><Layers3 size={14} /> Category</span>
-                <select value={form.categoryId} onChange={handleChange('categoryId')} disabled={loadingCategories || !categories.length} aria-invalid={Boolean(fieldErrors.categoryId)}>
-                  {!categories.length ? <option value="">No categories available</option> : <option value="">Select a category</option>}
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>{category.name}</option>
-                  ))}
-                </select>
-                {fieldErrors.categoryId ? <small className="student-upload-field-error">{fieldErrors.categoryId}</small> : null}
-              </label>
+                <details className="student-upload-multi-dropdown">
+                  <summary className="student-upload-multi-dropdown-trigger" aria-invalid={Boolean(fieldErrors.categoryId)}>
+                    <span className="student-upload-multi-dropdown-value">
+                      {form.categoryIds.length
+                        ? categories
+                            .filter((category) => form.categoryIds.includes(category.id))
+                            .map((category) => category.name)
+                            .join(', ')
+                        : 'Select categories'}
+                    </span>
+                    <span className="student-upload-multi-dropdown-meta">{form.categoryIds.length}/{MAX_CATEGORY_SELECTIONS}</span>
+                  </summary>
+                  <div className="student-upload-multi-dropdown-menu">
+                    {categories.map((category) => (
+                      <label key={category.id} className={`student-upload-option-chip${form.categoryIds.includes(category.id) ? ' active' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={form.categoryIds.includes(category.id)}
+                          onChange={() => toggleCategory(category.id)}
+                          disabled={loadingCategories || !categories.length}
+                        />
+                        <span>{category.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
+                {fieldErrors.categoryId ? <small className="student-upload-field-error">{fieldErrors.categoryId}</small> : <small>Select up to 5 categories.</small>}
+              </div>
             </div>
 
             <label className={`student-upload-field full${fieldErrors.authors ? ' has-error' : ''}`}>
@@ -285,17 +446,42 @@ export default function FacultyAddThesisPage() {
 
             <label className={`student-upload-field full${fieldErrors.adviserId ? ' has-error' : ''}`}>
               <span><UserRound size={14} /> Thesis Adviser</span>
-              <select value={form.adviserId} onChange={handleChange('adviserId')} disabled={loadingAdvisers || !advisers.length} aria-invalid={Boolean(fieldErrors.adviserId)}>
-                {!advisers.length ? <option value="">No advisers available</option> : <option value="">Select an adviser</option>}
-                {advisers.map((adviser) => (
-                  <option key={adviser.id} value={adviser.id}>
-                    {adviser.name} - {adviser.faculty_role}
-                  </option>
-                ))}
-              </select>
+              <div className="student-upload-searchbox">
+                <input
+                  value={adviserSearch}
+                  onChange={(event) => {
+                    setAdviserSearch(event.target.value);
+                    setFieldErrors((current) => ({ ...current, adviserId: undefined }));
+                    if (form.adviserId) {
+                      setForm((current) => ({ ...current, adviserId: '' }));
+                    }
+                  }}
+                  placeholder="Search adviser by name, email, or role"
+                  aria-invalid={Boolean(fieldErrors.adviserId)}
+                  disabled={loadingAdvisers || !advisers.length}
+                />
+                <div className="student-upload-search-results">
+                  {filteredAdvisers.map((adviser) => (
+                    <button
+                      key={adviser.id}
+                      type="button"
+                      className={`student-upload-search-option${form.adviserId === adviser.id ? ' active' : ''}`}
+                      onClick={() => {
+                        setForm((current) => ({ ...current, adviserId: adviser.id }));
+                        setAdviserSearch(adviser.name);
+                        setFieldErrors((current) => ({ ...current, adviserId: undefined }));
+                      }}
+                    >
+                      <strong>{adviser.name}</strong>
+                      <span>{adviser.email} - {adviser.faculty_role}</span>
+                    </button>
+                  ))}
+                  {!filteredAdvisers.length ? <div className="student-upload-search-empty">No adviser found.</div> : null}
+                </div>
+              </div>
               {fieldErrors.adviserId ? <small className="student-upload-field-error">{fieldErrors.adviserId}</small> : <small>
-                {form.adviserId
-                  ? advisers.find((adviser) => adviser.id === form.adviserId)?.email || 'Selected adviser'
+                {selectedAdviser
+                  ? `${selectedAdviser.email} - ${selectedAdviser.faculty_role}`
                   : 'Choose from active faculty profiles in the database.'}
               </small>}
             </label>
@@ -304,12 +490,6 @@ export default function FacultyAddThesisPage() {
               <span><FileText size={14} /> Abstract</span>
               <textarea value={form.abstract} onChange={handleChange('abstract')} placeholder="Paste your abstract here" rows={6} aria-invalid={Boolean(fieldErrors.abstract)} />
               {fieldErrors.abstract ? <small className="student-upload-field-error">{fieldErrors.abstract}</small> : null}
-            </label>
-
-            <label className={`student-upload-field full${fieldErrors.keywords ? ' has-error' : ''}`}>
-              <span><Tags size={14} /> Keywords</span>
-              <input value={form.keywords} onChange={handleChange('keywords')} placeholder="E.g. LMS, adaptive learning, analytics" aria-invalid={Boolean(fieldErrors.keywords)} />
-              {fieldErrors.keywords ? <small className="student-upload-field-error">{fieldErrors.keywords}</small> : null}
             </label>
 
             <div className={`student-upload-field full${fieldErrors.manuscript ? ' has-error' : ''}`}>
