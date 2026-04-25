@@ -7,13 +7,9 @@ use App\Models\FacultyProfile;
 use App\Models\StudentProfile;
 use App\Models\User;
 use App\Services\ActivityLogService;
-use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -92,109 +88,5 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json(['user' => $request->user()->loadMissing(['student', 'faculty', 'vpaaProfile'])]);
-    }
-
-    public function forgotPassword(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'email' => ['required', 'string', 'email', 'exists:users,email'],
-        ], [
-            'email.exists' => 'We could not find an account with that email address.',
-        ]);
-
-        $user = User::where('email', $validated['email'])->first();
-
-        if (!$user || !$user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => ['This account is unavailable for password reset.'],
-            ]);
-        }
-
-        $status = Password::sendResetLink([
-            'email' => $validated['email'],
-        ]);
-
-        if ($status !== Password::RESET_LINK_SENT) {
-            throw ValidationException::withMessages([
-                'email' => [__($status)],
-            ]);
-        }
-
-        $this->logger->log($user, 'auth.password_reset_requested', 'user', $user->id, [
-            'email' => $validated['email'],
-            'ip_address' => $request->ip(),
-            'user_agent' => (string) $request->userAgent(),
-        ]);
-
-        return response()->json([
-            'message' => 'A password reset link has been sent to your email address.',
-        ]);
-    }
-
-    public function resetPassword(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'string', 'email', 'exists:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ], [
-            'email.exists' => 'We could not find an account with that email address.',
-        ]);
-
-        $resetRecord = DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))
-            ->where('email', $validated['email'])
-            ->first();
-
-        if (!$resetRecord || !isset($resetRecord->created_at)) {
-            throw ValidationException::withMessages([
-                'email' => ['This password reset link is invalid or no longer available.'],
-            ]);
-        }
-
-        $expiresAfterMinutes = (int) config('auth.passwords.users.expire', 60);
-        $expiresAt = Carbon::parse($resetRecord->created_at)->addMinutes($expiresAfterMinutes);
-
-        if ($expiresAt->isPast()) {
-            DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))
-                ->where('email', $validated['email'])
-                ->delete();
-
-            throw ValidationException::withMessages([
-                'email' => ['This password reset link has expired. Please request a new one.'],
-            ]);
-        }
-
-        $status = Password::reset(
-            $validated,
-            function (User $user) use ($validated) {
-                $user->forceFill([
-                    'password' => Hash::make($validated['password']),
-                ])->save();
-
-                $user->tokens()->delete();
-
-                event(new PasswordReset($user));
-            }
-        );
-
-        if ($status !== Password::PASSWORD_RESET) {
-            throw ValidationException::withMessages([
-                'email' => [__($status)],
-            ]);
-        }
-
-        $user = User::where('email', $validated['email'])->first();
-
-        if ($user) {
-            $this->logger->log($user, 'auth.password_reset_completed', 'user', $user->id, [
-                'email' => $validated['email'],
-                'ip_address' => $request->ip(),
-                'user_agent' => (string) $request->userAgent(),
-            ]);
-        }
-
-        return response()->json([
-            'message' => 'Your password has been reset successfully.',
-        ]);
     }
 }
