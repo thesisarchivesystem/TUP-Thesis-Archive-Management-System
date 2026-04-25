@@ -271,8 +271,6 @@ export default function StudentMySubmissionsPage() {
       )
       : 0;
 
-    const nextDeadlineItem = items.find((item) => item.status === 'rejected' || item.status === 'under_review' || item.status === 'pending');
-
     return {
       turnaround,
       panelComments: recentMessages.length,

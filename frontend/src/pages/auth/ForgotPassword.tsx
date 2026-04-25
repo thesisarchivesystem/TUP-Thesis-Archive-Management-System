@@ -2,6 +2,7 @@ import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { authService } from '../../services/authService';
 import tupBuilding from '../../assets/tup-building.gif';
 
 type AccountRole = 'student' | 'faculty' | 'vpaa';
@@ -350,6 +351,7 @@ function ForgotPasswordStyles() {
       }
 
       .forgot-note,
+      .forgot-error,
       .forgot-success {
         margin-bottom: 18px;
         padding: 14px 16px;
@@ -370,10 +372,22 @@ function ForgotPasswordStyles() {
         color: #2f7040;
       }
 
+      .forgot-error {
+        background: rgba(139, 35, 50, 0.08);
+        border: 1px solid rgba(139, 35, 50, 0.16);
+        color: var(--maroon);
+      }
+
       .forgot-shell[data-theme='dark'] .forgot-success {
         background: rgba(91, 175, 104, 0.1);
         border-color: rgba(91, 175, 104, 0.18);
         color: #8ed09a;
+      }
+
+      .forgot-shell[data-theme='dark'] .forgot-error {
+        background: rgba(184, 58, 78, 0.12);
+        border-color: rgba(184, 58, 78, 0.2);
+        color: #f0a6b1;
       }
 
       .forgot-form {
@@ -512,6 +526,9 @@ export default function ForgotPassword() {
   const [identifier, setIdentifier] = useState('');
   const [role, setRole] = useState<AccountRole>('student');
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const roleMeta = useMemo(
     () => ({
@@ -558,10 +575,28 @@ export default function ForgotPassword() {
     document.title = 'Forgot Password - Thesis Archive Management System';
   }, []);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!identifier.trim()) return;
-    setSubmitted(true);
+
+    setError('');
+    setSuccessMessage('');
+    setSubmitted(false);
+    setIsSubmitting(true);
+
+    try {
+      const response = await authService.forgotPassword({ identifier: identifier.trim() });
+      setSubmitted(true);
+      setSuccessMessage(response.message || 'If the account exists and can receive mail, a password reset link has been sent.');
+    } catch (err: any) {
+      setError(
+        err.response?.data?.errors?.identifier?.[0]
+        || err.response?.data?.message
+        || 'Unable to send a password reset link.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -638,12 +673,14 @@ export default function ForgotPassword() {
           </div>
 
           <div className="forgot-note">
-            Self-service reset is not connected yet in this build. Submit your account details here, then contact the department administrator or VPAA office for manual password assistance.
+            Enter your institutional email or account ID to receive a password reset link for your Thesis Archive account.
           </div>
+
+          {error ? <div className="forgot-error">{error}</div> : null}
 
           {submitted ? (
             <div className="forgot-success">
-              Recovery details recorded for <strong>{identifier}</strong>. Please proceed to the {role.toUpperCase()} support contact or return to the sign-in page after your password has been updated.
+              {successMessage || <>A reset link has been sent for <strong>{identifier}</strong>.</>}
             </div>
           ) : null}
 
@@ -679,8 +716,8 @@ export default function ForgotPassword() {
               <div className="forgot-hint">Use the same identifier you normally use to sign in so your account can be matched faster.</div>
             </div>
 
-            <button className="forgot-submit" type="submit" disabled={!identifier.trim()}>
-              Request Password Help
+            <button className="forgot-submit" type="submit" disabled={!identifier.trim() || isSubmitting}>
+              {isSubmitting ? 'Sending Reset Link...' : 'Request Password Help'}
               <ArrowRightIcon />
             </button>
           </form>
