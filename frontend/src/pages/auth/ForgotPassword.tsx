@@ -214,7 +214,12 @@ function ForgotPasswordStyles() {
         position: relative;
       }
 
-      .forgot-panel-inner { width: 100%; }
+      .forgot-panel-inner {
+        width: 100%;
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
 
       .forgot-theme-toggle {
         position: absolute;
@@ -432,22 +437,56 @@ function ForgotPasswordStyles() {
         cursor: default;
       }
 
-      .forgot-actions {
-        margin-top: 6px;
+      .forgot-signin-options {
+        margin-top: auto;
+        margin-bottom: auto;
+        text-align: center;
+        width: 100%;
+      }
+
+      .forgot-signin-divider {
         display: flex;
-        justify-content: space-between;
-        gap: 12px;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 18px;
+        color: var(--text-tertiary);
         font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .forgot-signin-divider::before,
+      .forgot-signin-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .forgot-signin-copy {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
         color: var(--text-secondary);
       }
 
-      .forgot-actions a {
+      .forgot-signin-copy-line {
+        display: block;
+      }
+
+      .forgot-signin-copy-line + .forgot-signin-copy-line {
+        margin-top: 6px;
+      }
+
+      .forgot-link {
         color: var(--maroon);
+        text-decoration: none;
         font-weight: 700;
       }
 
       .forgot-footer {
-        margin-top: 30px;
+        margin-top: 0;
         padding-top: 18px;
         border-top: 1px solid var(--border);
         text-align: center;
@@ -607,10 +646,6 @@ export default function ForgotPassword() {
             </div>
           </div>
 
-          <div className="forgot-message info">
-            This works only for existing accounts with an email address that exactly matches the one stored in the system.
-          </div>
-
           {success ? <div className="forgot-message success">{success}</div> : null}
           {error ? <div className="forgot-message error">{error}</div> : null}
 
@@ -640,13 +675,14 @@ export default function ForgotPassword() {
             </button>
           </form>
 
-          <div className="forgot-actions">
-            <span>
-              Remembered it? <Link to="/sign-in/student" className="forgot-link">Student sign in</Link>
-            </span>
-            <span>
-              Other roles: <Link to="/sign-in/faculty" className="forgot-link">Faculty</Link> / <Link to="/sign-in/vpaa" className="forgot-link">VPAA</Link>
-            </span>
+          <div className="forgot-signin-options">
+            <div className="forgot-signin-divider">Sign back in</div>
+            <p className="forgot-signin-copy">
+              <span className="forgot-signin-copy-line">Remembered your password?</span>
+              <span className="forgot-signin-copy-line">
+                Sign in as <Link to="/sign-in/student" className="forgot-link">Student</Link>, <Link to="/sign-in/faculty" className="forgot-link">Faculty</Link>, or <Link to="/sign-in/vpaa" className="forgot-link">VPAA</Link>
+              </span>
+            </p>
           </div>
 
           <div className="forgot-footer">
