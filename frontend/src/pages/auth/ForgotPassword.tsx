@@ -2,7 +2,6 @@ import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
-import { authService } from '../../services/authService';
 import tupBuilding from '../../assets/tup-building.gif';
 
 type AccountRole = 'student' | 'faculty' | 'vpaa';
@@ -513,9 +512,6 @@ export default function ForgotPassword() {
   const [identifier, setIdentifier] = useState('');
   const [role, setRole] = useState<AccountRole>('student');
   const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const roleMeta = useMemo(
     () => ({
@@ -562,26 +558,10 @@ export default function ForgotPassword() {
     document.title = 'Forgot Password - Thesis Archive Management System';
   }, []);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!identifier.trim()) return;
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    try {
-      const response = await authService.forgotPassword(identifier.trim(), role);
-      setSubmitted(true);
-      setSuccessMessage(
-        response?.message ??
-          `Recovery details recorded for ${identifier.trim()}. Please wait for account recovery guidance.`,
-      );
-    } catch (error: any) {
-      const fallback = 'Unable to submit password recovery request. Please try again.';
-      setErrorMessage(error?.response?.data?.message ?? fallback);
-    } finally {
-      setIsSubmitting(false);
-    }
+    setSubmitted(true);
   };
 
   return (
@@ -658,18 +638,12 @@ export default function ForgotPassword() {
           </div>
 
           <div className="forgot-note">
-            Submit your account details and we will record your password recovery request for account assistance.
+            Self-service reset is not connected yet in this build. Submit your account details here, then contact the department administrator or VPAA office for manual password assistance.
           </div>
-
-          {errorMessage ? <div className="forgot-note">{errorMessage}</div> : null}
 
           {submitted ? (
             <div className="forgot-success">
-              {successMessage ?? (
-                <>
-                  Recovery details recorded for <strong>{identifier}</strong>. Please proceed to the {role.toUpperCase()} support contact or return to the sign-in page after your password has been updated.
-                </>
-              )}
+              Recovery details recorded for <strong>{identifier}</strong>. Please proceed to the {role.toUpperCase()} support contact or return to the sign-in page after your password has been updated.
             </div>
           ) : null}
 
@@ -705,8 +679,8 @@ export default function ForgotPassword() {
               <div className="forgot-hint">Use the same identifier you normally use to sign in so your account can be matched faster.</div>
             </div>
 
-            <button className="forgot-submit" type="submit" disabled={!identifier.trim() || isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Request Password Help'}
+            <button className="forgot-submit" type="submit" disabled={!identifier.trim()}>
+              Request Password Help
               <ArrowRightIcon />
             </button>
           </form>
