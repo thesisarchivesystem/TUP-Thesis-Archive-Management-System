@@ -41,6 +41,12 @@ composer install
 
 **⏱️ This will take 2-3 minutes** and download ~30MB of Laravel packages.
 
+If Laravel later reports that `bootstrap/cache` must be present and writable, create it once:
+
+```bash
+mkdir bootstrap\cache
+```
+
 ### Step 3: Generate App Key
 
 ```bash
@@ -275,6 +281,17 @@ Composer not installed. Download from [getcomposer.org](https://getcomposer.org/
 
 ### Error: "php: command not found"
 PHP not installed. Download from [php.net](https://www.php.net/downloads)
+
+### Error: `The zip extension and unzip/7z commands are both missing`
+Composer cannot extract package archives. If you're using XAMPP on Windows:
+1. Open `C:\xampp\php\php.ini`
+2. Find `;extension=zip`
+3. Change it to `extension=zip`
+4. Save the file
+5. Re-open PowerShell and run `php -m | findstr zip`
+6. Run `composer install` again
+
+If `zip` still does not appear, confirm `C:\xampp\php\ext\php_zip.dll` exists and that your CLI PHP is using the same file shown by `php --ini`.
 
 ### Database Connection Refused
 The `.env` file has credentials for Supabase. Make sure:

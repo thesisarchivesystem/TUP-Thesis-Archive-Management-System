@@ -14,7 +14,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -54,65 +53,6 @@ class AuthController extends Controller
         return response()->json([
             'user'  => $user->loadMissing(['student', 'faculty', 'vpaaProfile']),
             'token' => $token,
-        ]);
-    }
-
-    public function forgotPassword(Request $request): JsonResponse
-    {
-        $request->validate([
-            'identifier' => 'required|string',
-        ]);
-
-        $identifier = trim($request->string('identifier')->toString());
-        $user = $this->resolveUserFromIdentifier($identifier);
-
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'identifier' => ['We could not find an account matching that identifier.'],
-            ]);
-        }
-
-        $status = Password::broker()->sendResetLink([
-            'email' => $user->email,
-        ]);
-
-        if ($status !== Password::RESET_LINK_SENT) {
-            throw ValidationException::withMessages([
-                'identifier' => [__($status)],
-            ]);
-        }
-
-        return response()->json([
-            'message' => 'If the account exists and can receive mail, a password reset link has been sent.',
-        ]);
-    }
-
-    public function resetPassword(Request $request): JsonResponse
-    {
-        $request->validate([
-            'token' => 'required|string',
-            'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $status = Password::broker()->reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password): void {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                    'remember_token' => Str::random(60),
-                ])->save();
-            }
-        );
-
-        if ($status !== Password::PASSWORD_RESET) {
-            throw ValidationException::withMessages([
-                'email' => [__($status)],
-            ]);
-        }
-
-        return response()->json([
-            'message' => 'Your password has been reset successfully.',
         ]);
     }
 
@@ -157,31 +97,31 @@ class AuthController extends Controller
     public function forgotPassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'string', 'email', 'exists:users,email'],
-        ], [
-            'email.exists' => 'We could not find an account with that email address.',
+            'identifier' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $identifier = trim((string) $validated['identifier']);
+        $user = $this->resolveUserFromIdentifier($identifier);
 
         if (!$user || !$user->is_active) {
             throw ValidationException::withMessages([
-                'email' => ['This account is unavailable for password reset.'],
+                'identifier' => ['This account is unavailable for password reset.'],
             ]);
         }
 
         $status = Password::sendResetLink([
-            'email' => $validated['email'],
+            'email' => $user->email,
         ]);
 
         if ($status !== Password::RESET_LINK_SENT) {
             throw ValidationException::withMessages([
-                'email' => [__($status)],
+                'identifier' => [__($status)],
             ]);
         }
 
         $this->logger->log($user, 'auth.password_reset_requested', 'user', $user->id, [
-            'email' => $validated['email'],
+            'identifier' => $identifier,
+            'email' => $user->email,
             'ip_address' => $request->ip(),
             'user_agent' => (string) $request->userAgent(),
         ]);
