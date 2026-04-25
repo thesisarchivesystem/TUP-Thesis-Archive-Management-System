@@ -4,6 +4,9 @@ return [
     'ably' => [
         'key' => env('ABLY_KEY'),
     ],
+    'resend' => [
+        'key' => env('RESEND_KEY'),
+    ],
     'openrouter' => [
         'key' => env('OPENROUTER_API_KEY'),
     ],
