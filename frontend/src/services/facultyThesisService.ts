@@ -1,4 +1,5 @@
 import api from './api';
+import type { StudentAdviserOption } from './thesisService';
 
 export interface FacultyThesisPayload {
   title: string;
@@ -8,12 +9,11 @@ export interface FacultyThesisPayload {
   category_id: string;
   school_year: string;
   authors?: string;
-  adviser?: string;
+  adviser_id?: string;
   submission_mode: 'draft' | 'submit';
   confirm_original: boolean;
   allow_review: boolean;
   manuscript?: File | null;
-  cover?: File | null;
   supplementary_files?: File[];
 }
 
@@ -27,17 +27,13 @@ export const facultyThesisService = {
     formData.append('category_id', payload.category_id);
     formData.append('school_year', payload.school_year);
     formData.append('authors', payload.authors ?? '');
-    formData.append('adviser', payload.adviser ?? '');
+    formData.append('adviser_id', payload.adviser_id ?? '');
     formData.append('submission_mode', payload.submission_mode);
     formData.append('confirm_original', String(payload.confirm_original));
     formData.append('allow_review', String(payload.allow_review));
 
     if (payload.manuscript) {
       formData.append('manuscript', payload.manuscript);
-    }
-
-    if (payload.cover) {
-      formData.append('cover', payload.cover);
     }
 
     (payload.supplementary_files ?? []).forEach((file) => {
@@ -51,5 +47,10 @@ export const facultyThesisService = {
     });
 
     return data;
+  },
+
+  async advisers() {
+    const { data } = await api.get<{ data?: StudentAdviserOption[] }>('/faculty/advisers');
+    return data.data ?? [];
   },
 };

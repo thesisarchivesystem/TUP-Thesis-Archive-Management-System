@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, ChevronDown, Clock3, Files, Layers3, Paperclip, Search, Upload, Users } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { categoryService, type CategoryOption } from '../../services/categoryService';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,7 +10,6 @@ import {
   type FacultyLibraryResponse,
   type ShareUserOption,
 } from '../../services/facultyLibraryService';
-import { collegeOptions, departmentOptionsByCollege } from '../../constants/academicUnits';
 
 const truncateTitle = (value: string, maxLength = 24) =>
   value.length > maxLength ? `${value.slice(0, maxLength).trimEnd()}...` : value;
@@ -18,14 +18,13 @@ const initialForm = {
   title: '',
   type: 'Book',
   categoryId: '',
-  program: '',
+  college: '',
+  department: '',
   author: '',
   shareScope: 'specific_department' as 'all_colleges' | 'all_departments' | 'specific_college' | 'specific_department' | 'specific_users',
   targetCollege: '',
   targetDepartment: '',
-  tags: '',
   schoolYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
-  fileUrl: '',
   fileName: '',
   file: null as File | null,
   notes: '',
@@ -34,8 +33,11 @@ const initialForm = {
 
 export default function FacultyFileSharingPage() {
   const { user } = useAuth();
+  const location = useLocation();
+  const locationState = location.state as { draft?: FacultyLibraryItem } | null;
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [libraryDepartment, setLibraryDepartment] = useState('Faculty Department');
   const [libraryCollege, setLibraryCollege] = useState('');
@@ -45,6 +47,8 @@ export default function FacultyFileSharingPage() {
   const [userResults, setUserResults] = useState<ShareUserOption[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<ShareUserOption[]>([]);
   const [userSearchLoading, setUserSearchLoading] = useState(false);
+  const [availableColleges, setAvailableColleges] = useState<string[]>([]);
+  const [departmentsByCollege, setDepartmentsByCollege] = useState<Record<string, string[]>>({});
   const [libraryStats, setLibraryStats] = useState({
     total_files: 0,
     shared_libraries: 0,
@@ -55,10 +59,11 @@ export default function FacultyFileSharingPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submittingAction, setSubmittingAction] = useState<'draft' | 'share' | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   const createDepartmentOptions = useMemo(
-    () => departmentOptionsByCollege[form.targetCollege || ''] ?? [],
-    [form.targetCollege],
+    () => departmentsByCollege[form.targetCollege || ''] ?? [],
+    [departmentsByCollege, form.targetCollege],
   );
 
   const loadLibrary = async () => {
@@ -69,6 +74,8 @@ export default function FacultyFileSharingPage() {
       ...response.stats,
       last_sync: response.stats.last_sync ?? null,
     });
+    setAvailableColleges(response.share_options?.colleges ?? []);
+    setDepartmentsByCollege(response.share_options?.departments_by_college ?? {});
     setLibraryItems(response.items);
   };
 
@@ -118,6 +125,8 @@ export default function FacultyFileSharingPage() {
     setForm((current) => ({
       ...current,
       author: current.author || user?.name || '',
+      college: current.college || libraryCollege,
+      department: current.department || libraryDepartment,
       targetCollege: current.targetCollege || libraryCollege,
       targetDepartment: current.targetDepartment || libraryDepartment,
     }));
@@ -143,16 +152,46 @@ export default function FacultyFileSharingPage() {
     return () => window.clearTimeout(timer);
   }, [form.shareScope, form.userSearch, selectedUsers]);
 
+  useEffect(() => {
+    const draft = locationState?.draft;
+    if (!draft) return;
+
+    setEditingDraftId(draft.id);
+    setFormOpen(true);
+    setForm({
+      title: draft.title ?? '',
+      type: draft.type ?? 'Book',
+      categoryId: draft.category_id ?? '',
+      college: draft.college ?? '',
+      department: draft.department ?? '',
+      author: draft.authors?.filter(Boolean).join(', ') || draft.author || '',
+      shareScope: (draft.share_scope as typeof initialForm.shareScope) ?? 'specific_department',
+      targetCollege: draft.target_college ?? '',
+      targetDepartment: draft.target_department ?? '',
+      schoolYear: draft.school_year ?? `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+      fileName: draft.file_name ?? '',
+      file: null,
+      notes: draft.abstract ?? '',
+      userSearch: '',
+    });
+    setSelectedUsers(draft.shared_with_users ?? []);
+    setUserResults([]);
+  }, [locationState?.draft]);
+
   const resetForm = () => {
     setForm({
       ...initialForm,
       author: user?.name ?? '',
       categoryId: categories[0]?.id ?? '',
+      college: libraryCollege,
+      department: libraryDepartment,
       targetCollege: libraryCollege,
       targetDepartment: libraryDepartment,
     });
+    setEditingDraftId(null);
     setSelectedUsers([]);
     setUserResults([]);
+    if (attachmentInputRef.current) attachmentInputRef.current.value = '';
   };
 
   const handleSave = async (mode: 'draft' | 'share') => {
@@ -161,12 +200,12 @@ export default function FacultyFileSharingPage() {
     setSuccess('');
 
     try {
-      await facultyLibraryService.createLibraryItem({
+      const payload = {
         title: form.title,
         resource_type: form.type,
         abstract: form.notes,
-        keywords: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-        program: form.program || undefined,
+        college: form.college || undefined,
+        department: form.department || undefined,
         category_id: form.categoryId,
         school_year: form.schoolYear,
         authors: form.author ? [form.author] : [],
@@ -175,15 +214,21 @@ export default function FacultyFileSharingPage() {
         target_department: form.shareScope === 'specific_department' ? form.targetDepartment : undefined,
         recipient_ids: form.shareScope === 'specific_users' ? selectedUsers.map((entry) => entry.id) : undefined,
         file: form.file,
-        file_url: form.fileUrl || undefined,
         file_name: form.fileName || undefined,
         is_draft: mode === 'draft',
-      });
+      };
+      const response = editingDraftId
+        ? await facultyLibraryService.updateLibraryItem(editingDraftId, payload)
+        : await facultyLibraryService.createLibraryItem(payload);
+
+      if (!response?.data?.id) {
+        throw new Error('The file was submitted, but no database record ID was returned.');
+      }
 
       setSuccess(
         mode === 'share'
-          ? 'File shared successfully and recipients were saved to the database.'
-          : 'File draft saved successfully to the database.',
+          ? (editingDraftId ? 'Draft updated and shared successfully.' : 'File shared successfully and recipients were saved to the database.')
+          : (editingDraftId ? 'Draft updated successfully in the database.' : 'File draft saved successfully to the database.'),
       );
 
       setLibraryLoading(true);
@@ -222,23 +267,6 @@ export default function FacultyFileSharingPage() {
     ],
     [libraryItems, libraryStats],
   );
-
-  const shareScopeHelp = useMemo(() => {
-    switch (form.shareScope) {
-      case 'all_colleges':
-        return 'This file will be shared broadly across all colleges.';
-      case 'all_departments':
-        return 'This file will be visible to users across every department.';
-      case 'specific_college':
-        return 'Choose one college to receive this file.';
-      case 'specific_department':
-        return 'Choose one department to receive this file.';
-      case 'specific_users':
-        return 'Search and pick the exact users who should receive this file.';
-      default:
-        return '';
-    }
-  }, [form.shareScope]);
 
   return (
     <FacultyLayout
@@ -311,7 +339,12 @@ export default function FacultyFileSharingPage() {
             ) : null}
 
             {libraryItems.map((item) => (
-              <article key={item.id} className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--bg-card)] p-3.5 shadow-[var(--shadow-sm)]">
+              <Link
+                key={item.id}
+                to={`/faculty/students/${encodeURIComponent(item.id)}`}
+                state={{ file: item }}
+                className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--bg-card)] p-3.5 shadow-[var(--shadow-sm)] transition-transform duration-200 hover:-translate-y-1"
+              >
                 <div className="flex h-[150px] flex-col justify-between rounded-[14px] bg-[linear-gradient(180deg,#8b2332_0%,#6f1e2a_100%)] p-3.5 text-white shadow-[var(--shadow-md)]">
                   <div className="flex items-start justify-between gap-3">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">{item.department || 'Faculty Library'}</div>
@@ -330,7 +363,7 @@ export default function FacultyFileSharingPage() {
                     {item.file_name || 'No file attached'}
                   </div>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </section>
@@ -356,110 +389,144 @@ export default function FacultyFileSharingPage() {
 
           {formOpen ? (
             <form id="faculty-library-form" className="mt-6 space-y-4" onSubmit={(event) => event.preventDefault()}>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Title</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.title}
-                    onChange={(event) => setForm({ ...form, title: event.target.value })}
-                    placeholder="Enter file title"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Type</span>
-                  <select
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.type}
-                    onChange={(event) => setForm({ ...form, type: event.target.value })}
-                  >
-                    <option>Book</option>
-                    <option>Dissertation</option>
-                    <option>Research File</option>
-                    <option>Manuscript</option>
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Category</span>
-                  <select
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.categoryId}
-                    onChange={(event) => setForm({ ...form, categoryId: event.target.value })}
-                    disabled={categoriesLoading || !categories.length}
-                  >
-                    {!categories.length ? <option value="">No categories available</option> : null}
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>{category.name}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Program</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.program}
-                    onChange={(event) => setForm({ ...form, program: event.target.value })}
-                    placeholder="BS Computer Science"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Department</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none"
-                    value={libraryDepartment}
-                    disabled
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Author / Owner</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.author}
-                    onChange={(event) => setForm({ ...form, author: event.target.value })}
-                    placeholder="Author or uploader"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">School Year</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.schoolYear}
-                    onChange={(event) => setForm({ ...form, schoolYear: event.target.value })}
-                    placeholder="2026-2027"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Share Scope</span>
-                  <select
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.shareScope}
-                    onChange={(event) => setForm({
-                      ...form,
-                      shareScope: event.target.value as typeof form.shareScope,
-                      userSearch: '',
-                    })}
-                  >
-                    <option value="all_colleges">All Colleges</option>
-                    <option value="all_departments">All Departments</option>
-                    <option value="specific_college">Specific College</option>
-                    <option value="specific_department">Specific Department</option>
-                    <option value="specific_users">Specific User</option>
-                  </select>
-                </label>
-
-                <div className="block md:col-span-2 xl:col-span-2">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Sharing Rule</span>
-                  <div className="rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-sm text-text-secondary">
-                    {shareScopeHelp}
+              <div className="rounded-[22px] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(139,35,50,0.05),rgba(139,35,50,0.01))] p-4 md:p-5">
+                <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h3 className="mb-1 text-lg text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>File Details</h3>
+                    <p className="mb-0 text-sm text-text-secondary">Add the core metadata so the file is easy to find in the department archive.</p>
+                  </div>
+                  <div className="inline-flex w-fit items-center rounded-full bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--maroon)] shadow-[var(--shadow-sm)]">
+                    Department Library Entry
                   </div>
                 </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <label className="block xl:col-span-2">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">Title</span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.title}
+                      onChange={(event) => setForm({ ...form, title: event.target.value })}
+                      placeholder="Enter file title"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">Type</span>
+                    <select
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.type}
+                      onChange={(event) => setForm({ ...form, type: event.target.value })}
+                    >
+                      <option>Book</option>
+                      <option>Dissertation</option>
+                      <option>Research File</option>
+                      <option>Manuscript</option>
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">Category</span>
+                    <select
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.categoryId}
+                      onChange={(event) => setForm({ ...form, categoryId: event.target.value })}
+                      disabled={categoriesLoading || !categories.length}
+                    >
+                      {!categories.length ? <option value="">No categories available</option> : null}
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">College</span>
+                    <select
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.college}
+                      onChange={(event) => setForm({ ...form, college: event.target.value, department: '' })}
+                      disabled={!availableColleges.length}
+                    >
+                      <option value="">Select college</option>
+                      {availableColleges.map((college) => (
+                        <option key={college} value={college}>{college}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">Department</span>
+                    {(departmentsByCollege[form.college]?.length ?? 0) > 0 ? (
+                      <select
+                        className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                        value={form.department}
+                        onChange={(event) => setForm({ ...form, department: event.target.value })}
+                      >
+                        <option value="">Select department</option>
+                        {(departmentsByCollege[form.college] ?? []).map((department) => (
+                          <option key={department} value={department}>{department}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none"
+                        value={form.department}
+                        onChange={(event) => setForm({ ...form, department: event.target.value })}
+                        placeholder="Select a college first"
+                      />
+                    )}
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">Author / Owner</span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.author}
+                      onChange={(event) => setForm({ ...form, author: event.target.value })}
+                      placeholder="Author or uploader"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">School Year</span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.schoolYear}
+                      onChange={(event) => setForm({ ...form, schoolYear: event.target.value })}
+                      placeholder="2026-2027"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-[var(--border)] bg-[var(--bg-card-alt)] p-4 md:p-5">
+                <div className="mb-4">
+                  <h3 className="mb-1 text-lg text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Sharing Setup</h3>
+                  <p className="mb-0 text-sm text-text-secondary">Choose where this file should appear and who should be able to access it.</p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">Share Scope</span>
+                    <select
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.shareScope}
+                      onChange={(event) => setForm({
+                        ...form,
+                        shareScope: event.target.value as typeof form.shareScope,
+                        targetCollege: event.target.value === 'specific_college' || event.target.value === 'specific_department' ? form.targetCollege : '',
+                        targetDepartment: event.target.value === 'specific_department' ? form.targetDepartment : '',
+                        userSearch: '',
+                      })}
+                    >
+                      <option value="all_colleges">All Colleges</option>
+                      <option value="all_departments">All Departments</option>
+                      <option value="specific_college">Specific College</option>
+                      <option value="specific_department">Specific Department</option>
+                      <option value="specific_users">Specific User</option>
+                    </select>
+                  </label>
 
                 {form.shareScope === 'specific_college' ? (
                   <label className="block">
@@ -470,7 +537,7 @@ export default function FacultyFileSharingPage() {
                       onChange={(event) => setForm({ ...form, targetCollege: event.target.value, targetDepartment: '' })}
                     >
                       <option value="">Select college</option>
-                      {collegeOptions.map((college) => (
+                      {availableColleges.map((college) => (
                         <option key={college} value={college}>{college}</option>
                       ))}
                     </select>
@@ -487,7 +554,7 @@ export default function FacultyFileSharingPage() {
                         onChange={(event) => setForm({ ...form, targetCollege: event.target.value, targetDepartment: '' })}
                       >
                         <option value="">Select college</option>
-                        {collegeOptions.map((college) => (
+                        {availableColleges.map((college) => (
                           <option key={college} value={college}>{college}</option>
                         ))}
                       </select>
@@ -517,45 +584,6 @@ export default function FacultyFileSharingPage() {
                     </label>
                   </>
                 ) : null}
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Attachment</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition file:mr-3 file:rounded-xl file:border-0 file:bg-[rgba(139,35,50,0.1)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--maroon)]"
-                    type="file"
-                    onChange={(event) => setForm({ ...form, file: event.target.files?.[0] ?? null, fileName: event.target.files?.[0]?.name ?? form.fileName })}
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">File URL</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.fileUrl}
-                    onChange={(event) => setForm({ ...form, fileUrl: event.target.value })}
-                    placeholder="Optional public file URL"
-                  />
-                </label>
-
-                <label className="block md:col-span-2 xl:col-span-3">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">File Name</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.fileName}
-                    onChange={(event) => setForm({ ...form, fileName: event.target.value })}
-                    placeholder="library-resource.pdf"
-                  />
-                </label>
-
-                <label className="block md:col-span-2 xl:col-span-3">
-                  <span className="mb-2 block text-sm font-medium text-text-secondary">Tags</span>
-                  <input
-                    className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                    value={form.tags}
-                    onChange={(event) => setForm({ ...form, tags: event.target.value })}
-                    placeholder="AI, Analytics, Security"
-                  />
-                </label>
 
                 {form.shareScope === 'specific_users' ? (
                   <div className="block md:col-span-2 xl:col-span-3">
@@ -628,17 +656,69 @@ export default function FacultyFileSharingPage() {
                     </div>
                   </div>
                 ) : null}
+
+                </div>
               </div>
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-text-secondary">Abstract / Notes</span>
-                <textarea
-                  className="min-h-[132px] w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                  value={form.notes}
-                  onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                  placeholder="Short description to help users understand the resource."
-                />
-              </label>
+              <div className="rounded-[22px] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(139,35,50,0.05),rgba(139,35,50,0.01))] p-4 md:p-5">
+                <div className="mb-4">
+                  <h3 className="mb-1 text-lg text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Attachment and Notes</h3>
+                  <p className="mb-0 text-sm text-text-secondary">Upload the file, add a filename if needed, and include tags or context for recipients.</p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <label className="block md:col-span-2 xl:col-span-3">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">File Name</span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.fileName}
+                      onChange={(event) => setForm({ ...form, fileName: event.target.value })}
+                      placeholder="library-resource.pdf"
+                    />
+                  </label>
+
+                  <label className="block md:col-span-2 xl:col-span-3">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">Attachment</span>
+                    <div className="student-upload-file-row">
+                      <div className="student-upload-file-label">{form.file?.name || 'No file chosen'}</div>
+                      <div className="student-upload-file-actions">
+                        <label className="student-upload-file-btn">
+                          <input
+                            ref={attachmentInputRef}
+                            type="file"
+                            hidden
+                            onChange={(event) => setForm({ ...form, file: event.target.files?.[0] ?? null, fileName: event.target.files?.[0]?.name ?? form.fileName })}
+                          />
+                          Choose File
+                        </label>
+                        {form.file ? (
+                          <button
+                            type="button"
+                            className="student-upload-file-remove"
+                            onClick={() => {
+                              setForm({ ...form, file: null });
+                              if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+                            }}
+                            aria-label="Remove selected file"
+                          >
+                            x
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </label>
+
+                  <label className="block md:col-span-2 xl:col-span-3">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">Abstract / Notes</span>
+                    <textarea
+                      className="min-h-[132px] w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.notes}
+                      onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                      placeholder="Short description to help users understand the resource."
+                    />
+                  </label>
+                </div>
+              </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <button
@@ -650,6 +730,8 @@ export default function FacultyFileSharingPage() {
                     || categoriesLoading
                     || !form.categoryId
                     || !form.title
+                    || !form.college
+                    || !form.department
                     || (form.shareScope === 'specific_department' && !form.targetDepartment)
                     || (form.shareScope === 'specific_college' && !form.targetCollege)
                     || (form.shareScope === 'specific_users' && !selectedUsers.length)
@@ -666,6 +748,8 @@ export default function FacultyFileSharingPage() {
                     || categoriesLoading
                     || !form.categoryId
                     || !form.title
+                    || !form.college
+                    || !form.department
                     || (form.shareScope === 'specific_department' && !form.targetDepartment)
                     || (form.shareScope === 'specific_college' && !form.targetCollege)
                     || (form.shareScope === 'specific_users' && !selectedUsers.length)

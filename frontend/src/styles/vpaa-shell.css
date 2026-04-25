@@ -1317,6 +1317,14 @@
   gap: 8px;
 }
 
+.student-upload-field.has-error input,
+.student-upload-field.has-error select,
+.student-upload-field.has-error textarea,
+.student-upload-field.has-error .student-upload-file-label {
+  border-color: #c13b4d;
+  box-shadow: 0 0 0 3px rgba(193, 59, 77, 0.1);
+}
+
 .student-upload-field.full {
   grid-column: 1 / -1;
 }
@@ -1346,6 +1354,16 @@
 .student-upload-field textarea {
   resize: vertical;
   min-height: 104px;
+}
+
+.student-upload-field-error {
+  color: #c13b4d !important;
+  font-weight: 600;
+}
+
+.student-upload-check.has-error {
+  border-color: rgba(193, 59, 77, 0.28);
+  background: rgba(193, 59, 77, 0.06);
 }
 
 .student-upload-field input:focus,
@@ -1519,6 +1537,45 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.shared-file-draft-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.shared-file-draft-button,
+.shared-file-draft-danger {
+  min-height: 44px;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.shared-file-draft-danger {
+  border: 1px solid rgba(139, 35, 50, 0.18);
+  border-radius: 16px;
+  background: rgba(139, 35, 50, 0.06);
+  color: var(--maroon);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.shared-file-draft-danger:hover {
+  transform: translateY(-2px);
+  border-color: rgba(139, 35, 50, 0.24);
+  background: rgba(139, 35, 50, 0.1);
+  box-shadow: 0 10px 22px rgba(139, 35, 50, 0.07);
 }
 
 .student-upload-chip-row {

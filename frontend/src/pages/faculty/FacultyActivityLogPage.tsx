@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, List, Search, SquareSplitVertical, Users2 } from 'lucide-react';
+import { CheckCircle2, Clock3, Search, SquareSplitVertical, Users2 } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { useAuth } from '../../hooks/useAuth';
 import { facultyActivityService, type FacultyActivityLogResponse, type FacultyActivityRow } from '../../services/facultyActivityService';
@@ -134,7 +134,6 @@ export default function FacultyActivityLogPage() {
     { label: 'Actions Today', value: activityData?.summary.actions_today ?? defaultSummary.actions_today, icon: <Clock3 size={20} />, tone: 'si-sky' },
     { label: 'Approvals', value: activityData?.summary.approvals ?? defaultSummary.approvals, icon: <CheckCircle2 size={20} />, tone: 'si-sage' },
     { label: 'Files Shared', value: activityData?.summary.files_shared ?? defaultSummary.files_shared, icon: <Users2 size={20} />, tone: 'si-maroon' },
-    { label: 'Notes Added', value: activityData?.summary.notes_added ?? defaultSummary.notes_added, icon: <List size={20} />, tone: 'si-terracotta' },
     { label: 'Last Activity', value: activityData?.summary.last_activity ?? defaultSummary.last_activity, icon: <Clock3 size={20} />, tone: 'si-gold' },
   ];
 
@@ -143,7 +142,7 @@ export default function FacultyActivityLogPage() {
       <div className="space-y-5">
         {error ? <div className="rounded-xl bg-[rgba(139,35,50,0.08)] px-4 py-3 text-sm font-medium text-[var(--maroon)]">{error}</div> : null}
 
-        <div className="vpaa-grid-5" style={{ marginBottom: 8 }}>
+        <div className="vpaa-grid-4" style={{ marginBottom: 8 }}>
           {summaryCards.map((card) => (
             <div className="vpaa-card vpaa-stat-card" key={card.label}>
               <div>

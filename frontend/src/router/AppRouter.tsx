@@ -41,6 +41,7 @@ import FacultyTermsPage from '../pages/faculty/FacultyTermsPage';
 import FacultyProfilePage from '../pages/faculty/FacultyProfilePage';
 import FacultySettingsPage from '../pages/faculty/FacultySettingsPage';
 import FacultyThesisDetailsPage from '../pages/faculty/FacultyThesisDetailsPage';
+import FacultySharedFileDetailsPage from '../pages/faculty/FacultySharedFileDetailsPage';
 import StudentCategoriesPage from '../pages/student/StudentCategoriesPage';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentMessagesPage from '../pages/student/StudentMessagesPage';
@@ -141,6 +142,7 @@ export default function AppRouter() {
           <Route path="terms" element={<FacultyTermsPage />} />
           <Route path="my-advisees" element={<FacultyAdviseesPage />} />
           <Route path="students" element={<FacultyFileSharingPage />} />
+          <Route path="students/:id" element={<FacultySharedFileDetailsPage />} />
           <Route path="manage-thesis/add" element={<FacultyAddThesisPage />} />
           <Route path="manage-thesis/approved" element={<FacultyApprovedThesesPage />} />
           <Route path="manage-thesis/review" element={<FacultyReviewSubmissionsPage />} />

@@ -46,10 +46,10 @@ export default function StudentSignIn() {
         { label: 'VPAA', to: '/sign-in/vpaa' },
       ]}
       accent={{
-        successBgLight: 'rgba(61,139,74,0.08)',
-        successTextLight: '#3D8B4A',
-        successBgDark: 'rgba(91,175,104,0.1)',
-        successTextDark: '#5BAF68',
+        successBgLight: 'rgba(201,150,58,0.12)',
+        successTextLight: '#C9963A',
+        successBgDark: 'rgba(218,186,94,0.14)',
+        successTextDark: '#DABA5E',
       }}
       error={error}
       isLoading={isLoading}
