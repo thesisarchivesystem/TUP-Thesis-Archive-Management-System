@@ -306,7 +306,9 @@ class StudentController extends Controller
             return $profile;
         });
 
-        $this->logger->log($request->user(), 'student.created', 'user', $studentProfile->user_id);
+        $this->logger->log($request->user(), 'student.created', 'user', $studentProfile->user_id, [
+            'student_name' => $studentProfile->user?->name,
+        ]);
 
         $this->notifications->notify(
             $request->user(),

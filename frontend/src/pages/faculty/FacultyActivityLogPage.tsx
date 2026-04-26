@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { facultyActivityService, type FacultyActivityLogResponse, type FacultyActivityRow } from '../../services/facultyActivityService';
 
 const ACTIVITY_PAGE_SIZE = 10;
-const ACTIVITY_FILTER_OPTIONS = ['all', 'Access Granted', 'Activity Logged', 'Revision Requested', 'New Thesis Uploaded'] as const;
+const ACTIVITY_FILTER_OPTIONS = ['all', 'Approved Thesis', 'Needs Revision', 'Archived Thesis', 'Account Created', 'Account Edited'] as const;
 
 const defaultSummary = {
   actions_today: 0,
@@ -42,20 +42,18 @@ const formatRelativeTime = (timestamp: string) => {
   return itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const formatCalendarDateKey = (value: Date) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+const toDateOnly = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
+
 const getActivityFilterLabel = (item: FacultyActivityRow) => {
-  if (item.badge === 'Uploaded') {
-    return 'New Thesis Uploaded';
-  }
-
-  if (item.badge === 'Approved' || item.badge === 'Shared') {
-    return 'Access Granted';
-  }
-
-  if (item.badge === 'Commented') {
-    return 'Revision Requested';
-  }
-
-  return 'Activity Logged';
+  return item.badge;
 };
 
 export default function FacultyActivityLogPage() {
@@ -63,14 +61,14 @@ export default function FacultyActivityLogPage() {
   const [activityData, setActivityData] = useState<FacultyActivityLogResponse | null>(null);
   const [search, setSearch] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [quickFilter, setQuickFilter] = useState<'all' | 'today' | 'week' | 'mine'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [timeTick, setTimeTick] = useState(Date.now());
 
-  const loadActivityLog = (silent = false, query = search) => {
+  const loadActivityLog = (silent = false) => {
     if (silent) {
       setRefreshing(true);
     } else {
@@ -79,7 +77,7 @@ export default function FacultyActivityLogPage() {
 
     setError('');
 
-    return facultyActivityService.getActivityLog(query)
+    return facultyActivityService.getActivityLog()
       .then((response) => {
         setActivityData(response);
       })
@@ -98,7 +96,7 @@ export default function FacultyActivityLogPage() {
   useEffect(() => {
     let isMounted = true;
 
-    void facultyActivityService.getActivityLog(search)
+    void facultyActivityService.getActivityLog()
       .then((response) => {
         if (!isMounted) return;
         setActivityData(response);
@@ -114,27 +112,33 @@ export default function FacultyActivityLogPage() {
     return () => {
       isMounted = false;
     };
-  }, [search]);
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setTimeTick(Date.now());
+    }, 60000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   const activityOptions = ACTIVITY_FILTER_OPTIONS;
-
-  const departmentOptions = useMemo(
-    () => ['all', ...(activityData?.departments ?? [])],
-    [activityData],
-  );
-
   const filteredLogs = useMemo(() => {
     const logs = activityData?.logs ?? [];
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfTomorrow = new Date(startOfToday);
-    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    const now = new Date(timeTick);
+    const startOfToday = toDateOnly(now);
+    const todayKey = formatCalendarDateKey(startOfToday);
     const dayOfWeek = startOfToday.getDay();
     const daysSinceMonday = (dayOfWeek + 6) % 7;
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 7);
+    const weekDateKeys = new Set(
+      Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + index);
+        return formatCalendarDateKey(date);
+      }),
+    );
 
     return logs.filter((item) => {
       const normalizedSearch = search.trim().toLowerCase();
@@ -144,20 +148,20 @@ export default function FacultyActivityLogPage() {
         .includes(normalizedSearch);
 
       const matchesActivity = activityFilter === 'all' || getActivityFilterLabel(item) === activityFilter;
-      const matchesDepartment = departmentFilter === 'all' || item.department === departmentFilter;
 
       const itemDate = new Date(item.timestamp);
       const hasValidDate = !Number.isNaN(itemDate.getTime());
-      const isToday = hasValidDate && itemDate >= startOfToday && itemDate < startOfTomorrow;
-      const isThisWeek = hasValidDate && itemDate >= startOfWeek && itemDate < endOfWeek;
+      const itemDateKey = hasValidDate ? formatCalendarDateKey(itemDate) : null;
+      const isToday = itemDateKey === todayKey;
+      const isThisWeek = itemDateKey ? weekDateKeys.has(itemDateKey) : false;
       const matchesQuick = quickFilter === 'all'
         || (quickFilter === 'today' && isToday)
         || (quickFilter === 'week' && isThisWeek)
         || (quickFilter === 'mine' && item.user_id === user?.id);
 
-      return matchesSearch && matchesActivity && matchesDepartment && matchesQuick;
+      return matchesSearch && matchesActivity && matchesQuick;
     });
-  }, [activityData, search, activityFilter, departmentFilter, quickFilter, user?.id]);
+  }, [activityData, search, activityFilter, quickFilter, timeTick, user?.id]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ACTIVITY_PAGE_SIZE));
 
@@ -168,7 +172,7 @@ export default function FacultyActivityLogPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, activityFilter, departmentFilter, quickFilter]);
+  }, [search, activityFilter, quickFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -209,7 +213,7 @@ export default function FacultyActivityLogPage() {
             <button
               type="button"
               className="faculty-activity-log-refresh"
-              onClick={() => void loadActivityLog(true, search)}
+              onClick={() => void loadActivityLog(true)}
               disabled={refreshing}
             >
               <RefreshCcw size={16} className={refreshing ? 'faculty-activity-log-refresh-icon spinning' : 'faculty-activity-log-refresh-icon'} />
@@ -235,13 +239,7 @@ export default function FacultyActivityLogPage() {
                   <option key={option} value={option}>{option === 'all' ? 'All Actions' : option}</option>
                 ))}
               </select>
-
-              <select className="filter-select" value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}>
-                {departmentOptions.map((option) => (
-                  <option key={option} value={option}>{option === 'all' ? 'All Departments' : option}</option>
-                ))}
-              </select>
-            </div>
+          </div>
 
             <div className="filter-chips faculty-activity-log-chips">
               {[

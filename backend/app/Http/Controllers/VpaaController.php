@@ -16,6 +16,11 @@ use Illuminate\Support\Carbon;
 
 class VpaaController extends Controller
 {
+    private const VPAA_ACTIVITY_ACTIONS = [
+        'faculty.created',
+        'faculty.updated',
+    ];
+
     public function __construct(private DailyQuoteService $dailyQuoteService) {}
 
     public function profile(Request $request): JsonResponse
@@ -183,6 +188,7 @@ class VpaaController extends Controller
                 'user.faculty:user_id,department,college',
                 'user.student:user_id,department',
             ])
+            ->whereIn('action', self::VPAA_ACTIVITY_ACTIONS)
             ->orderByDesc('created_at')
             ->limit(50)
             ->get();
@@ -278,15 +284,16 @@ class VpaaController extends Controller
         });
 
         $summary = [
-            'actions_today' => ActivityLog::query()->whereDate('created_at', now()->toDateString())->count(),
-            'approvals' => ActivityLog::query()->where('action', 'thesis.approved')->count(),
+            'actions_today' => ActivityLog::query()
+                ->whereIn('action', self::VPAA_ACTIVITY_ACTIONS)
+                ->whereDate('created_at', now()->toDateString())
+                ->count(),
+            'approvals' => 0,
             'account_updates' => ActivityLog::query()->whereIn('action', [
                 'faculty.created',
-                'student.created',
-                'faculty.status_changed',
-                'faculty.role_changed',
+                'faculty.updated',
             ])->count(),
-            'last_activity' => optional($logs->first()?->created_at)?->diffForHumans(),
+            'last_activity' => optional($logs->first()?->created_at)?->diffForHumans() ?? 'No recent activity',
         ];
 
         return response()->json([
@@ -401,15 +408,8 @@ class VpaaController extends Controller
     private function presentActivityAction(string $action): array
     {
         return match ($action) {
-            'thesis.approved' => ['Approval Completed', 'sage', 'View'],
-            'thesis.rejected' => ['Revision Requested', 'terracotta', 'Review'],
-            'thesis.submitted' => ['File Submitted', 'sky', 'Open'],
             'faculty.created' => ['Account Created', 'gold', 'Open'],
-            'student.created' => ['Student Added', 'sky', 'Open'],
-            'faculty.status_changed' => ['Status Changed', 'terracotta', 'Review'],
-            'faculty.role_changed' => ['Role Updated', 'sage', 'View'],
-            'auth.login' => ['Access Granted', 'sage', 'View'],
-            'auth.logout' => ['Session Closed', 'gold', 'Open'],
+            'faculty.updated' => ['Account Edited', 'sage', 'View'],
             default => ['Activity Logged', 'maroon', 'View'],
         };
     }
@@ -417,19 +417,10 @@ class VpaaController extends Controller
     private function buildActivityRecordLabel(ActivityLog $log, ?Thesis $thesis, ?User $user, ?FacultyProfile $facultyProfile): string
     {
         return match ($log->action) {
-            'thesis.approved' => $thesis?->title ? "Approved thesis: {$thesis->title}" : 'Approved thesis record',
-            'thesis.rejected' => $thesis?->title ? "Revision requested: {$thesis->title}" : 'Rejected thesis record',
-            'thesis.submitted' => $thesis?->title ? "Submitted thesis: {$thesis->title}" : 'New thesis submission',
             'faculty.created' => $user?->name ? "Faculty account: {$user->name}" : 'Faculty account created',
-            'student.created' => $user?->name ? "Student account: {$user->name}" : 'Student account created',
-            'faculty.status_changed' => $facultyProfile?->user?->name
-                ? "{$facultyProfile->user->name} status set to " . str($log->meta['status'] ?? 'updated')->replace('_', ' ')->title()
-                : 'Faculty status updated',
-            'faculty.role_changed' => $facultyProfile?->user?->name
-                ? "Role updated for {$facultyProfile->user->name}"
-                : 'Faculty role updated',
-            'auth.login' => $log->user?->name ? "{$log->user->name} signed in" : 'User signed in',
-            'auth.logout' => $log->user?->name ? "{$log->user->name} signed out" : 'User signed out',
+            'faculty.updated' => $facultyProfile?->user?->name
+                ? "Faculty account updated: {$facultyProfile->user->name}"
+                : ($user?->name ? "Faculty account updated: {$user->name}" : 'Faculty account updated'),
             default => str($log->action)->replace('.', ' ')->replace('_', ' ')->title()->toString(),
         };
     }

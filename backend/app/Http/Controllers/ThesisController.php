@@ -357,6 +357,10 @@ class ThesisController extends Controller
         }
         $this->logger->log($request->user(), $eventName, 'thesis', $thesis->id);
 
+        if ($request->status === 'approved') {
+            $this->logger->log($request->user(), 'thesis.archived', 'thesis', $thesis->id);
+        }
+
         return response()->json(['data' => $thesis]);
     }
 

@@ -25,6 +25,14 @@ use Illuminate\Validation\Rule;
 
 class FacultyController extends Controller
 {
+    private const FACULTY_ACTIVITY_ACTIONS = [
+        'thesis.approved',
+        'thesis.rejected',
+        'thesis.archived',
+        'faculty.created',
+        'faculty.updated',
+    ];
+
     public function __construct(
         private ActivityLogService $logger,
         private DailyQuoteService $dailyQuoteService,
@@ -56,15 +64,20 @@ class FacultyController extends Controller
         $logs = ActivityLog::with([
                 'user:id,name,avatar_url',
                 'user.faculty:user_id,department',
+                'user.student:user_id,department',
             ])
             ->where(function ($query) use ($request, $facultyProfile) {
-                $query->where('user_id', $request->user()->id)
+                $query->where(function ($actionQuery) {
+                    $actionQuery->whereIn('action', self::FACULTY_ACTIVITY_ACTIONS);
+                })->where(function ($scopeQuery) use ($request, $facultyProfile) {
+                    $scopeQuery->where('user_id', $request->user()->id)
                     ->orWhere(function ($nested) use ($facultyProfile) {
                         $nested->where('subject_type', 'thesis')
                             ->whereIn('subject_id', Thesis::query()
                                 ->where('department', $facultyProfile->department)
                                 ->pluck('id'));
                     });
+                });
             })
             ->orderByDesc('created_at')
             ->limit(50)
@@ -77,15 +90,25 @@ class FacultyController extends Controller
             ->get()
             ->keyBy('id');
 
+        $departments = collect([$facultyProfile->department])
+            ->merge($logs->pluck('user.student.department'))
+            ->merge($logs->pluck('user.faculty.department'))
+            ->merge($theses->pluck('department'))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
         $formattedLogs = $logs->map(function (ActivityLog $log) use ($theses) {
             $subjectThesis = $log->subject_type === 'thesis' ? $theses->get($log->subject_id) : null;
             [$badge, $tone, $cta] = $this->presentFacultyActivityAction($log->action);
 
             return [
                 'id' => $log->id,
+                'user_id' => $log->user_id,
                 'badge' => $badge,
                 'tone' => $tone,
-                'request_record' => $subjectThesis?->title ?? str($log->action)->replace('.', ' ')->replace('_', ' ')->title()->toString(),
+                'request_record' => $this->buildFacultyActivityRecordLabel($log, $subjectThesis),
                 'account' => $log->user?->name ?? $subjectThesis?->submitter?->name ?? 'System',
                 'department' => $subjectThesis?->department ?? $log->user?->faculty?->department ?? $facultyProfile->department,
                 'time' => $log->created_at?->diffForHumans(),
@@ -97,14 +120,15 @@ class FacultyController extends Controller
         $summary = [
             'actions_today' => $logs->filter(fn (ActivityLog $log) => $log->created_at?->isToday())->count(),
             'approvals' => $logs->where('action', 'thesis.approved')->count(),
-            'files_shared' => $logs->whereIn('action', ['thesis.submitted', 'faculty.library_item_created', 'faculty.thesis_created'])->count(),
-            'notes_added' => $logs->whereIn('action', ['thesis.rejected', 'faculty.status_changed', 'faculty.role_changed'])->count(),
+            'files_shared' => $logs->where('action', 'thesis.archived')->count(),
+            'notes_added' => $logs->whereIn('action', ['thesis.rejected', 'faculty.created', 'faculty.updated'])->count(),
             'last_activity' => optional($logs->first()?->created_at)?->diffForHumans() ?? 'No recent activity',
         ];
 
         return response()->json([
             'data' => [
                 'summary' => $summary,
+                'departments' => $departments,
                 'logs' => $formattedLogs,
             ],
         ]);
@@ -978,11 +1002,24 @@ class FacultyController extends Controller
     private function presentFacultyActivityAction(string $action): array
     {
         return match ($action) {
-            'thesis.approved' => ['Approved', 'sage', 'View'],
-            'thesis.submitted' => ['Shared', 'gold', 'Open'],
-            'thesis.rejected' => ['Commented', 'terracotta', 'Review'],
-            'faculty.library_item_created', 'faculty.thesis_created' => ['Uploaded', 'gold', 'Open'],
+            'thesis.approved' => ['Approved Thesis', 'sage', 'View'],
+            'thesis.rejected' => ['Needs Revision', 'terracotta', 'Review'],
+            'thesis.archived' => ['Archived Thesis', 'gold', 'View'],
+            'faculty.created' => ['Account Created', 'sky', 'Open'],
+            'faculty.updated' => ['Account Edited', 'sage', 'View'],
             default => ['Updated', 'maroon', 'View'],
+        };
+    }
+
+    private function buildFacultyActivityRecordLabel(ActivityLog $log, ?Thesis $thesis): string
+    {
+        return match ($log->action) {
+            'thesis.approved' => $thesis?->title ? "Approved thesis: {$thesis->title}" : 'Approved thesis',
+            'thesis.rejected' => $thesis?->title ? "Needs revision: {$thesis->title}" : 'Thesis marked for revision',
+            'thesis.archived' => $thesis?->title ? "Archived thesis: {$thesis->title}" : 'Archived thesis',
+            'faculty.created' => $log->user?->name ? "Faculty account created by {$log->user->name}" : 'Faculty account created',
+            'faculty.updated' => $log->user?->name ? "Faculty account updated by {$log->user->name}" : 'Faculty account updated',
+            default => str($log->action)->replace('.', ' ')->replace('_', ' ')->title()->toString(),
         };
     }
 

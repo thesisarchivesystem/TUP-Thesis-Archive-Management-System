@@ -6,6 +6,7 @@ import { vpaaDashboardService, type VpaaActivityLogResponse, type VpaaActivityRo
 
 const ACTIVITY_LOG_CACHE_KEY = 'vpaa-activity-log-cache';
 const ACTIVITY_PAGE_SIZE = 10;
+const ACTIVITY_FILTER_OPTIONS = ['all', 'Account Created', 'Account Edited'] as const;
 
 const defaultSummary = {
   actions_today: 0,
@@ -41,6 +42,16 @@ const formatRelativeTime = (timestamp: string) => {
   return itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const formatCalendarDateKey = (value: Date) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+const toDateOnly = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
+
 export default function VpaaActivityLogPage() {
   const { user } = useAuth();
   const [activityData, setActivityData] = useState<VpaaActivityLogResponse | null>(() => {
@@ -61,7 +72,7 @@ export default function VpaaActivityLogPage() {
   const [quickFilter, setQuickFilter] = useState<'all' | 'today' | 'week' | 'mine'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
-  const [, setTimeTick] = useState(Date.now());
+  const [timeTick, setTimeTick] = useState(Date.now());
 
   const loadActivityLog = async () => {
     setRefreshing(true);
@@ -88,10 +99,7 @@ export default function VpaaActivityLogPage() {
     return () => window.clearInterval(interval);
   }, []);
 
-  const activityOptions = useMemo(
-    () => ['all', ...new Set((activityData?.logs ?? []).map((item) => item.badge))],
-    [activityData],
-  );
+  const activityOptions = ACTIVITY_FILTER_OPTIONS;
 
   const collegeOptions = useMemo(
     () => ['all', ...(activityData?.colleges ?? [])],
@@ -100,16 +108,20 @@ export default function VpaaActivityLogPage() {
 
   const filteredLogs = useMemo(() => {
     const logs = activityData?.logs ?? [];
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfTomorrow = new Date(startOfToday);
-    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    const now = new Date(timeTick);
+    const startOfToday = toDateOnly(now);
+    const todayKey = formatCalendarDateKey(startOfToday);
     const dayOfWeek = startOfToday.getDay();
     const daysSinceMonday = (dayOfWeek + 6) % 7;
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 7);
+    const weekDateKeys = new Set(
+      Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + index);
+        return formatCalendarDateKey(date);
+      }),
+    );
 
     return logs.filter((item) => {
       const normalizedSearch = search.trim().toLowerCase();
@@ -123,8 +135,9 @@ export default function VpaaActivityLogPage() {
 
       const itemDate = new Date(item.timestamp);
       const hasValidDate = !Number.isNaN(itemDate.getTime());
-      const isToday = hasValidDate && itemDate >= startOfToday && itemDate < startOfTomorrow;
-      const isThisWeek = hasValidDate && itemDate >= startOfWeek && itemDate < endOfWeek;
+      const itemDateKey = hasValidDate ? formatCalendarDateKey(itemDate) : null;
+      const isToday = itemDateKey === todayKey;
+      const isThisWeek = itemDateKey ? weekDateKeys.has(itemDateKey) : false;
       const matchesQuick = quickFilter === 'all'
         || (quickFilter === 'today' && isToday)
         || (quickFilter === 'week' && isThisWeek)
@@ -132,7 +145,7 @@ export default function VpaaActivityLogPage() {
 
       return matchesSearch && matchesActivity && matchesCollege && matchesQuick;
     });
-  }, [activityData, search, activityFilter, collegeFilter, quickFilter, user?.id]);
+  }, [activityData, search, activityFilter, collegeFilter, quickFilter, timeTick, user?.id]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ACTIVITY_PAGE_SIZE));
 
