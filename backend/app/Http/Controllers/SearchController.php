@@ -27,7 +27,6 @@ class SearchController extends Controller
             [$q]
         )
         ->where('status', 'approved')
-        ->where('is_archived', true)
         ->orderByRaw(
             "ts_rank(
                to_tsvector('english', {$searchDocument}),
@@ -91,7 +90,6 @@ class SearchController extends Controller
                 ->selectRaw('submitted_by as user_id, COUNT(*) as total')
                 ->whereIn('submitted_by', $userIds)
                 ->where('status', 'approved')
-                ->where('is_archived', true)
                 ->groupBy('submitted_by')
                 ->pluck('total', 'user_id');
 
@@ -108,8 +106,6 @@ class SearchController extends Controller
             : Thesis::query()
                 ->select(['id', 'title', 'submitted_by', 'approved_at', 'created_at', 'status'])
                 ->whereIn('submitted_by', $userIds)
-                ->where('status', 'approved')
-                ->where('is_archived', true)
                 ->orderByDesc('approved_at')
                 ->orderByDesc('created_at')
                 ->get()
