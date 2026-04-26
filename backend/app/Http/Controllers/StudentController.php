@@ -16,7 +16,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 
 class StudentController extends Controller
 {
@@ -118,15 +117,9 @@ class StudentController extends Controller
             ->where('status', 'approved')
             ->count();
 
-        $recentThesesQuery = Thesis::query()
+        $recentTheses = Thesis::query()
             ->where('status', 'approved')
-            ->with(['submitter:id,name', 'category:id,name']);
-
-        if ($this->thesesSupportsArchiving()) {
-            $recentThesesQuery->where('is_archived', true);
-        }
-
-        $recentTheses = $recentThesesQuery
+            ->with(['submitter:id,name', 'category:id,name'])
             ->orderByDesc('approved_at')
             ->orderByDesc('created_at')
             ->limit(8)
@@ -158,7 +151,7 @@ class StudentController extends Controller
             'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
             'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
             'abstract' => $thesis->abstract,
-            'submitter_name' => $thesis->submitter?->name ?? $thesis->submitter_name,
+            'submitter_name' => $thesis->submitter?->name,
             'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
             'department' => $thesis->department,
             'program' => $thesis->program,
@@ -189,7 +182,6 @@ class StudentController extends Controller
             ->where('status', 'approved')
             ->whereIn('id', $topThesisIds)
             ->with(['submitter:id,name', 'category:id,name'])
-            ->when($this->thesesSupportsArchiving(), fn ($query) => $query->where('is_archived', true))
             ->get()
             ->keyBy('id');
 
@@ -240,11 +232,6 @@ class StudentController extends Controller
             'draft' => 'Draft',
             default => 'No submission yet',
         };
-    }
-
-    private function thesesSupportsArchiving(): bool
-    {
-        return Schema::hasColumn('theses', 'is_archived');
     }
 
     public function index(Request $request): JsonResponse
