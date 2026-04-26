@@ -7,6 +7,7 @@ export interface Thesis {
   title: string;
   abstract?: string;
   keywords: string[];
+  college?: string;
   department: string;
   program?: string;
   category_id?: string;
@@ -17,8 +18,11 @@ export interface Thesis {
   file_name?: string;
   file_size?: number;
   status: ThesisStatus;
-  submitted_by: string;
+  is_archived?: boolean;
+  submitted_by?: string | null;
+  submitter_name?: string | null;
   adviser_id?: string;
+  adviser_name?: string | null;
   rejection_reason?: string;
   adviser_remarks?: string;
   revision_due_at?: string;
@@ -26,6 +30,9 @@ export interface Thesis {
   submitted_at?: string;
   reviewed_at?: string;
   approved_at?: string;
+  archived_at?: string;
+  archived_by?: string | null;
+  archived_by_name?: string | null;
   created_at: string;
   submitter?: User;
   adviser?: User;

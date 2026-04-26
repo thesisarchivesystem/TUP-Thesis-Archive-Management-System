@@ -1,13 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import axios from 'axios';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { categoryService, type CategoryOption } from '../../services/categoryService';
 import { facultyAdviseesService } from '../../services/facultyAdviseesService';
 import { facultyLibraryService } from '../../services/facultyLibraryService';
 import { facultyThesisService } from '../../services/facultyThesisService';
 import type { StudentAdviserOption } from '../../services/thesisService';
+import type { Thesis } from '../../types/thesis.types';
 
-const checklistItems = ['Signed Endorsement', 'Plagiarism Report', 'Final Manuscript', 'Title Page', 'Appendices'];
+const facultyGuideItems = [
+  {
+    title: 'Submission Checklist',
+    body: 'Prepare the endorsement, plagiarism report, final manuscript, title page, and appendices before publishing a faculty-added thesis.',
+  },
+  {
+    title: 'Metadata Accuracy',
+    body: 'Confirm the thesis title, department, program, categories, authors, and adviser details so the archive record stays searchable and complete.',
+  },
+  {
+    title: 'File Readiness',
+    body: 'Upload the final PDF manuscript and include any supplementary files that support the archived thesis record.',
+  },
+  {
+    title: 'Publication Status',
+    body: 'Faculty-added theses are stored directly in the archive and are automatically approved once submitted from this module.',
+  },
+  {
+    title: 'Support & Guidelines',
+    body: 'Coordinate with the archive office or visit the support section if you need help with publication requirements or document standards.',
+  },
+];
 
 type UploadFieldErrors = Partial<Record<
   'title' | 'program' | 'department' | 'schoolYear' | 'categoryId' | 'authors' | 'adviserId' | 'abstract' | 'manuscript' | 'confirmations',
@@ -28,6 +52,26 @@ const normalizeProgramLabel = (program?: string | null) => {
   return program ?? '';
 };
 
+const extractApiErrorMessage = (error: unknown, fallback: string) => {
+  if (axios.isAxiosError(error)) {
+    const responseData = error.response?.data as
+      | { error?: string; message?: string; errors?: Record<string, string[] | string> }
+      | undefined;
+
+    if (responseData?.error) return responseData.error;
+    if (responseData?.message) return responseData.message;
+
+    const firstFieldError = responseData?.errors
+      ? Object.values(responseData.errors).flat().find(Boolean)
+      : null;
+
+    if (typeof firstFieldError === 'string') return firstFieldError;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+};
+
 const initialForm = {
   title: '',
   college: '',
@@ -43,6 +87,10 @@ const initialForm = {
 };
 
 export default function FacultyAddThesisPage() {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const draftFromState = (location.state as { draft?: Thesis } | null)?.draft ?? null;
+  const draftQueryId = searchParams.get('draft');
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [advisers, setAdvisers] = useState<StudentAdviserOption[]>([]);
   const [availableColleges, setAvailableColleges] = useState<string[]>([]);
@@ -60,6 +108,7 @@ export default function FacultyAddThesisPage() {
   const [manuscriptFile, setManuscriptFile] = useState<File | null>(null);
   const [supplementaryFiles, setSupplementaryFiles] = useState<File[]>([]);
   const [adviserSearch, setAdviserSearch] = useState('');
+  const [draftId, setDraftId] = useState<string | null>(draftFromState?.id ?? null);
   const manuscriptInputRef = useRef<HTMLInputElement | null>(null);
   const supplementaryInputRef = useRef<HTMLInputElement | null>(null);
   const availableDepartments = departmentsByCollege[form.college] ?? [];
@@ -75,6 +124,7 @@ export default function FacultyAddThesisPage() {
       adviser.department,
     ].join(' ').toLowerCase().includes(query);
   });
+  const showAdviserResults = adviserSearch.trim().length > 0 && (!selectedAdviser || adviserSearch.trim() !== selectedAdviser.name);
 
   useEffect(() => {
     let isMounted = true;
@@ -126,10 +176,6 @@ export default function FacultyAddThesisPage() {
       .then((records) => {
         if (!isMounted) return;
         setCategories(records);
-        setForm((current) => ({
-          ...current,
-          categoryIds: current.categoryIds.length ? current.categoryIds : (records[0]?.id ? [records[0].id] : []),
-        }));
       })
       .catch(() => {
         if (!isMounted) return;
@@ -151,11 +197,6 @@ export default function FacultyAddThesisPage() {
       .then((records) => {
         if (!isMounted) return;
         setAdvisers(records);
-        setForm((current) => ({
-          ...current,
-          adviserId: current.adviserId || records[0]?.id || '',
-        }));
-        setAdviserSearch((current) => current || records[0]?.name || '');
       })
       .catch(() => {
         if (!isMounted) return;
@@ -170,6 +211,35 @@ export default function FacultyAddThesisPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!draftQueryId) return;
+
+    const normalizedId = decodeURIComponent(draftQueryId);
+    const draft = draftFromState && String(draftFromState.id) === normalizedId ? draftFromState : null;
+    if (!draft) return;
+
+    setDraftId(draft.id);
+    setForm((current) => ({
+      ...current,
+      title: draft.title ?? '',
+      college: draft.college ?? current.college,
+      department: draft.department ?? current.department,
+      program: normalizeProgramLabel(draft.program) || current.program,
+      schoolYear: draft.school_year ?? current.schoolYear,
+      categoryIds: draft.category_ids?.length
+        ? draft.category_ids
+        : [draft.category?.id ?? draft.category_id ?? ''].filter(Boolean),
+      authors: draft.authors ?? [],
+      adviserId: draft.adviser?.id ?? '',
+      abstract: draft.abstract ?? '',
+    }));
+  }, [draftFromState, draftQueryId]);
+
+  useEffect(() => {
+    if (!success && !error) return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [success, error]);
+
   const resetForm = () => {
     setForm({
       ...initialForm,
@@ -177,10 +247,10 @@ export default function FacultyAddThesisPage() {
       department: departmentsByCollege[availableColleges[0] ?? '']?.[0] ?? '',
       program: programOptions[0] ?? '',
       schoolYear: schoolYearOptions[0] ?? String(new Date().getFullYear()),
-      categoryIds: categories[0]?.id ? [categories[0].id] : [],
-      adviserId: advisers[0]?.id ?? '',
+      categoryIds: [],
+      adviserId: '',
     });
-    setAdviserSearch(advisers[0]?.name ?? '');
+    setAdviserSearch('');
     setAuthorInput('');
     setManuscriptFile(null);
     setSupplementaryFiles([]);
@@ -246,7 +316,7 @@ export default function FacultyAddThesisPage() {
     }
 
     try {
-      await facultyThesisService.create({
+      const payload = {
         title: form.title,
         abstract: form.abstract,
         department: form.department,
@@ -261,16 +331,19 @@ export default function FacultyAddThesisPage() {
         allow_review: form.allowReview,
         manuscript: manuscriptFile,
         supplementary_files: supplementaryFiles,
-      });
+      };
+
+      if (draftId) {
+        await facultyThesisService.update(draftId, payload);
+      } else {
+        await facultyThesisService.create(payload);
+      }
 
       setSuccess(mode === 'submit' ? 'Thesis submitted and stored in the database.' : 'Thesis draft stored in the database.');
+      setDraftId(null);
       resetForm();
-    } catch (err: any) {
-      setError(
-        err.response?.data?.errors
-          ? Object.values(err.response.data.errors).flat().join(' ')
-          : err.response?.data?.error ?? err.response?.data?.message ?? 'Unable to save the thesis entry.',
-      );
+    } catch (err) {
+      setError(extractApiErrorMessage(err, 'Unable to save the thesis entry.'));
     } finally {
       setSubmitting(null);
     }
@@ -460,24 +533,26 @@ export default function FacultyAddThesisPage() {
                   aria-invalid={Boolean(fieldErrors.adviserId)}
                   disabled={loadingAdvisers || !advisers.length}
                 />
-                <div className="student-upload-search-results">
-                  {filteredAdvisers.map((adviser) => (
-                    <button
-                      key={adviser.id}
-                      type="button"
-                      className={`student-upload-search-option${form.adviserId === adviser.id ? ' active' : ''}`}
-                      onClick={() => {
-                        setForm((current) => ({ ...current, adviserId: adviser.id }));
-                        setAdviserSearch('');
-                        setFieldErrors((current) => ({ ...current, adviserId: undefined }));
-                      }}
-                    >
-                      <strong>{adviser.name}</strong>
-                      <span>{adviser.email} - {adviser.faculty_role}</span>
-                    </button>
-                  ))}
-                  {!filteredAdvisers.length ? <div className="student-upload-search-empty">No adviser found.</div> : null}
-                </div>
+                {showAdviserResults ? (
+                  <div className="student-upload-search-results">
+                    {filteredAdvisers.map((adviser) => (
+                      <button
+                        key={adviser.id}
+                        type="button"
+                        className={`student-upload-search-option${form.adviserId === adviser.id ? ' active' : ''}`}
+                        onClick={() => {
+                          setForm((current) => ({ ...current, adviserId: adviser.id }));
+                          setAdviserSearch('');
+                          setFieldErrors((current) => ({ ...current, adviserId: undefined }));
+                        }}
+                      >
+                        <strong>{adviser.name}</strong>
+                        <span>{adviser.email} - {adviser.faculty_role}</span>
+                      </button>
+                    ))}
+                    {!filteredAdvisers.length ? <div className="student-upload-search-empty">No adviser found.</div> : null}
+                  </div>
+                ) : null}
                 {selectedAdviser ? (
                   <div className="student-upload-author-tags">
                     <span className="student-upload-author-chip">
@@ -512,7 +587,15 @@ export default function FacultyAddThesisPage() {
                 <div className="student-upload-file-label">{manuscriptFile?.name || 'No file chosen'}</div>
                 <div className="student-upload-file-actions">
                   <label className="student-upload-file-btn">
-                    <input type="file" accept=".pdf,application/pdf" hidden onChange={(event) => setManuscriptFile(event.target.files?.[0] ?? null)} />
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      hidden
+                      onChange={(event) => {
+                        setManuscriptFile(event.target.files?.[0] ?? null);
+                        setFieldErrors((current) => ({ ...current, manuscript: undefined }));
+                      }}
+                    />
                     Select PDF
                   </label>
                   {manuscriptFile ? (
@@ -569,7 +652,12 @@ export default function FacultyAddThesisPage() {
               <button type="button" className="student-upload-secondary" onClick={() => void handleSave('draft')} disabled={submitting !== null}>
                 {submitting === 'draft' ? 'Saving...' : 'Save Draft'}
               </button>
-              <button type="button" className="student-upload-primary" onClick={() => void handleSave('submit')} disabled={submitting !== null}>
+              <button
+                type="button"
+                className="student-upload-primary"
+                onClick={() => void handleSave('submit')}
+                disabled={submitting !== null || !form.confirmOriginal || !form.allowReview}
+              >
                 {submitting === 'submit' ? 'Submitting...' : 'Submit Thesis'}
               </button>
             </div>
@@ -579,8 +667,8 @@ export default function FacultyAddThesisPage() {
         <aside className="student-upload-side vpaa-card thesis-details-side-card submission-accent-panel">
           <div className="student-upload-section-copy thesis-details-side-head">
             <div>
-              <h2>Submission Checklist</h2>
-              <p>Ensure these items are ready before submitting.</p>
+              <h2>Submission Checklist &amp; Status</h2>
+              <p>Review the checklist, publication behavior, and archive reminders before finalizing a faculty thesis entry.</p>
             </div>
             <div className="thesis-details-side-graphic" aria-hidden="true">
               <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
@@ -597,26 +685,31 @@ export default function FacultyAddThesisPage() {
           </div>
 
           <div className="student-upload-chip-row">
-            {checklistItems.map((item) => (
-              <span key={item} className="student-upload-chip">{item}</span>
+            {facultyGuideItems.map((item) => (
+              <span key={item.title} className="student-upload-chip">{item.title}</span>
             ))}
           </div>
 
           <div className="student-upload-status">
-            <h3>Upload Status</h3>
+            <h3>Checklist &amp; Record Quality</h3>
             <ul>
-              <li className="is-complete">Metadata and adviser details</li>
-              <li>Files added (PDF, supplementary)</li>
-              <li>Faculty publication confirmation</li>
+              {facultyGuideItems.slice(0, 3).map((item) => (
+                <li key={item.title}>
+                  <strong>{item.title}.</strong> {item.body}
+                </li>
+              ))}
             </ul>
           </div>
 
-          <div className="student-upload-note">
-            Faculty-added theses are automatically approved and published to the archive. No additional review is required.
-          </div>
-
-          <div className="student-upload-note">
-            Need help? Visit the Support page or coordinate with the archive office for publication guidelines.
+          <div className="student-upload-status">
+            <h3>Publication &amp; Support</h3>
+            <ul>
+              {facultyGuideItems.slice(3).map((item) => (
+                <li key={item.title}>
+                  <strong>{item.title}.</strong> {item.body}
+                </li>
+              ))}
+            </ul>
           </div>
         </aside>
       </div>

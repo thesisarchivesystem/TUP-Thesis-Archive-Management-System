@@ -47,24 +47,6 @@ const formatDate = (value?: string | null) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 };
 
-const getProgramBadge = (program: string) => {
-  const normalized = program.trim().toUpperCase();
-
-  if (!normalized) return 'GEN';
-  if (normalized === 'BSCS' || normalized.includes('COMPUTER SCIENCE')) return 'CS';
-  if (normalized === 'BSIT' || normalized.includes('INFORMATION TECHNOLOGY')) return 'IT';
-
-  const compact = normalized.replace(/[^A-Z]/g, '');
-  if (compact.startsWith('BS') && compact.length > 2) return compact.slice(2, 5);
-
-  return normalized
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 3) || 'GEN';
-};
-
 export default function FacultyAdviseesPage() {
   const [adviseesData, setAdviseesData] = useState<FacultyAdviseesResponse | null>(null);
   const [form, setForm] = useState(initialForm);
@@ -295,15 +277,15 @@ export default function FacultyAdviseesPage() {
         {error ? <div className="vpaa-banner-error">{error}</div> : null}
         {success ? <div className="vpaa-banner-success">{success}</div> : null}
 
-        <div className="vpaa-grid-4" style={{ marginBottom: 8 }}>
+        <div className="vpaa-grid-4 student-submissions-stats vpaa-activity-summary-grid" style={{ marginBottom: 28 }}>
           {stats.map((card) => (
-            <div className="vpaa-card vpaa-stat-card" key={card.label}>
+            <article className="student-submissions-stat-card vpaa-card vpaa-activity-summary-card" key={card.label}>
               <div>
-                <div className="vpaa-stat-label">{card.label}</div>
-                <div className="vpaa-stat-value">{card.value}</div>
+                <span>{card.label}</span>
+                <strong>{card.value}</strong>
               </div>
-              <div className={`vpaa-stat-icon ${card.tone}`}>{card.icon}</div>
-            </div>
+              <span className={`student-submissions-stat-icon ${card.tone}`}>{card.icon}</span>
+            </article>
           ))}
         </div>
 
@@ -453,7 +435,7 @@ export default function FacultyAdviseesPage() {
                     ) : filteredAdvisees.length ? filteredAdvisees.map((advisee) => (
                       <tr key={advisee.id}>
                         <td className="rt-title">{advisee.student_name}</td>
-                        <td><span className="role-tag tag-cs">{getProgramBadge(advisee.program)}</span></td>
+                        <td><span className="role-tag tag-cs">{advisee.program || 'Not set'}</span></td>
                         <td>{advisee.department}</td>
                         <td>{advisee.year_level ? `${advisee.year_level}${advisee.year_level === 1 ? 'st' : advisee.year_level === 2 ? 'nd' : advisee.year_level === 3 ? 'rd' : 'th'} Year` : 'Not set'}</td>
                         <td>{formatDate(advisee.last_update)}</td>

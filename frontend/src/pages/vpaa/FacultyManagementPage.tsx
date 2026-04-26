@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Briefcase, Mail, ShieldCheck, UserRoundPlus, Users } from 'lucide-react';
+import { ArrowLeft, Briefcase, Mail, ShieldCheck, UserRoundPlus, Users } from 'lucide-react';
 import { facultyManagementService, type FacultyAccountPayload } from '../../services/facultyManagementService';
 import type { FacultyProfile } from '../../types/user.types';
 import { collegeOptions, departmentOptionsByCollege } from '../../constants/academicUnits';
@@ -181,8 +181,9 @@ export default function FacultyManagementPage() {
                 VPAA is the only role allowed to create faculty accounts, assign faculty roles, and update account status.
               </p>
             </div>
-            <a href="/vpaa/dashboard" className="text-sm font-semibold text-[var(--maroon)]">
-              Back to dashboard
+            <a href="/vpaa/dashboard" className="app-back-link">
+              <ArrowLeft size={16} />
+              <span>Back to Dashboard</span>
             </a>
           </div>
 

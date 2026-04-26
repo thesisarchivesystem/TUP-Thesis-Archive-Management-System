@@ -34,10 +34,12 @@ export default function FacultyApprovedThesesPage() {
   const [theses, setTheses] = useState<Thesis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [programFilter, setProgramFilter] = useState('All Programs');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [tagFilter, setTagFilter] = useState<'All' | 'This Month'>('All');
+  const [archivingId, setArchivingId] = useState<string | null>(null);
 
   const handleOpenManuscript = async (thesis: Thesis) => {
     const previewWindow = window.open('', '_blank');
@@ -66,6 +68,29 @@ export default function FacultyApprovedThesesPage() {
         </p>
       `;
       setError(err instanceof Error ? err.message : 'Unable to open the manuscript right now.');
+    }
+  };
+
+  const handleArchiveThesis = async (thesis: Thesis) => {
+    if (archivingId) return;
+
+    const confirmed = window.confirm(`Archive "${thesis.title}" now? This will make it visible in the dashboard, search, and categories.`);
+    if (!confirmed) return;
+
+    setArchivingId(thesis.id);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await thesisService.archiveApproved(thesis.id);
+      const updated = response.data;
+
+      setTheses((current) => current.map((item) => (item.id === thesis.id ? { ...item, ...updated } : item)));
+      setSuccess('Thesis archived successfully. It is now visible in the public archive.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to archive this thesis right now.');
+    } finally {
+      setArchivingId(null);
     }
   };
 
@@ -134,6 +159,7 @@ export default function FacultyApprovedThesesPage() {
       const approvedDate = new Date(thesis.approved_at);
       return approvedDate.getMonth() === now.getMonth() && approvedDate.getFullYear() === now.getFullYear();
     }).length;
+    const archived = theses.filter((thesis) => thesis.is_archived).length;
 
     const latestApproval = theses
       .map((thesis) => thesis.approved_at)
@@ -143,7 +169,7 @@ export default function FacultyApprovedThesesPage() {
 
     return [
       { label: 'Approved This Month', value: String(approvedThisMonth), icon: CheckCircle2, tone: 'sage' },
-      { label: 'Total Approved', value: String(theses.length), icon: Files, tone: 'maroon' },
+      { label: 'Archived', value: String(archived), icon: Files, tone: 'maroon' },
       { label: 'Recently Approved', value: formatRelativeSync(latestApproval), icon: Clock3, tone: 'gold' },
       { label: 'Departments', value: String(new Set(theses.map((item) => item.department).filter(Boolean)).size), icon: LibraryBig, tone: 'terracotta' },
     ] as const;
@@ -155,6 +181,7 @@ export default function FacultyApprovedThesesPage() {
       description="Recently approved works curated by faculty for the shared archive."
     >
       <div className="space-y-5">
+        {success ? <div className="rounded-xl bg-[rgba(61,139,74,0.10)] px-4 py-3 text-sm font-medium text-[var(--sage)]">{success}</div> : null}
         {error ? <div className="rounded-xl bg-[rgba(139,35,50,0.08)] px-4 py-3 text-sm font-medium text-[var(--maroon)]">{error}</div> : null}
 
         <section className="grid gap-3 xl:grid-cols-4">
@@ -245,7 +272,7 @@ export default function FacultyApprovedThesesPage() {
                   <th>Approved By</th>
                   <th>Date Approved</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th style={{ textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,16 +300,30 @@ export default function FacultyApprovedThesesPage() {
                     <td>{thesis.adviser?.name || 'Faculty Archive'}</td>
                     <td>{formatApprovedDate(thesis.approved_at)}</td>
                     <td>
-                      <span className="rounded-xl bg-[rgba(61,139,74,0.10)] px-3 py-1 text-xs font-semibold text-[var(--sage)]">Approved</span>
+                      <span className={`rounded-xl px-3 py-1 text-xs font-semibold ${thesis.is_archived ? 'bg-[rgba(61,139,74,0.10)] text-[var(--sage)]' : 'bg-[rgba(201,150,58,0.10)] text-[var(--gold)]'}`}>
+                        {thesis.is_archived ? 'Archived' : 'Approved'}
+                      </span>
                     </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="rounded-xl bg-[var(--maroon)] px-4 py-2 text-sm font-semibold text-white"
-                        onClick={() => void handleOpenManuscript(thesis)}
-                      >
-                        View Manuscript
-                      </button>
+                    <td className="text-center">
+                      <div className={`mx-auto grid min-w-[280px] max-w-[320px] gap-2.5 ${thesis.is_archived ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-[44px] w-full items-center justify-center whitespace-nowrap rounded-xl bg-[var(--maroon)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(139,35,50,0.16)] transition hover:-translate-y-[1px] hover:shadow-[0_14px_28px_rgba(139,35,50,0.2)]"
+                          onClick={() => void handleOpenManuscript(thesis)}
+                        >
+                          View Manuscript
+                        </button>
+                        {!thesis.is_archived ? (
+                          <button
+                            type="button"
+                            className="inline-flex min-h-[44px] w-full items-center justify-center whitespace-nowrap rounded-xl border border-[var(--maroon)] bg-[rgba(139,35,50,0.04)] px-4 py-2.5 text-sm font-semibold text-[var(--maroon)] transition hover:-translate-y-[1px] hover:bg-[rgba(139,35,50,0.08)]"
+                            onClick={() => void handleArchiveThesis(thesis)}
+                            disabled={archivingId === thesis.id}
+                          >
+                            {archivingId === thesis.id ? 'Archiving...' : 'Archive Thesis'}
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

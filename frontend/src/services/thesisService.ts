@@ -131,6 +131,11 @@ export const thesisService = {
     return data;
   },
 
+  async archiveApproved(id: string) {
+    const { data } = await api.patch<{ data?: Thesis }>(`/faculty/approved-thesis/${id}/archive`);
+    return data;
+  },
+
   async mySubmissions() {
     const { data } = await api.get('/student/my-submissions');
     return data;

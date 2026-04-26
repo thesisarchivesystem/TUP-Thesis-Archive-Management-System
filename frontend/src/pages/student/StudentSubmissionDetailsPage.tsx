@@ -33,13 +33,18 @@ const formatDate = (value?: string) => {
   });
 };
 
-const buildProgressSteps = (status?: Thesis['status']) => {
+const buildProgressSteps = (status?: Thesis['status'], isArchived?: boolean) => {
   if (status === 'draft') {
     return ['Submitted', 'For Review', 'Approved', 'Archived'].map((label) => ({ label, done: false }));
   }
 
   if (status === 'approved') {
-    return ['Submitted', 'For Review', 'Approved', 'Archived'].map((label) => ({ label, done: true }));
+    return [
+      { label: 'Submitted', done: true },
+      { label: 'For Review', done: true },
+      { label: 'Approved', done: true },
+      { label: 'Archived', done: Boolean(isArchived) },
+    ];
   }
 
   if (status === 'under_review') {
@@ -140,7 +145,7 @@ export default function StudentSubmissionDetailsPage() {
       turnaround,
       panelComments: submission.adviser_remarks || submission.rejection_reason ? 1 : 0,
       filesUploaded: submission.file_url ? 1 : 0,
-      pendingTasks: submission.status === 'approved' ? 0 : 1,
+      pendingTasks: submission.status === 'approved' && submission.is_archived ? 0 : 1,
     };
   }, [submission]);
 
@@ -176,7 +181,7 @@ export default function StudentSubmissionDetailsPage() {
 
                 <div className="student-submission-hero-copy">
                   <div className="student-submission-steps student-submission-steps-header">
-                    {buildProgressSteps(submission.status).map((step) => (
+                    {buildProgressSteps(submission.status, submission.is_archived).map((step) => (
                       <div key={step.label} className={`student-submission-step${step.done ? ' done' : ''}`}>
                         <span className="student-submission-step-dot" />
                         <span>{step.label}</span>

@@ -119,6 +119,7 @@ class StudentController extends Controller
 
         $recentTheses = Thesis::query()
             ->where('status', 'approved')
+            ->where('is_archived', true)
             ->with(['submitter:id,name', 'category:id,name'])
             ->orderByDesc('approved_at')
             ->orderByDesc('created_at')
@@ -151,7 +152,7 @@ class StudentController extends Controller
             'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
             'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
             'abstract' => $thesis->abstract,
-            'submitter_name' => $thesis->submitter?->name,
+            'submitter_name' => $thesis->submitter?->name ?? $thesis->submitter_name,
             'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
             'department' => $thesis->department,
             'program' => $thesis->program,
@@ -180,6 +181,7 @@ class StudentController extends Controller
 
         $theses = Thesis::query()
             ->where('status', 'approved')
+            ->where('is_archived', true)
             ->whereIn('id', $topThesisIds)
             ->with(['submitter:id,name', 'category:id,name'])
             ->get()

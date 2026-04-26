@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, GraduationCap, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Settings, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
+import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, GraduationCap, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Settings, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -262,6 +262,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
           <span className="vpaa-nav-section-label">Activity</span>
           <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/activity-log"><FileClock size={20} /><span>Activity Log</span></NavLink>
           <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/my-advisees"><Users size={20} /><span>My Advisees</span></NavLink>
+          <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/my-submissions"><FolderOpen size={20} /><span>My Submissions</span></NavLink>
         </nav>
 
         <div className="vpaa-sidebar-footer">

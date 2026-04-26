@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpenText, Check, Clock3, FileText, PencilLine, ShieldCheck, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import StudentLayout from '../../components/student/StudentLayout';
+import FacultyLayout from '../../components/faculty/FacultyLayout';
+import { facultyThesisService } from '../../services/facultyThesisService';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis, ThesisStatus } from '../../types/thesis.types';
 
@@ -18,23 +19,11 @@ const formatSubmissionDate = (value?: string) => {
   });
 };
 
-const formatDueDate = (value?: string) => {
-  if (!value) return 'No due date set';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'No due date set';
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-};
-
-const getStatusLabel = (status: ThesisStatus, isArchived?: boolean) => {
-  if (status === 'approved') return isArchived ? 'Archived' : 'Approved';
-  if (status === 'rejected') return 'Revisions Needed';
-  if (status === 'draft') return 'Draft';
+const getStatusLabel = (item: Thesis) => {
+  if (item.status === 'approved' && item.is_archived) return 'Archived';
+  if (item.status === 'approved') return 'Approved';
+  if (item.status === 'rejected') return 'Revisions Needed';
+  if (item.status === 'draft') return 'Draft';
   return 'Under Review';
 };
 
@@ -45,8 +34,8 @@ const getStatusBadgeClass = (status: ThesisStatus) => {
   return 'student-submission-badge review';
 };
 
-const buildProgressSteps = (status: ThesisStatus, isArchived?: boolean) => {
-  if (status === 'draft') {
+const buildProgressSteps = (item: Thesis) => {
+  if (item.status === 'draft') {
     return [
       { label: 'Submitted', tone: 'pending' },
       { label: 'For Review', tone: 'pending' },
@@ -55,7 +44,25 @@ const buildProgressSteps = (status: ThesisStatus, isArchived?: boolean) => {
     ];
   }
 
-  if (status === 'pending') {
+  if (item.status === 'approved' && item.is_archived) {
+    return [
+      { label: 'Submitted', tone: 'done' },
+      { label: 'For Review', tone: 'done' },
+      { label: 'Approved', tone: 'done' },
+      { label: 'Archived', tone: 'done' },
+    ];
+  }
+
+  if (item.status === 'approved') {
+    return [
+      { label: 'Submitted', tone: 'done' },
+      { label: 'For Review', tone: 'done' },
+      { label: 'Approved', tone: 'done' },
+      { label: 'Archived', tone: 'pending' },
+    ];
+  }
+
+  if (item.status === 'pending') {
     return [
       { label: 'Submitted', tone: 'done' },
       { label: 'For Review', tone: 'current' },
@@ -64,21 +71,12 @@ const buildProgressSteps = (status: ThesisStatus, isArchived?: boolean) => {
     ];
   }
 
-  if (status === 'under_review') {
+  if (item.status === 'under_review') {
     return [
       { label: 'Submitted', tone: 'done' },
       { label: 'For Review', tone: 'done' },
       { label: 'Approved', tone: 'current' },
       { label: 'Archived', tone: 'pending' },
-    ];
-  }
-
-  if (status === 'approved') {
-    return [
-      { label: 'Submitted', tone: 'done' },
-      { label: 'For Review', tone: 'done' },
-      { label: 'Approved', tone: 'done' },
-      { label: 'Archived', tone: isArchived ? 'done' : 'pending' },
     ];
   }
 
@@ -88,13 +86,6 @@ const buildProgressSteps = (status: ThesisStatus, isArchived?: boolean) => {
     { label: 'Approved', tone: 'current' },
     { label: 'Archived', tone: 'pending' },
   ];
-};
-
-const getSubmissionActions = (item: Thesis) => {
-  if (item.status === 'approved') return item.is_archived ? ['View Approval', 'Download PDF'] : ['View Approval'];
-  if (item.status === 'rejected') return ['Make Revision', 'Extension Request'];
-  if (item.status === 'draft') return ['Continue Editing', 'Edit Draft', 'Delete Draft'];
-  return ['View Details', 'Message Adviser', 'Withdraw'];
 };
 
 type FilterKey = 'all' | 'approved' | 'under_review' | 'rejected' | 'draft';
@@ -107,25 +98,21 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'draft', label: 'Draft' },
 ];
 
-export default function StudentMySubmissionsPage() {
+export default function FacultyMyThesesPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<Thesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
+  const [archivingId, setArchivingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleViewDetails = (item: Thesis) => {
-    const submissionId = String(item.id ?? '').trim();
-    if (!submissionId) {
-      setError('Unable to open this submission because its record ID is missing.');
-      return;
-    }
-
     setError(null);
-    navigate(`/student/my-submissions/${encodeURIComponent(submissionId)}`, {
-      state: { submission: item },
+    navigate(`/faculty/theses/${encodeURIComponent(item.id)}`, {
+      state: { thesis: item },
     });
   };
 
@@ -136,22 +123,8 @@ export default function StudentMySubmissionsPage() {
     }
 
     setError(null);
-    navigate(`/student/upload-thesis?draft=${encodeURIComponent(item.id)}`, {
+    navigate(`/faculty/manage-thesis/add?draft=${encodeURIComponent(item.id)}`, {
       state: { draft: item },
-    });
-  };
-
-  const handleMakeRevision = (item: Thesis) => {
-    setError(null);
-    navigate(`/student/upload-thesis?draft=${encodeURIComponent(item.id)}`, {
-      state: { draft: item },
-    });
-  };
-
-  const handleExtensionRequest = (item: Thesis) => {
-    setError(null);
-    navigate(`/student/extension-request?thesis=${encodeURIComponent(item.id)}`, {
-      state: { thesis: item },
     });
   };
 
@@ -205,7 +178,7 @@ export default function StudentMySubmissionsPage() {
     setDeletingId(item.id);
 
     try {
-      await thesisService.delete(item.id);
+      await facultyThesisService.delete(item.id);
       setItems((current) => current.filter((entry) => entry.id !== item.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to delete the draft right now.');
@@ -214,13 +187,36 @@ export default function StudentMySubmissionsPage() {
     }
   };
 
+  const handleArchive = async (item: Thesis) => {
+    if (archivingId) return;
+
+    const confirmed = window.confirm(`Archive "${item.title}" now? This will make it visible in the main thesis archive.`);
+    if (!confirmed) return;
+
+    setArchivingId(item.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await facultyThesisService.archive(item.id);
+      const updated = response.data;
+
+      setItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, ...updated } : entry)));
+      setSuccess('Thesis archived successfully. It will now appear in dashboard, search, and categories.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to archive this thesis.');
+    } finally {
+      setArchivingId(null);
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     setError(null);
 
-    void thesisService.mySubmissions()
+    void facultyThesisService.myTheses()
       .then((response) => {
-        setItems(response?.data ?? []);
+        setItems(response.data ?? []);
       })
       .catch((err) => {
         setItems([]);
@@ -232,15 +228,15 @@ export default function StudentMySubmissionsPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const approved = items.filter((item) => item.status === 'approved').length;
-    const underReview = items.filter((item) => item.status === 'pending' || item.status === 'under_review').length;
-    const revisions = items.filter((item) => item.status === 'rejected').length;
+    const archived = items.filter((item) => item.status === 'approved' && item.is_archived).length;
+    const approved = items.filter((item) => item.status === 'approved' && !item.is_archived).length;
+    const drafts = items.filter((item) => item.status === 'draft').length;
 
     return {
       total: items.length,
+      archived,
       approved,
-      underReview,
-      revisions,
+      drafts,
     };
   }, [items]);
 
@@ -252,51 +248,32 @@ export default function StudentMySubmissionsPage() {
     });
 
     return [...filtered].sort((a, b) => {
-      const left = new Date(a.reviewed_at || a.approved_at || a.submitted_at || a.created_at).getTime();
-      const right = new Date(b.reviewed_at || b.approved_at || b.submitted_at || b.created_at).getTime();
+      const left = new Date(a.archived_at || a.reviewed_at || a.approved_at || a.submitted_at || a.created_at).getTime();
+      const right = new Date(b.archived_at || b.reviewed_at || b.approved_at || b.submitted_at || b.created_at).getTime();
       return right - left;
     });
   }, [activeFilter, items]);
 
   const summary = useMemo(() => {
     const filesUploaded = items.filter((item) => item.file_url).length;
-    const pendingTasks = items.filter((item) => item.status !== 'approved').length;
-    const recentMessages = items
-      .filter((item) => item.adviser_remarks || item.rejection_reason)
-      .slice(0, 3)
-      .map((item) => ({
-        id: item.id,
-        title: item.status === 'rejected' ? 'Faculty' : item.status === 'approved' ? 'Faculty Approval' : 'Thesis Adviser',
-        body: item.rejection_reason || item.adviser_remarks || 'No message available.',
-      }));
-
-    const turnaround = items.length
-      ? Math.max(
-        1,
-        Math.round(
-          items.reduce((total, item) => {
-            const start = new Date(item.submitted_at || item.created_at).getTime();
-            const end = new Date(item.reviewed_at || item.approved_at || item.created_at).getTime();
-            if (Number.isNaN(start) || Number.isNaN(end)) return total;
-            return total + Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
-          }, 0) / items.length,
-        ),
-      )
-      : 0;
+    const pendingTasks = items.filter((item) => item.status !== 'approved' || !item.is_archived).length;
+    const readyToArchive = items.filter((item) => item.status === 'approved' && !item.is_archived).length;
+    const archived = items.filter((item) => item.status === 'approved' && item.is_archived).length;
 
     return {
-      turnaround,
-      panelComments: recentMessages.length,
+      readyToArchive,
+      archived,
       filesUploaded,
       pendingTasks,
     };
   }, [items]);
 
   return (
-    <StudentLayout
+    <FacultyLayout
       title="My Submissions"
-      description="Track your thesis progress, manage revisions, and keep every requirement in one place."
+      description="Track your thesis progress, manage drafts, and archive approved faculty submissions when they are ready for public access."
     >
+      {success ? <div className="vpaa-banner-success">{success}</div> : null}
       {error ? <div className="vpaa-banner-error">{error}</div> : null}
 
       <div className="student-submissions-shell">
@@ -311,24 +288,24 @@ export default function StudentMySubmissionsPage() {
 
           <article className="student-submissions-stat-card vpaa-card">
             <div>
-              <span>Approved</span>
-              <strong>{loading ? '--' : stats.approved}</strong>
+              <span>Archived</span>
+              <strong>{loading ? '--' : stats.archived}</strong>
             </div>
             <span className="student-submissions-stat-icon phi-green"><Check size={18} /></span>
           </article>
 
           <article className="student-submissions-stat-card vpaa-card">
             <div>
-              <span>Under Review</span>
-              <strong>{loading ? '--' : stats.underReview}</strong>
+              <span>Approved</span>
+              <strong>{loading ? '--' : stats.approved}</strong>
             </div>
             <span className="student-submissions-stat-icon phi-blue"><Clock3 size={18} /></span>
           </article>
 
           <article className="student-submissions-stat-card vpaa-card">
             <div>
-              <span>Revisions Needed</span>
-              <strong>{loading ? '--' : stats.revisions}</strong>
+              <span>Drafts</span>
+              <strong>{loading ? '--' : stats.drafts}</strong>
             </div>
             <span className="student-submissions-stat-icon phi-terracotta"><PencilLine size={18} /></span>
           </article>
@@ -350,7 +327,7 @@ export default function StudentMySubmissionsPage() {
                 ))}
               </div>
 
-              <Link to="/student/upload-thesis" className="student-submissions-primary">New Submission</Link>
+              <Link to="/faculty/manage-thesis/add" className="student-submissions-primary">New Submission</Link>
             </div>
 
             {loading ? (
@@ -363,18 +340,18 @@ export default function StudentMySubmissionsPage() {
                       <div>
                         <h3>{item.title}</h3>
                         <p>
-                          {item.status === 'draft' ? 'Draft saved' : 'Submitted'} {formatSubmissionDate(item.submitted_at || item.created_at)}
-                          {item.submitter?.name ? ` by ${item.submitter.name}` : ''}
+                          {item.status === 'draft'
+                            ? 'Draft saved'
+                            : item.status === 'approved' && item.is_archived
+                              ? 'Archived'
+                              : 'Submitted'} {formatSubmissionDate(item.archived_at || item.approved_at || item.submitted_at || item.created_at)}
                         </p>
-                        {item.status === 'rejected' ? (
-                          <p>Revision Due {formatDueDate(item.revision_due_at)}</p>
-                        ) : null}
                       </div>
-                      <span className={getStatusBadgeClass(item.status)}>{getStatusLabel(item.status, item.is_archived)}</span>
+                      <span className={getStatusBadgeClass(item.status)}>{getStatusLabel(item)}</span>
                     </div>
 
                     <div className="student-submission-list-steps">
-                      {buildProgressSteps(item.status, item.is_archived).map((step) => (
+                      {buildProgressSteps(item).map((step) => (
                         <div key={step.label} className={`student-submission-list-step ${step.tone}`}>
                           <span className="student-submission-list-step-dot" />
                           <span>{step.label}</span>
@@ -390,80 +367,48 @@ export default function StudentMySubmissionsPage() {
                       >
                         View Details
                       </button>
-                      {(item.status === 'rejected' ? getSubmissionActions(item) : getSubmissionActions(item).slice(1)).map((action) => {
-                        if (action === 'Download PDF') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => void handleDownloadManuscript(item)}
-                              disabled={downloadingId === item.id}
-                            >
-                              {downloadingId === item.id ? 'Downloading...' : action}
-                            </button>
-                          );
-                        }
 
-                        if (action === 'Edit Draft') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => handleEditDraft(item)}
-                            >
-                              {action}
-                            </button>
-                          );
-                        }
-
-                        if (action === 'Delete Draft') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => void handleDeleteDraft(item)}
-                              disabled={deletingId === item.id}
-                            >
-                              {deletingId === item.id ? 'Deleting...' : action}
-                            </button>
-                          );
-                        }
-
-                        if (action === 'Make Revision') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => handleMakeRevision(item)}
-                            >
-                              {action}
-                            </button>
-                          );
-                        }
-
-                        if (action === 'Extension Request') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => handleExtensionRequest(item)}
-                            >
-                              {action}
-                            </button>
-                          );
-                        }
-
-                        return (
-                          <button key={action} type="button" className="student-submissions-secondary">
-                            {action}
+                      {item.status === 'draft' ? (
+                        <>
+                          <button
+                            type="button"
+                            className="student-submissions-secondary"
+                            onClick={() => handleEditDraft(item)}
+                          >
+                            Edit Draft
                           </button>
-                        );
-                      })}
+                          <button
+                            type="button"
+                            className="student-submissions-secondary"
+                            onClick={() => void handleDeleteDraft(item)}
+                            disabled={deletingId === item.id}
+                          >
+                            {deletingId === item.id ? 'Deleting...' : 'Delete Draft'}
+                          </button>
+                        </>
+                      ) : null}
+
+                      {item.status === 'approved' ? (
+                        <button
+                          type="button"
+                          className="student-submissions-secondary"
+                          onClick={() => void handleDownloadManuscript(item)}
+                          disabled={downloadingId === item.id}
+                        >
+                          {downloadingId === item.id ? 'Downloading...' : 'Download PDF'}
+                        </button>
+                      ) : null}
+
+                      {item.status === 'approved' && !item.is_archived ? (
+                        <button
+                          type="button"
+                          className="student-submissions-primary"
+                          onClick={() => void handleArchive(item)}
+                          disabled={archivingId === item.id}
+                        >
+                          {archivingId === item.id ? 'Archiving...' : 'Archive Thesis'}
+                        </button>
+                      ) : null}
                     </div>
                   </article>
                 ))}
@@ -477,7 +422,7 @@ export default function StudentMySubmissionsPage() {
             <div className="student-submissions-summary-head thesis-details-side-head">
               <div>
                 <h2>Submission Summary</h2>
-                <p>Snapshot of your research workflow</p>
+                <p>Snapshot of your faculty archive workflow</p>
               </div>
               <div className="thesis-details-side-graphic" aria-hidden="true">
                 <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
@@ -495,12 +440,12 @@ export default function StudentMySubmissionsPage() {
 
             <div className="student-submissions-summary-grid submission-summary-grid">
               <div className="student-submissions-summary-box">
-                <span>Turnaround Avg.</span>
-                <strong>{loading ? '--' : `${summary.turnaround} days`}</strong>
+                <span>Ready to Archive</span>
+                <strong>{loading ? '--' : summary.readyToArchive}</strong>
               </div>
               <div className="student-submissions-summary-box">
-                <span>Faculty Comments</span>
-                <strong>{loading ? '--' : summary.panelComments}</strong>
+                <span>Archived</span>
+                <strong>{loading ? '--' : summary.archived}</strong>
               </div>
               <div className="student-submissions-summary-box">
                 <span>Files Uploaded</span>
@@ -511,10 +456,9 @@ export default function StudentMySubmissionsPage() {
                 <strong>{loading ? '--' : summary.pendingTasks}</strong>
               </div>
             </div>
-
           </aside>
         </div>
       </div>
-    </StudentLayout>
+    </FacultyLayout>
   );
 }

@@ -74,11 +74,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/library-items/{id}', [FacultyController::class, 'updateLibraryItem']);
         Route::delete('/library-items/{id}', [FacultyController::class, 'destroyLibraryItem']);
         Route::get('/share-users', [FacultyController::class, 'searchableShareUsers']);
+        Route::get('/my-theses', [FacultyController::class, 'myTheses']);
         Route::post('/theses', [FacultyController::class, 'storeManagedThesis']);
+        Route::post('/theses/{id}', [FacultyController::class, 'updateManagedThesis']);
+        Route::patch('/theses/{id}', [FacultyController::class, 'updateManagedThesis']);
+        Route::patch('/theses/{id}/archive', [FacultyController::class, 'archiveManagedThesis']);
+        Route::delete('/theses/{id}', [FacultyController::class, 'destroyManagedThesis']);
         Route::apiResource('students', StudentController::class);
         Route::get('/thesis-submissions', [ThesisController::class, 'pendingReview']);
         Route::patch('/thesis/{id}/review', [ThesisController::class, 'review']);
         Route::get('/approved-thesis', [ThesisController::class, 'approved']);
+        Route::patch('/approved-thesis/{id}/archive', [ThesisController::class, 'archiveApproved']);
         Route::get('/extension-requests', [ExtensionRequestController::class, 'indexForFaculty']);
     });
 

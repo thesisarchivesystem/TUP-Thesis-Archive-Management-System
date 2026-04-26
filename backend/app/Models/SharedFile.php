@@ -15,6 +15,7 @@ class SharedFile extends Model
     protected $fillable = [
         'uploaded_by',
         'category_id',
+        'category_ids',
         'title',
         'resource_type',
         'abstract',
@@ -36,6 +37,7 @@ class SharedFile extends Model
     ];
 
     protected $casts = [
+        'category_ids' => 'array',
         'keywords' => 'array',
         'authors' => 'array',
         'is_draft' => 'boolean',

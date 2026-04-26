@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Search, SquareSplitVertical, Users2 } from 'lucide-react';
+import { CheckCircle2, Clock3, RefreshCcw, Search, SquareSplitVertical, Users2 } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { useAuth } from '../../hooks/useAuth';
 import { facultyActivityService, type FacultyActivityLogResponse, type FacultyActivityRow } from '../../services/facultyActivityService';
 
 const ACTIVITY_PAGE_SIZE = 10;
+const ACTIVITY_FILTER_OPTIONS = ['all', 'Access Granted', 'Activity Logged', 'Revision Requested', 'New Thesis Uploaded'] as const;
 
 const defaultSummary = {
   actions_today: 0,
@@ -41,6 +42,22 @@ const formatRelativeTime = (timestamp: string) => {
   return itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const getActivityFilterLabel = (item: FacultyActivityRow) => {
+  if (item.badge === 'Uploaded') {
+    return 'New Thesis Uploaded';
+  }
+
+  if (item.badge === 'Approved' || item.badge === 'Shared') {
+    return 'Access Granted';
+  }
+
+  if (item.badge === 'Commented') {
+    return 'Revision Requested';
+  }
+
+  return 'Activity Logged';
+};
+
 export default function FacultyActivityLogPage() {
   const { user } = useAuth();
   const [activityData, setActivityData] = useState<FacultyActivityLogResponse | null>(null);
@@ -50,12 +67,38 @@ export default function FacultyActivityLogPage() {
   const [quickFilter, setQuickFilter] = useState<'all' | 'today' | 'week' | 'mine'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  const loadActivityLog = (silent = false, query = search) => {
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setError('');
+
+    return facultyActivityService.getActivityLog(query)
+      .then((response) => {
+        setActivityData(response);
+      })
+      .catch(() => {
+        setError('Unable to load activity log right now.');
+      })
+      .finally(() => {
+        if (silent) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      });
+  };
 
   useEffect(() => {
     let isMounted = true;
 
-    void facultyActivityService.getActivityLog()
+    void facultyActivityService.getActivityLog(search)
       .then((response) => {
         if (!isMounted) return;
         setActivityData(response);
@@ -71,47 +114,50 @@ export default function FacultyActivityLogPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [search]);
 
-  const activityOptions = useMemo(
-    () => ['all', ...new Set((activityData?.logs ?? []).map((item) => item.badge))],
-    [activityData],
-  );
+  const activityOptions = ACTIVITY_FILTER_OPTIONS;
 
   const departmentOptions = useMemo(
-    () => ['all', ...new Set((activityData?.logs ?? []).map((item) => item.department))],
+    () => ['all', ...(activityData?.departments ?? [])],
     [activityData],
   );
 
   const filteredLogs = useMemo(() => {
     const logs = activityData?.logs ?? [];
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTomorrow = new Date(startOfToday);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    const dayOfWeek = startOfToday.getDay();
+    const daysSinceMonday = (dayOfWeek + 6) % 7;
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 7);
 
     return logs.filter((item) => {
       const normalizedSearch = search.trim().toLowerCase();
-      const matchesSearch = !normalizedSearch || [item.badge, item.request_record, item.account, item.department]
+      const matchesSearch = !normalizedSearch || [getActivityFilterLabel(item), item.badge, item.request_record, item.account, item.role, item.college, item.department, item.action]
         .join(' ')
         .toLowerCase()
         .includes(normalizedSearch);
 
-      const matchesActivity = activityFilter === 'all' || item.badge === activityFilter;
+      const matchesActivity = activityFilter === 'all' || getActivityFilterLabel(item) === activityFilter;
       const matchesDepartment = departmentFilter === 'all' || item.department === departmentFilter;
 
       const itemDate = new Date(item.timestamp);
-      const now = new Date();
-      const dayDiff = Number.isNaN(itemDate.getTime()) ? Number.POSITIVE_INFINITY : (now.getTime() - itemDate.getTime()) / (1000 * 60 * 60 * 24);
-      const normalizedAccount = item.account.toLowerCase();
-      const currentUserName = user?.name?.toLowerCase() ?? '';
+      const hasValidDate = !Number.isNaN(itemDate.getTime());
+      const isToday = hasValidDate && itemDate >= startOfToday && itemDate < startOfTomorrow;
+      const isThisWeek = hasValidDate && itemDate >= startOfWeek && itemDate < endOfWeek;
       const matchesQuick = quickFilter === 'all'
-        || (quickFilter === 'today' && dayDiff < 1)
-        || (quickFilter === 'week' && dayDiff <= 7)
-        || (quickFilter === 'mine' && (
-          (currentUserName !== '' && normalizedAccount.includes(currentUserName))
-          || normalizedAccount.includes('faculty')
-        ));
+        || (quickFilter === 'today' && isToday)
+        || (quickFilter === 'week' && isThisWeek)
+        || (quickFilter === 'mine' && item.user_id === user?.id);
 
       return matchesSearch && matchesActivity && matchesDepartment && matchesQuick;
     });
-  }, [activityData, search, activityFilter, departmentFilter, quickFilter, user?.name]);
+  }, [activityData, search, activityFilter, departmentFilter, quickFilter, user?.id]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ACTIVITY_PAGE_SIZE));
 
@@ -142,28 +188,37 @@ export default function FacultyActivityLogPage() {
       <div className="space-y-5">
         {error ? <div className="rounded-xl bg-[rgba(139,35,50,0.08)] px-4 py-3 text-sm font-medium text-[var(--maroon)]">{error}</div> : null}
 
-        <div className="vpaa-grid-4" style={{ marginBottom: 8 }}>
+        <div className="vpaa-grid-4 student-submissions-stats vpaa-activity-summary-grid" style={{ marginBottom: 28 }}>
           {summaryCards.map((card) => (
-            <div className="vpaa-card vpaa-stat-card" key={card.label}>
+            <article className="student-submissions-stat-card vpaa-card vpaa-activity-summary-card" key={card.label}>
               <div>
-                <div className="vpaa-stat-label">{card.label}</div>
-                <div className="vpaa-stat-value">{card.value}</div>
+                <span>{card.label}</span>
+                <strong>{card.value}</strong>
               </div>
-              <div className={`vpaa-stat-icon ${card.tone}`}>{card.icon}</div>
-            </div>
+              <span className={`student-submissions-stat-icon ${card.tone}`}>{card.icon}</span>
+            </article>
           ))}
         </div>
 
-        <div className="review-panel">
-          <div className="ra-header">
-            <div className="ra-header-left">
+        <div className="review-panel faculty-activity-log-panel">
+          <div className="ra-header faculty-activity-log-header">
+            <div className="ra-header-left faculty-activity-log-header-left">
               <span className="panel-header-icon phi-maroon"><SquareSplitVertical size={17} /></span>
               <h3 className="panel-title">Recent Activity</h3>
             </div>
+            <button
+              type="button"
+              className="faculty-activity-log-refresh"
+              onClick={() => void loadActivityLog(true, search)}
+              disabled={refreshing}
+            >
+              <RefreshCcw size={16} className={refreshing ? 'faculty-activity-log-refresh-icon spinning' : 'faculty-activity-log-refresh-icon'} />
+              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
           </div>
 
-          <div className="filter-row">
-            <div className="filter-group">
+          <div className="filter-row faculty-activity-log-filters">
+            <div className="filter-group faculty-activity-log-filter-group">
               <label className="vpaa-activity-search">
                 <Search size={16} />
                 <input
@@ -171,7 +226,7 @@ export default function FacultyActivityLogPage() {
                   type="text"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search by action, thesis, or faculty..."
+                  placeholder="Search by action, account, or department..."
                 />
               </label>
 
@@ -188,7 +243,7 @@ export default function FacultyActivityLogPage() {
               </select>
             </div>
 
-            <div className="filter-chips">
+            <div className="filter-chips faculty-activity-log-chips">
               {[
                 ['all', 'All'],
                 ['today', 'Today'],
@@ -207,35 +262,37 @@ export default function FacultyActivityLogPage() {
             </div>
           </div>
 
-          <div className="review-table-wrap">
-            <table className="review-table">
+          <div className="review-table-wrap faculty-activity-log-table-wrap">
+            <table className="review-table faculty-activity-log-table">
               <thead>
                 <tr>
                   <th>Activity</th>
-                  <th>Thesis / File</th>
-                  <th>Faculty</th>
+                  <th>Request / Record</th>
+                  <th>Account</th>
+                  <th>Role</th>
+                  <th>College</th>
                   <th>Department</th>
                   <th>Time</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="vpaa-activity-empty">Loading activity log...</td>
+                    <td colSpan={7} className="vpaa-activity-empty">Loading activity log...</td>
                   </tr>
                 ) : paginatedLogs.length ? paginatedLogs.map((entry) => (
                   <tr key={entry.id}>
-                    <td><span className={`status-badge ${toneClassMap[entry.tone]}`}>{entry.badge}</span></td>
+                    <td><span className={`status-badge ${toneClassMap[entry.tone]}`}>{getActivityFilterLabel(entry)}</span></td>
                     <td className="rt-title">{entry.request_record}</td>
                     <td>{entry.account}</td>
+                    <td>{entry.role}</td>
+                    <td>{entry.college}</td>
                     <td>{entry.department}</td>
                     <td>{formatRelativeTime(entry.timestamp)}</td>
-                    <td className="table-actions"><button type="button" className="btn-review">{entry.action}</button></td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={6} className="vpaa-activity-empty">No activity matched the current filters.</td>
+                    <td colSpan={7} className="vpaa-activity-empty">No activity matched the current filters.</td>
                   </tr>
                 )}
               </tbody>

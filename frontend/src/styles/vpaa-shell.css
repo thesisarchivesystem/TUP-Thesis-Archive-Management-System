@@ -1569,6 +1569,23 @@
   transform: translateY(-1px);
 }
 
+.faculty-file-category-menu {
+  grid-template-columns: 1fr;
+}
+
+.faculty-file-category-option {
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.faculty-file-category-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .student-upload-dropzone {
   border: 1px dashed rgba(139, 35, 50, 0.16);
   border-radius: 18px;
@@ -2730,6 +2747,123 @@
   font-size: 13px;
 }
 
+.faculty-my-theses-shell {
+  gap: 22px;
+}
+
+.faculty-my-theses-list {
+  gap: 18px;
+}
+
+.faculty-my-thesis-card {
+  border-radius: 24px;
+  padding: 20px 22px;
+  border: 1px solid rgba(139, 35, 50, 0.08);
+  background:
+    radial-gradient(circle at 82% 26%, rgba(214, 171, 84, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 251, 248, 0.97));
+  box-shadow: 0 12px 28px rgba(139, 35, 50, 0.06);
+}
+
+.faculty-my-thesis-card:hover {
+  transform: none;
+  box-shadow: 0 14px 30px rgba(139, 35, 50, 0.08);
+}
+
+.faculty-my-thesis-card-head {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.faculty-my-thesis-card-head h3 {
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #2e1320;
+  text-transform: lowercase;
+}
+
+.faculty-my-thesis-card-head p {
+  font-size: 13px;
+  color: #7b5260;
+  margin-top: 8px;
+}
+
+.faculty-my-thesis-badge {
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  align-self: flex-start;
+  box-shadow: none;
+}
+
+.faculty-my-thesis-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.faculty-my-thesis-step {
+  min-height: 44px;
+  border-radius: 18px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(210, 167, 176, 0.34);
+  box-shadow: none;
+}
+
+.faculty-my-thesis-step:hover {
+  transform: none;
+}
+
+.faculty-my-thesis-step .student-submission-list-step-dot {
+  width: 10px;
+  height: 10px;
+  background: #efd9dc;
+}
+
+.faculty-my-thesis-step.done,
+.faculty-my-thesis-step.current {
+  color: #743849;
+  background: rgba(255, 250, 250, 0.96);
+  border-color: rgba(205, 150, 161, 0.42);
+}
+
+.faculty-my-thesis-step.done .student-submission-list-step-dot,
+.faculty-my-thesis-step.current .student-submission-list-step-dot {
+  background: #cf8c98;
+  box-shadow: 0 0 0 4px rgba(207, 140, 152, 0.12);
+}
+
+.faculty-my-thesis-actions {
+  gap: 12px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.faculty-my-thesis-action,
+.faculty-my-thesis-primary-action {
+  min-width: 0;
+  padding: 11px 18px;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.faculty-my-thesis-action {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.faculty-my-thesis-primary-action {
+  background: #8b2332;
+}
+
+.faculty-my-theses-empty {
+  border-radius: 24px;
+}
+
 .student-submissions-side {
   padding: 18px 16px;
   display: grid;
@@ -2992,30 +3126,43 @@
   justify-content: flex-start;
 }
 
-.student-submission-back-link {
+.student-submission-back-link,
+.faculty-submission-back-link,
+.app-back-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(139, 35, 50, 0.12);
-  background: rgba(255, 255, 255, 0.84);
-  color: var(--text-primary);
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--maroon);
   text-decoration: none;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: 0.01em;
   transition:
     transform 180ms ease,
-    box-shadow 180ms ease,
     border-color 180ms ease,
-    background-color 180ms ease;
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
-.student-submission-back-link:hover {
-  transform: translateY(-2px);
-  border-color: rgba(139, 35, 50, 0.16);
-  background: rgba(139, 35, 50, 0.06);
-  box-shadow: 0 10px 20px rgba(139, 35, 50, 0.07);
+.student-submission-back-link svg,
+.faculty-submission-back-link svg,
+.app-back-link svg {
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.student-submission-back-link:hover,
+.student-submission-back-link:focus-visible,
+.faculty-submission-back-link:hover,
+.faculty-submission-back-link:focus-visible,
+.app-back-link:hover,
+.app-back-link:focus-visible {
+  transform: translateX(-2px);
+  color: var(--maroon-dark);
+  outline: none;
 }
 
 .student-submission-details-loading {
@@ -3383,9 +3530,9 @@
   color: #d9c1c7;
 }
 
-.theme-dark .student-submission-back-link {
-  background: #2a2028;
-  border-color: rgba(200, 160, 170, 0.12);
+.theme-dark .student-submission-back-link,
+.theme-dark .faculty-submission-back-link,
+.theme-dark .app-back-link {
   color: #fff3f2;
 }
 
@@ -3468,10 +3615,13 @@
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22);
 }
 
-.theme-dark .student-submission-back-link:hover {
-  border-color: rgba(216, 92, 110, 0.24);
-  background: rgba(184, 58, 78, 0.14);
-  color: #fff3f2;
+.theme-dark .student-submission-back-link:hover,
+.theme-dark .student-submission-back-link:focus-visible,
+.theme-dark .faculty-submission-back-link:hover,
+.theme-dark .faculty-submission-back-link:focus-visible,
+.theme-dark .app-back-link:hover,
+.theme-dark .app-back-link:focus-visible {
+  color: #ffb8c2;
 }
 
 .theme-dark .student-submission-step {
@@ -3944,6 +4094,93 @@
   border-bottom: 1px solid var(--border);
   color: var(--text-secondary);
   vertical-align: middle;
+}
+
+.faculty-activity-log-panel {
+  padding: 28px 18px 18px;
+  border-radius: 28px;
+  background: rgba(255, 253, 251, 0.98);
+}
+
+.faculty-activity-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.faculty-activity-log-header-left {
+  align-items: center;
+  gap: 12px;
+}
+
+.faculty-activity-log-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--maroon);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+
+.faculty-activity-log-refresh:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.faculty-activity-log-refresh-icon.spinning {
+  animation: facultyActivitySpin 0.9s linear infinite;
+}
+
+@keyframes facultyActivitySpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.faculty-activity-log-filters {
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.faculty-activity-log-filter-group {
+  flex-wrap: wrap;
+}
+
+.faculty-activity-log-chips {
+  margin-left: auto;
+}
+
+.faculty-activity-log-table-wrap {
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.faculty-activity-log-table thead th {
+  background: transparent;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8f7280;
+}
+
+.faculty-activity-log-table tbody td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.faculty-activity-log-table .rt-title {
+  font-weight: 600;
+  color: #26131f !important;
 }
 
 .rt-title {
@@ -4457,7 +4694,7 @@
 
 .faculty-submission-details-shell {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .faculty-submission-details-topbar {
@@ -4466,54 +4703,29 @@
   justify-content: flex-start;
 }
 
-.faculty-submission-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--maroon);
-  font-size: 14px;
-  font-weight: 700;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(139, 35, 50, 0.06);
-  border: 1px solid rgba(139, 35, 50, 0.08);
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease;
-}
-
-.faculty-submission-back-link:hover {
-  transform: translateY(-2px);
-  border-color: rgba(139, 35, 50, 0.16);
-  background: rgba(139, 35, 50, 0.1);
-  box-shadow: 0 10px 20px rgba(139, 35, 50, 0.07);
-}
-
 .faculty-submission-details-loading {
   color: var(--text-secondary);
 }
 
 .faculty-submission-details-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1.32fr) minmax(300px, 0.86fr);
+  gap: 16px;
   align-items: start;
 }
 
 .faculty-submission-hero-card,
 .faculty-submission-info-card {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .faculty-submission-hero-card {
   position: relative;
   overflow: hidden;
-  gap: 24px;
-  padding: 28px;
-  border-radius: 28px;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 24px;
   background:
     radial-gradient(circle at top right, rgba(201, 150, 58, 0.1), transparent 26%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 248, 244, 0.92));
@@ -4546,7 +4758,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
+  gap: 12px;
   position: relative;
   z-index: 1;
 }
@@ -4573,8 +4785,8 @@
 
 .faculty-submission-hero-header h2 {
   margin-top: 2px;
-  font-size: 30px;
-  line-height: 1.16;
+  font-size: 21px;
+  line-height: 1.18;
   letter-spacing: -0.02em;
   text-wrap: balance;
 }
@@ -4584,15 +4796,15 @@
   margin: 0;
   color: var(--text-secondary);
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 .faculty-submission-status-pill {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 10px 14px;
-  font-size: 12px;
+  padding: 10px 15px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
   position: relative;
@@ -4624,7 +4836,7 @@
 .faculty-submission-keywords {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   position: relative;
   z-index: 1;
 }
@@ -4633,20 +4845,20 @@
 .faculty-submission-keywords span {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border-radius: 999px;
   padding: 10px 14px;
   background: var(--bg-card-alt);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .faculty-submission-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
   position: relative;
   z-index: 1;
 }
@@ -4654,8 +4866,8 @@
 .faculty-submission-metrics article {
   display: grid;
   gap: 6px;
-  padding: 16px 18px;
-  border-radius: 20px;
+  padding: 16px 16px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(139, 35, 50, 0.08);
   transition:
@@ -4683,7 +4895,7 @@
 .faculty-submission-metrics strong {
   color: var(--text-primary);
   font-size: 15px;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .faculty-submission-section {
@@ -4691,16 +4903,21 @@
   gap: 10px;
   position: relative;
   z-index: 1;
-  padding-top: 2px;
+  padding-top: 4px;
+}
+
+.faculty-submission-section h3 {
+  font-size: 19px;
+  line-height: 1.24;
 }
 
 .faculty-submission-review-panel {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   position: relative;
   z-index: 1;
-  padding: 20px;
-  border-radius: 24px;
+  padding: 18px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.74);
   border: 1px solid rgba(139, 35, 50, 0.08);
   transition:
@@ -4726,19 +4943,22 @@
 
 .faculty-submission-review-head h3 {
   margin: 6px 0 0;
+  font-size: 18px;
+  line-height: 1.24;
 }
 
 .faculty-submission-review-textarea {
   width: 100%;
-  min-height: 150px;
+  min-height: 138px;
   resize: vertical;
   border: 1px solid var(--input-border);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--bg-card);
   color: var(--text-primary);
   font: inherit;
-  line-height: 1.7;
-  padding: 16px 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 14px 16px;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -4751,15 +4971,16 @@
 .faculty-submission-review-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .faculty-submission-review-button {
-  min-width: 132px;
+  min-width: 126px;
   min-height: 46px;
   border-radius: 14px;
   border: 0;
   font: inherit;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -4795,12 +5016,13 @@
 .faculty-submission-manuscript-copy {
   margin: 0;
   color: var(--text-secondary);
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.65;
 }
 
 .faculty-submission-side-panel {
   display: grid;
-  gap: 20px;
+  gap: 16px;
 }
 
 .faculty-submission-info-card,
@@ -4856,8 +5078,8 @@
 
 .faculty-submission-manuscript-card {
   display: grid;
-  gap: 18px;
-  padding: 22px;
+  gap: 14px;
+  padding: 20px;
   background:
     linear-gradient(180deg, rgba(139, 35, 50, 0.02), rgba(139, 35, 50, 0)),
     var(--bg-card);
@@ -4866,17 +5088,19 @@
 .faculty-submission-manuscript-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .faculty-submission-manuscript-header h3 {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
+  font-size: 19px;
+  line-height: 1.24;
 }
 
 .faculty-submission-manuscript-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4889,7 +5113,7 @@
   display: grid;
   gap: 6px;
   padding: 16px 18px;
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--bg-card-alt);
   border: 1px solid var(--border);
 }
@@ -4904,14 +5128,15 @@
 
 .faculty-submission-manuscript-preview strong {
   color: var(--text-primary);
+  font-size: 15px;
   line-height: 1.5;
   word-break: break-word;
 }
 
 .faculty-submission-manuscript-preview small {
   color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .faculty-submission-manuscript-button {
@@ -4922,13 +5147,28 @@
   width: 100%;
   min-height: 52px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 14px;
   background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
   color: white;
   font: inherit;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 16px 30px rgba(139, 35, 50, 0.16);
+}
+
+.faculty-submission-review-panel .student-upload-field {
+  gap: 8px;
+}
+
+.faculty-submission-review-panel .student-upload-field span {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.faculty-submission-review-panel .student-upload-field input {
+  min-height: 50px;
+  font-size: 14px;
 }
 
 .faculty-submission-manuscript-button:disabled {

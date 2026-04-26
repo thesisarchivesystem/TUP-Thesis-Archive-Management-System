@@ -95,10 +95,9 @@ export default function SharedThesisDetailsPage({
 
   const authorLabel = useMemo(() => {
     if (!thesis) return 'Unknown author';
-    return thesis.authors?.filter(Boolean).join(', ') || thesis.submitter?.name || 'Unknown author';
+    return thesis.authors?.filter(Boolean).join(', ') || thesis.submitter?.name || thesis.submitter_name || 'Unknown author';
   }, [thesis]);
 
-  const keywords = thesis?.keywords?.filter(Boolean) ?? [];
   const metadata = [
     thesis?.department,
     thesis?.program,
@@ -158,15 +157,6 @@ export default function SharedThesisDetailsPage({
                 <strong>Authors</strong>
                 <p>{authorLabel}</p>
               </div>
-
-              <div className="student-submission-summary">
-                <strong>Keywords</strong>
-                <div className="faculty-submission-keywords">
-                  {keywords.length ? keywords.map((keyword) => (
-                    <span key={keyword}>{keyword}</span>
-                  )) : <span>No keywords provided</span>}
-                </div>
-              </div>
             </section>
 
             <aside className="student-submissions-side vpaa-card thesis-details-side-card">
@@ -206,7 +196,7 @@ export default function SharedThesisDetailsPage({
                   </div>
                   <div className="thesis-details-info-copy">
                     <span>Submitter</span>
-                    <strong>{thesis.submitter?.name || 'Not available'}</strong>
+                    <strong>{thesis.submitter?.name || thesis.submitter_name || 'Not available'}</strong>
                   </div>
                 </article>
 

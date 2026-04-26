@@ -10,10 +10,13 @@ export interface FacultyActivitySummary {
 
 export interface FacultyActivityRow {
   id: string;
+  user_id: string | null;
   badge: string;
   tone: 'maroon' | 'sky' | 'sage' | 'terracotta' | 'gold';
   request_record: string;
   account: string;
+  role: string;
+  college: string;
   department: string;
   time: string;
   timestamp: string;
@@ -22,12 +25,15 @@ export interface FacultyActivityRow {
 
 export interface FacultyActivityLogResponse {
   summary: FacultyActivitySummary;
+  departments: string[];
   logs: FacultyActivityRow[];
 }
 
 export const facultyActivityService = {
-  async getActivityLog(): Promise<FacultyActivityLogResponse> {
-    const response = await api.get('/faculty/activity-log');
+  async getActivityLog(q?: string): Promise<FacultyActivityLogResponse> {
+    const response = await api.get('/faculty/activity-log', {
+      params: q?.trim() ? { q: q.trim() } : undefined,
+    });
     return response.data.data ?? response.data;
   },
 };

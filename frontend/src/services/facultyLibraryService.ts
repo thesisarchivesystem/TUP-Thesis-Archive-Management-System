@@ -37,6 +37,7 @@ export interface FacultyLibraryItem {
   share_scope: string;
   share_scope_label: string;
   category_id?: string;
+  category_ids?: string[] | null;
   target_college?: string | null;
   target_department?: string | null;
   shared_with_count?: number | null;
@@ -65,6 +66,7 @@ export interface FacultyLibraryPayload {
   college?: string;
   department?: string;
   category_id: string;
+  category_ids?: string[];
   school_year: string;
   authors?: string[];
   share_scope: 'all_colleges' | 'all_departments' | 'specific_college' | 'specific_department' | 'specific_users';
@@ -101,6 +103,7 @@ export const facultyLibraryService = {
     formData.append('title', payload.title);
     formData.append('resource_type', payload.resource_type);
     formData.append('category_id', payload.category_id);
+    payload.category_ids?.forEach((id) => formData.append('category_ids[]', id));
     formData.append('school_year', payload.school_year);
     formData.append('share_scope', payload.share_scope);
     formData.append('is_draft', payload.is_draft ? '1' : '0');
@@ -129,6 +132,7 @@ export const facultyLibraryService = {
     formData.append('title', payload.title);
     formData.append('resource_type', payload.resource_type);
     formData.append('category_id', payload.category_id);
+    payload.category_ids?.forEach((id) => formData.append('category_ids[]', id));
     formData.append('school_year', payload.school_year);
     formData.append('share_scope', payload.share_scope);
     formData.append('is_draft', payload.is_draft ? '1' : '0');
