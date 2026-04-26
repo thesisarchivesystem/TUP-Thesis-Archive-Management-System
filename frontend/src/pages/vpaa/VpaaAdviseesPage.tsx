@@ -18,6 +18,7 @@ const NEW_ACCOUNT_WINDOW_DAYS = 3;
 const initialForm: FacultyAccountPayload = {
   first_name: '',
   last_name: '',
+  suffix: '',
   email: '',
   temporary_password: generateTemporaryPassword(),
   faculty_id: '',
@@ -173,6 +174,7 @@ export default function VpaaAdviseesPage() {
     setEditForm({
       first_name: member.user.first_name || member.user.name.split(' ')[0] || '',
       last_name: member.user.last_name || member.user.name.split(' ').slice(1).join(' '),
+      suffix: member.user.suffix || '',
       email: member.user.email,
       temporary_password: '',
       faculty_id: member.faculty_id,
@@ -217,6 +219,7 @@ export default function VpaaAdviseesPage() {
         ...form,
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
+        suffix: form.suffix?.trim() || undefined,
         email: form.email.trim(),
         faculty_id: form.faculty_id?.trim() || undefined,
         rank: form.rank || undefined,
@@ -245,6 +248,7 @@ export default function VpaaAdviseesPage() {
         ...editForm,
         first_name: editForm.first_name.trim(),
         last_name: editForm.last_name.trim(),
+        suffix: editForm.suffix?.trim() || undefined,
         email: editForm.email.trim(),
         faculty_id: (editForm.faculty_id ?? '').trim(),
         rank: editForm.rank || undefined,
@@ -340,23 +344,8 @@ export default function VpaaAdviseesPage() {
                   <input value={form.last_name} onChange={(event) => setForm({ ...form, last_name: event.target.value })} placeholder="Dela Cruz" required />
                 </label>
                 <label className="form-field">
-                  Temporary Password
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12 }}>
-                    <input
-                      type="text"
-                      value={form.temporary_password}
-                      onChange={(event) => setForm({ ...form, temporary_password: event.target.value })}
-                      placeholder="Temporary password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => setForm({ ...form, temporary_password: generateTemporaryPassword() })}
-                    >
-                      Generate
-                    </button>
-                  </div>
+                  Suffix
+                  <input value={form.suffix ?? ''} onChange={(event) => setForm({ ...form, suffix: event.target.value })} placeholder="Jr." />
                 </label>
                 <label className="form-field">
                   Rank
@@ -395,6 +384,25 @@ export default function VpaaAdviseesPage() {
                     </select>
                   </label>
                 ) : null}
+                <label className="form-field">
+                  Temporary Password
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12 }}>
+                    <input
+                      type="text"
+                      value={form.temporary_password}
+                      onChange={(event) => setForm({ ...form, temporary_password: event.target.value })}
+                      placeholder="Temporary password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => setForm({ ...form, temporary_password: generateTemporaryPassword() })}
+                    >
+                      Generate
+                    </button>
+                  </div>
+                </label>
               </div>
 
               <div className="form-actions">

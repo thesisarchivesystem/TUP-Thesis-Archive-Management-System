@@ -642,20 +642,6 @@ class FacultyController extends Controller
             'status' => $status,
         ]);
 
-        $sharedSnapshot = new SharedFile([
-            'id' => $thesis->id,
-            'title' => $thesis->title,
-            'share_scope' => 'specific_department',
-            'target_department' => $facultyProfile->department,
-        ]);
-        $sharedSnapshot->setRelation('recipients', collect());
-
-        $this->notifyRecipientsOfSharedFile(
-            $request->user(),
-            $facultyProfile,
-            $sharedSnapshot
-        );
-
         return response()->json([
             'data' => [
                 'id' => $thesis->id,

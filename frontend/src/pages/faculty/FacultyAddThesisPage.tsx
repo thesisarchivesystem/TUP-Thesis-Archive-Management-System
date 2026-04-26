@@ -104,6 +104,8 @@ export default function FacultyAddThesisPage() {
   const [advisers, setAdvisers] = useState<StudentAdviserOption[]>([]);
   const [availableColleges, setAvailableColleges] = useState<string[]>([]);
   const [departmentsByCollege, setDepartmentsByCollege] = useState<Record<string, string[]>>({});
+  const [defaultCollege, setDefaultCollege] = useState('');
+  const [defaultDepartment, setDefaultDepartment] = useState('');
   const [programOptions, setProgramOptions] = useState<string[]>([]);
   const [schoolYearOptions, setSchoolYearOptions] = useState<string[]>([]);
   const [form, setForm] = useState(initialForm);
@@ -158,6 +160,8 @@ export default function FacultyAddThesisPage() {
 
         setAvailableColleges(libraryResponse.share_options?.colleges ?? []);
         setDepartmentsByCollege(libraryResponse.share_options?.departments_by_college ?? {});
+        setDefaultCollege(libraryResponse.college || '');
+        setDefaultDepartment(libraryResponse.department || '');
         setProgramOptions(Array.from(new Set([...preferredPrograms, ...adviseePrograms, ...libraryPrograms])).sort());
         setSchoolYearOptions(FIXED_SCHOOL_YEAR_OPTIONS);
         setForm((current) => ({
@@ -258,8 +262,11 @@ export default function FacultyAddThesisPage() {
   const resetForm = () => {
     setForm({
       ...initialForm,
-      college: availableColleges[0] ?? '',
-      department: departmentsByCollege[availableColleges[0] ?? '']?.[0] ?? '',
+      college: defaultCollege || availableColleges[0] || '',
+      department:
+        defaultDepartment
+        || departmentsByCollege[defaultCollege || availableColleges[0] || '']?.[0]
+        || '',
       program: programOptions[0] ?? '',
       schoolYear: schoolYearOptions[0] ?? String(new Date().getFullYear()),
       categoryIds: [],
