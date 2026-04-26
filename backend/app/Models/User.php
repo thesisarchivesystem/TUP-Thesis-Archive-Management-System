@@ -187,6 +187,15 @@ class User extends Authenticatable
             return;
         }
 
+        if (app()->environment('production')) {
+            Log::error('Password reset email skipped: BREVO_API_KEY is missing in production.', [
+                'user_id' => $this->id,
+                'email' => $this->email,
+            ]);
+
+            return;
+        }
+
         $this->notify(new ResetPasswordNotification($token));
     }
 }
