@@ -6,6 +6,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useNotificationChannel } from '../../hooks/useNotificationChannel';
 import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
+import { aiService } from '../../services/aiService';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
@@ -15,22 +16,6 @@ type ChatMessage = {
   id: string;
   type: 'bot' | 'user';
   text: string;
-};
-
-const prompts = ['How do I review submissions?', 'Where can I manage theses?', 'How do I contact support?'];
-
-const buildReply = (message: string) => {
-  const normalized = message.toLowerCase();
-  if (normalized.includes('review') || normalized.includes('submission')) {
-    return 'Open Review Submissions to check pending work, provide feedback, and track student revisions.';
-  }
-  if (normalized.includes('manage') || normalized.includes('thesis') || normalized.includes('approved')) {
-    return 'The Manage Thesis section lets you add new records, review submissions, and browse approved theses.';
-  }
-  if (normalized.includes('support') || normalized.includes('contact') || normalized.includes('help')) {
-    return 'Use the Support page for quick contacts, FAQs, and ticket requests related to archive workflows.';
-  }
-  return 'I can help with faculty submission review, thesis management, and archive support guidance.';
 };
 
 type Props = {
@@ -59,10 +44,10 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   const [manageThesisOpen, setManageThesisOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 'bot-1', type: 'bot', text: 'Hi! I can help with thesis review, faculty workflows, and archive support questions.' },
-    { id: 'bot-2', type: 'bot', text: 'Try one of the quick prompts below.' },
   ]);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
@@ -161,17 +146,36 @@ export default function FacultyLayout({ title, description, children, hidePageIn
     setSidebarCollapsed((current) => !current);
   };
 
-  const handleChatSubmit = (message: string) => {
+  const handleChatSubmit = async (message: string) => {
     const trimmed = message.trim();
-    if (!trimmed) return;
+    if (!trimmed || chatSending) return;
 
     setChatMessages((current) => [
       ...current,
       { id: `user-${Date.now()}`, type: 'user', text: trimmed },
-      { id: `bot-${Date.now() + 1}`, type: 'bot', text: buildReply(trimmed) },
     ]);
     setChatInput('');
     setChatOpen(true);
+    setChatSending(true);
+
+    try {
+      const history = chatMessages.map((message) => ({
+          role: message.type === 'user' ? 'user' : 'assistant',
+          content: message.text,
+        }));
+      const response = await aiService.chat(trimmed, history);
+      setChatMessages((current) => [
+        ...current,
+        { id: `bot-${Date.now() + 1}`, type: 'bot', text: response.reply || 'No reply was returned by the chatbot.' },
+      ]);
+    } catch {
+      setChatMessages((current) => [
+        ...current,
+        { id: `bot-${Date.now() + 1}`, type: 'bot', text: 'The AI chatbot is unavailable right now. Please try again in a moment.' },
+      ]);
+    } finally {
+      setChatSending(false);
+    }
   };
 
   const handleNotificationClick = async (notification: AppNotification) => {
@@ -401,18 +405,20 @@ export default function FacultyLayout({ title, description, children, hidePageIn
             {chatMessages.map((message) => (
               <div className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`} key={message.id}>{message.text}</div>
             ))}
-          </div>
-          <div className="vpaa-ai-chatbot-suggestions">
-            {prompts.map((prompt) => (
-              <button type="button" className="vpaa-chat-suggestion" key={prompt} onClick={() => handleChatSubmit(prompt)}>{prompt}</button>
-            ))}
+            {chatSending ? (
+              <div className="vpaa-chat-bubble other typing" aria-label="Chatbot is typing" aria-live="polite">
+                <span className="vpaa-chat-typing-dot" />
+                <span className="vpaa-chat-typing-dot" />
+                <span className="vpaa-chat-typing-dot" />
+              </div>
+            ) : null}
           </div>
           <form className="vpaa-ai-chatbot-form" onSubmit={(event) => {
             event.preventDefault();
-            handleChatSubmit(chatInput);
+            void handleChatSubmit(chatInput);
           }}>
-            <input className="vpaa-ai-chatbot-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Type your question..." />
-            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message"><ChevronRight size={18} /></button>
+            <input className="vpaa-ai-chatbot-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Type your question..." disabled={chatSending} />
+            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending}><ChevronRight size={18} /></button>
           </form>
         </div>
       </div>

@@ -118,7 +118,11 @@ MAIL_MAILER=smtp
 MAIL_HOST=127.0.0.1
 MAIL_PORT=1025
 
-OPENROUTER_API_KEY=your-api-key (optional for AI chatbot)
+OPENROUTER_API_KEY=your-api-key
+OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_SITE_URL=http://localhost:8000
+OPENROUTER_SITE_NAME="TUP Thesis Archive"
 ```
 
 ## File Upload

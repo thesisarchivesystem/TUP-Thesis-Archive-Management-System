@@ -6,6 +6,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useNotificationChannel } from '../../hooks/useNotificationChannel';
 import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
+import { aiService } from '../../services/aiService';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
@@ -15,22 +16,6 @@ type ChatMessage = {
   id: string;
   type: 'bot' | 'user';
   text: string;
-};
-
-const prompts = ['Show thesis categories', 'Where do students sign in?', 'Browse departments'];
-
-const buildReply = (message: string) => {
-  const normalized = message.toLowerCase();
-  if (normalized.includes('student') || normalized.includes('sign in') || normalized.includes('login')) {
-    return 'Faculty-created student accounts can sign in from the student portal and access their thesis workspace.';
-  }
-  if (normalized.includes('category') || normalized.includes('browse')) {
-    return 'Categories highlight AI and ML, mobile systems, cybersecurity, data science, and archive-wide topic collections.';
-  }
-  if (normalized.includes('department')) {
-    return 'The archive currently centers Computer Studies records, with oversight tools for faculty and VPAA reviewers.';
-  }
-  return 'I can help with categories, messages, faculty oversight, and where users should sign in.';
 };
 
 const formatTime = (date: Date) =>
@@ -64,10 +49,10 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
   const [profileOpen, setProfileOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 'bot-1', type: 'bot', text: 'Hi! I can help you find thesis collections, browse categories, or guide you to the right sign-in page.' },
-    { id: 'bot-2', type: 'bot', text: 'Try one of the quick prompts below.' },
   ]);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
@@ -154,16 +139,35 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
     setSidebarCollapsed((current) => !current);
   };
 
-  const handleChatSubmit = (message: string) => {
+  const handleChatSubmit = async (message: string) => {
     const trimmed = message.trim();
-    if (!trimmed) return;
+    if (!trimmed || chatSending) return;
     setChatMessages((current) => [
       ...current,
       { id: `user-${Date.now()}`, type: 'user', text: trimmed },
-      { id: `bot-${Date.now() + 1}`, type: 'bot', text: buildReply(trimmed) },
     ]);
     setChatInput('');
     setChatOpen(true);
+    setChatSending(true);
+
+    try {
+      const history = chatMessages.map((message) => ({
+          role: message.type === 'user' ? 'user' : 'assistant',
+          content: message.text,
+        }));
+      const response = await aiService.chat(trimmed, history);
+      setChatMessages((current) => [
+        ...current,
+        { id: `bot-${Date.now() + 1}`, type: 'bot', text: response.reply || 'No reply was returned by the chatbot.' },
+      ]);
+    } catch {
+      setChatMessages((current) => [
+        ...current,
+        { id: `bot-${Date.now() + 1}`, type: 'bot', text: 'The AI chatbot is unavailable right now. Please try again in a moment.' },
+      ]);
+    } finally {
+      setChatSending(false);
+    }
   };
 
   const handleNotificationClick = async (notification: AppNotification) => {
@@ -353,18 +357,20 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
             {chatMessages.map((message) => (
               <div className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`} key={message.id}>{message.text}</div>
             ))}
-          </div>
-          <div className="vpaa-ai-chatbot-suggestions">
-            {prompts.map((prompt) => (
-              <button type="button" className="vpaa-chat-suggestion" key={prompt} onClick={() => handleChatSubmit(prompt)}>{prompt}</button>
-            ))}
+            {chatSending ? (
+              <div className="vpaa-chat-bubble other typing" aria-label="Chatbot is typing" aria-live="polite">
+                <span className="vpaa-chat-typing-dot" />
+                <span className="vpaa-chat-typing-dot" />
+                <span className="vpaa-chat-typing-dot" />
+              </div>
+            ) : null}
           </div>
           <form className="vpaa-ai-chatbot-form" onSubmit={(event) => {
             event.preventDefault();
-            handleChatSubmit(chatInput);
+            void handleChatSubmit(chatInput);
           }}>
-            <input className="vpaa-ai-chatbot-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Type your question..." />
-            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message"><ChevronRight size={18} /></button>
+            <input className="vpaa-ai-chatbot-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Type your question..." disabled={chatSending} />
+            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending}><ChevronRight size={18} /></button>
           </form>
         </div>
       </div>

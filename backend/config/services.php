@@ -13,6 +13,10 @@ return [
     ],
     'openrouter' => [
         'key' => env('OPENROUTER_API_KEY'),
+        'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
+        'model' => env('OPENROUTER_MODEL', 'openai/gpt-4o-mini'),
+        'site_url' => env('OPENROUTER_SITE_URL', env('APP_URL')),
+        'site_name' => env('OPENROUTER_SITE_NAME', env('APP_NAME', 'TUP Thesis Archive')),
     ],
     'supabase' => [
         'url' => env('SUPABASE_URL'),

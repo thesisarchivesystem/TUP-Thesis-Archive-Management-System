@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/ai/chat', [AiChatbotController::class, 'chat'])->middleware('throttle:20,1');
 
 // ── Authenticated ────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -38,7 +39,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/messages/conversations', [MessageController::class, 'startConversation']);
     Route::get('/messages/{conversationId}', [MessageController::class, 'show']);
     Route::post('/messages', [MessageController::class, 'store']);
-    Route::post('/ai/chat', [AiChatbotController::class, 'chat']);
     Route::get('/categories', [ThesisController::class, 'categories']);
     Route::post('/support-tickets', [SupportTicketController::class, 'store']);
     Route::post('/extension-requests', [ExtensionRequestController::class, 'store']);

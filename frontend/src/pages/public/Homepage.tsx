@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MoonStar, SunMedium } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../hooks/useTheme';
+import { aiService } from '../../services/aiService';
 import BrandMarkIcon from '../../components/BrandMarkIcon';
 import tupBuilding from '../../assets/tup-building.gif';
 import tamsBot from '../../assets/tams-bot.png';
@@ -284,7 +285,6 @@ function HomePageStyles() {
       .cta{background:var(--cta-bg);text-align:center;overflow:hidden}.cta-bg{position:absolute;inset:0;background:radial-gradient(circle at top,rgba(255,255,255,.12),transparent 48%)}.cta-pattern{position:absolute;inset:0;opacity:.08;background-image:linear-gradient(135deg,rgba(255,255,255,.1) 25%,transparent 25%),linear-gradient(225deg,rgba(255,255,255,.1) 25%,transparent 25%);background-size:26px 26px}.cta-content{position:relative;z-index:1;max-width:680px;margin:0 auto}.cta h2{font-size:clamp(28px,3.8vw,44px);line-height:1.08;margin:0 0 14px;color:#fff7f7}.homepage-shell[data-theme='dark'] .cta h2{color:#f0e4e6}.cta p{margin:0 auto 24px;max-width:560px;font-size:15px;line-height:1.65;color:rgba(255,240,240,.82)}.homepage-shell[data-theme='dark'] .cta p{color:rgba(240,228,230,.5)}.cta-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.btn-role{min-width:124px;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.02);color:#fff;cursor:pointer;transition:all .3s ease}.btn-role:hover{transform:translateY(-2px);background:#fff;color:var(--maroon);border-color:#fff;box-shadow:0 10px 24px rgba(0,0,0,.18)}
       footer{background:var(--footer-bg);padding:34px 36px 18px}.footer-main{max-width:1040px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:28px;border-bottom:1px solid var(--border)}.footer-brand{display:flex;align-items:center;gap:10px}.footer-brand-text h4,.footer-uni-text h4{font-size:17px;margin:0 0 3px;color:var(--text-primary)}.footer-brand-text span,.footer-uni-text span{font-size:12px;color:var(--text-tertiary)}.footer-uni{display:flex;align-items:center;gap:10px;text-align:right}.footer-uni-seal{width:46px;height:46px;border-radius:14px;background:rgba(139,35,50,.08);border:1px solid rgba(139,35,50,.16);display:flex;align-items:center;justify-content:center;padding:4px}.homepage-shell[data-theme='dark'] .footer-uni-seal{background:rgba(184,58,78,.08);border-color:rgba(200,160,170,.14)}.footer-uni-seal svg{width:24px;height:24px;color:var(--maroon)}.footer-bottom{max-width:1040px;margin:0 auto;padding-top:18px;text-align:center}.footer-bottom p{font-size:11px;color:var(--text-tertiary);margin:0}
       .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}.reveal.visible{opacity:1;transform:translateY(0)}.reveal-delay-1{transition-delay:.1s}.reveal-delay-2{transition-delay:.2s}.reveal-delay-3{transition-delay:.3s}.reveal-delay-4{transition-delay:.4s}
-      .homepage-shell .vpaa-ai-chatbot-suggestions .vpaa-chat-suggestion{font-size:11px !important;line-height:1.2 !important;font-family:'Plus Jakarta Sans',sans-serif !important;padding:7px 10px !important}
       .homepage-shell .vpaa-chat-bubble.self{max-width:78%;padding:10px 16px;border-radius:999px;align-self:flex-end}
       .homepage-shell .vpaa-chat-bubble.other{max-width:88%}
       .ai-chatbot-fab{position:fixed;right:28px;bottom:28px;width:74px;height:74px;border:0;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1200;transition:transform .25s ease,box-shadow .25s ease}.ai-chatbot-fab:hover{transform:translateY(-2px) scale(1.02)}.ai-chatbot-fab img{width:84%;height:84%;object-fit:contain;display:block}
@@ -304,18 +304,13 @@ export default function Homepage() {
   const [revealed, setRevealed] = useState<string[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { type: 'bot', text: 'Hi! I can help with thesis review, faculty workflows, and archive support questions.' },
-    { type: 'bot', text: 'Try one of the quick prompts below.' },
   ]);
   const chatPanelRef = useRef<HTMLDivElement | null>(null);
   const chatFabRef = useRef<HTMLButtonElement | null>(null);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
-
-  const chatSuggestions = useMemo(
-    () => ['How do I review submissions?', 'Where can I manage theses?', 'How do I contact support?'],
-    []
-  );
 
   useEffect(() => {
     const updateNavbarState = () => {
@@ -382,28 +377,25 @@ export default function Homepage() {
     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const buildReply = (message: string) => {
-    const normalized = message.toLowerCase();
-    if (normalized.includes('review') || normalized.includes('submission')) {
-      return 'Open Review Submissions to check pending work, provide feedback, and track student revisions.';
-    }
-    if (normalized.includes('manage') || normalized.includes('thesis') || normalized.includes('approved')) {
-      return 'The Manage Thesis section lets you add new records, review submissions, and browse approved theses.';
-    }
-    if (normalized.includes('support') || normalized.includes('contact') || normalized.includes('help')) {
-      return 'Use the Support page for quick contacts, FAQs, and ticket requests related to archive workflows.';
-    }
-    return 'I can help with thesis review, faculty workflows, and archive support guidance.';
-  };
-
-  const handleChat = (message: string) => {
+  const handleChat = async (message: string) => {
     const trimmedMessage = message.trim();
-    if (!trimmedMessage) return;
+    if (!trimmedMessage || chatSending) return;
     setMessages((current) => [...current, { type: 'user', text: trimmedMessage }]);
     setChatInput('');
-    window.setTimeout(() => {
-      setMessages((current) => [...current, { type: 'bot', text: buildReply(trimmedMessage) }]);
-    }, 320);
+    setChatSending(true);
+
+    try {
+      const history = messages.map((message) => ({
+          role: message.type === 'user' ? 'user' : 'assistant',
+          content: message.text,
+        }));
+      const response = await aiService.chat(trimmedMessage, history);
+      setMessages((current) => [...current, { type: 'bot', text: response.reply || 'No reply was returned by the chatbot.' }]);
+    } catch {
+      setMessages((current) => [...current, { type: 'bot', text: 'The AI chatbot is unavailable right now. Please try again in a moment.' }]);
+    } finally {
+      setChatSending(false);
+    }
   };
 
   const revealClass = (id: string, delay = '') =>
@@ -660,21 +652,20 @@ export default function Homepage() {
                 {message.text}
               </div>
             ))}
-          </div>
-
-          <div className="vpaa-ai-chatbot-suggestions">
-            {chatSuggestions.map((suggestion) => (
-              <button key={suggestion} type="button" className="vpaa-chat-suggestion" onClick={() => handleChat(suggestion)}>
-                {suggestion}
-              </button>
-            ))}
+            {chatSending ? (
+              <div className="vpaa-chat-bubble other typing" aria-label="Chatbot is typing" aria-live="polite">
+                <span className="vpaa-chat-typing-dot" />
+                <span className="vpaa-chat-typing-dot" />
+                <span className="vpaa-chat-typing-dot" />
+              </div>
+            ) : null}
           </div>
 
           <form
             className="vpaa-ai-chatbot-form"
             onSubmit={(event) => {
               event.preventDefault();
-              handleChat(chatInput);
+              void handleChat(chatInput);
             }}
           >
             <input
@@ -684,8 +675,9 @@ export default function Homepage() {
               onChange={(event) => setChatInput(event.target.value)}
               placeholder="Type your question..."
               aria-label="Chat message"
+              disabled={chatSending}
             />
-            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message">
+            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending}>
               <SendIcon />
             </button>
           </form>

@@ -34,30 +34,38 @@ EOT;
         ];
 
         $apiKey = config('services.openrouter.key');
+        $baseUrl = rtrim((string) config('services.openrouter.base_url', 'https://openrouter.ai/api/v1'), '/');
+        $model = (string) config('services.openrouter.model', 'openai/gpt-4o-mini');
+        $siteUrl = (string) config('services.openrouter.site_url', config('app.url'));
+        $siteName = (string) config('services.openrouter.site_name', config('app.name', 'TUP Thesis Archive'));
 
         if (!$apiKey) {
             return response()->json([
                 'reply' => 'AI chatbot is currently unavailable. Please try again later.',
-            ]);
+                'error' => 'OPENROUTER_API_KEY is not configured.',
+            ], 503);
         }
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,
-            'HTTP-Referer'  => config('app.url'),
-            'X-Title'       => 'TUP Thesis Archive',
-        ])->post('https://openrouter.ai/api/v1/chat/completions', [
-            'model'    => 'anthropic/claude-3-haiku',
+            'HTTP-Referer'  => $siteUrl,
+            'X-Title'       => $siteName,
+        ])->timeout(60)->post($baseUrl . '/chat/completions', [
+            'model'    => $model,
             'messages' => $messages,
         ]);
 
         if ($response->failed()) {
             return response()->json([
                 'reply' => 'Sorry, there was an error processing your request.',
+                'error' => $response->json('error.message')
+                    ?? $response->json('message')
+                    ?? 'OpenRouter request failed.',
             ], 500);
         }
 
         return response()->json([
-            'reply' => $response->json('choices.0.message.content'),
+            'reply' => $response->json('choices.0.message.content') ?: 'No reply was returned by the AI provider.',
         ]);
     }
 }
