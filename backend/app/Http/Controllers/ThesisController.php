@@ -16,7 +16,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ThesisController extends Controller
@@ -30,7 +29,6 @@ class ThesisController extends Controller
     public function index(): JsonResponse
     {
         $theses = Thesis::where('status', 'approved')
-            ->when($this->thesesSupportsArchiving(), fn ($query) => $query->where('is_archived', true))
             ->with('submitter:id,name', 'category:id,name,slug')
             ->orderByDesc('approved_at')
             ->paginate(20);
@@ -92,9 +90,7 @@ class ThesisController extends Controller
             'supplementary_files' => $supplementaryUploads,
             'status'       => 'draft',
             'submitted_by' => $request->user()->id,
-            'submitter_name' => $request->user()->name,
             'adviser_id'   => $request->input('adviser_id'),
-            'adviser_name' => optional($request->input('adviser_id') ? \App\Models\User::find($request->input('adviser_id')) : null)?->name,
         ]);
 
         if ($request->filled('adviser_id')) {
@@ -113,14 +109,12 @@ class ThesisController extends Controller
         $thesis = Thesis::with('submitter:id,name', 'adviser:id,name', 'category:id,name,slug')->findOrFail($id);
         $user = auth()->user();
 
-        $canAccessUnarchived = $user && ($user->id === $thesis->submitted_by || $user->id === $thesis->adviser_id || $user->role === 'vpaa');
-
-        if ((!$thesis->is_archived || $thesis->status !== 'approved') && !$canAccessUnarchived) {
+        if ($thesis->status !== 'approved' && (!$user || ($user->id !== $thesis->submitted_by && $user->id !== $thesis->adviser_id && $user->role !== 'vpaa'))) {
             return response()->json(['error' => 'You are not allowed to access this thesis.'], 403);
         }
 
         // Track view if authenticated as student
-        if (auth()->check() && auth()->user()->role === 'student' && $thesis->status === 'approved' && $thesis->is_archived) {
+        if (auth()->check() && auth()->user()->role === 'student' && $thesis->status === 'approved') {
             RecentlyViewed::updateOrCreate(
                 ['user_id' => auth()->id(), 'thesis_id' => $thesis->id],
                 ['viewed_at' => now()]
@@ -128,7 +122,7 @@ class ThesisController extends Controller
         }
 
         // Increment view count
-        if ($thesis->status === 'approved' && $thesis->is_archived) {
+        if ($thesis->status === 'approved') {
             $thesis->increment('view_count');
         }
 
@@ -180,10 +174,6 @@ class ThesisController extends Controller
             'title', 'abstract', 'department', 'program', 'category_id', 'category_ids', 'school_year', 'authors', 'adviser_id',
         ]);
 
-        if ($request->exists('adviser_id')) {
-            $payload['adviser_name'] = optional($request->filled('adviser_id') ? \App\Models\User::find($request->input('adviser_id')) : null)?->name;
-        }
-
         if ($request->hasFile('manuscript')) {
             $manuscriptUpload = $this->uploadToSupabase($request->file('manuscript'), 'manuscripts');
             $payload['file_url'] = $manuscriptUpload['url'];
@@ -224,14 +214,11 @@ class ThesisController extends Controller
 
         $thesis->update([
             'status'       => 'pending',
-            'is_archived' => false,
             'submitted_at' => now(),
             'reviewed_at' => null,
             'approved_at' => null,
-            'archived_at' => null,
             'rejection_reason' => null,
             'adviser_remarks' => null,
-            'revision_due_at' => null,
         ]);
 
         $this->logger->log($request->user(), 'thesis.submitted', 'thesis', $thesis->id);
@@ -311,20 +298,16 @@ class ThesisController extends Controller
             'status'           => 'required|in:approved,rejected',
             'adviser_remarks'  => 'nullable|string|max:2000',
             'rejection_reason' => 'required_if:status,rejected|nullable|string|max:2000',
-            'revision_due_at'  => 'required_if:status,rejected|nullable|date|after:today',
         ]);
 
         $thesis = Thesis::findOrFail($id);
 
         $thesis->update([
             'status'           => $request->status,
-            'is_archived'      => false,
             'adviser_remarks'  => $request->adviser_remarks,
             'rejection_reason' => $request->rejection_reason,
-            'revision_due_at'  => $request->status === 'rejected' ? $request->input('revision_due_at') : null,
             'reviewed_at'      => now(),
             'approved_at'      => $request->status === 'approved' ? now() : null,
-            'archived_at'      => null,
         ]);
 
         // ── Notify student via Ably ──────────────────────────────
@@ -347,6 +330,15 @@ class ThesisController extends Controller
                 ],
             );
 
+            if ($request->status === 'approved') {
+                $this->notifications->notify(
+                    $student,
+                    'thesis.archived',
+                    'Thesis is now archived',
+                    $thesis->title,
+                    ['thesis_id' => $thesis->id],
+                );
+            }
         }
 
         // ── Save DB notification ─────────────────────────────────
@@ -390,33 +382,6 @@ class ThesisController extends Controller
         return response()->json($theses);
     }
 
-    public function archiveApproved(Request $request, string $id): JsonResponse
-    {
-        $thesis = Thesis::query()
-            ->where('status', 'approved')
-            ->where('adviser_id', $request->user()->id)
-            ->findOrFail($id);
-
-        if ($thesis->is_archived) {
-            return response()->json([
-                'data' => $thesis->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug'),
-            ]);
-        }
-
-        $thesis->update([
-            'is_archived' => true,
-            'archived_at' => now(),
-            'archived_by' => $request->user()->id,
-            'archived_by_name' => $request->user()->name,
-        ]);
-
-        $this->logger->log($request->user(), 'thesis.archived', 'thesis', $thesis->id);
-
-        return response()->json([
-            'data' => $thesis->fresh()->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug'),
-        ]);
-    }
-
     public function mySubmissions(Request $request): JsonResponse
     {
         $theses = Thesis::where('submitted_by', $request->user()->id)
@@ -456,27 +421,13 @@ class ThesisController extends Controller
 
     public function categories(): JsonResponse
     {
-        if (!$this->categoriesFeatureIsAvailable()) {
-            return response()->json([
-                'data' => [
-                    'categories' => [],
-                ],
-            ]);
-        }
-
         $categories = Category::query()
             ->whereRaw('is_active = true')
             ->withCount(['theses as document_count' => function ($query) {
                 $query->where('status', 'approved');
-                if ($this->thesesSupportsArchiving()) {
-                    $query->where('is_archived', true);
-                }
             }])
             ->withMax(['theses as latest_approved_at' => function ($query) {
                 $query->where('status', 'approved');
-                if ($this->thesesSupportsArchiving()) {
-                    $query->where('is_archived', true);
-                }
             }], 'approved_at')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -503,7 +454,6 @@ class ThesisController extends Controller
                 ->with('submitter:id,name')
                 ->whereIn('category_id', $categoryIds)
                 ->where('status', 'approved')
-                ->when($this->thesesSupportsArchiving(), fn ($query) => $query->where('is_archived', true))
                 ->orderBy('category_id')
                 ->orderByDesc('approved_at')
                 ->get()
@@ -524,7 +474,7 @@ class ThesisController extends Controller
                     return [
                         'id' => $thesis->id,
                         'title' => $thesis->title,
-                        'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? $thesis->submitter_name ?? 'Unknown author'),
+                        'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
                         'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
                         'abstract' => $thesis->abstract,
                         'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
@@ -560,18 +510,6 @@ class ThesisController extends Controller
         } catch (\Throwable) {
             return null;
         }
-    }
-
-    private function categoriesFeatureIsAvailable(): bool
-    {
-        return Schema::hasTable('categories')
-            && Schema::hasColumn('categories', 'slug')
-            && Schema::hasColumn('theses', 'category_id');
-    }
-
-    private function thesesSupportsArchiving(): bool
-    {
-        return Schema::hasColumn('theses', 'is_archived');
     }
 
     private function normalizeArrayField(mixed $value): array
