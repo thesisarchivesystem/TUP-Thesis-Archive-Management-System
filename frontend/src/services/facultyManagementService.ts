@@ -4,6 +4,7 @@ import type { FacultyProfile } from '../types/user.types';
 export interface FacultyAccountPayload {
   first_name: string;
   last_name: string;
+  suffix?: string;
   email: string;
   temporary_password: string;
   faculty_id?: string;
@@ -17,6 +18,7 @@ export interface FacultyAccountPayload {
 export interface FacultyUpdatePayload {
   first_name: string;
   last_name: string;
+  suffix?: string;
   email: string;
   temporary_password?: string;
   faculty_id: string;

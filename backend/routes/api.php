@@ -74,7 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/library-items/{id}', [FacultyController::class, 'updateLibraryItem']);
         Route::delete('/library-items/{id}', [FacultyController::class, 'destroyLibraryItem']);
         Route::get('/share-users', [FacultyController::class, 'searchableShareUsers']);
-        Route::get('/my-theses', [FacultyController::class, 'myTheses']);
+        Route::get('/my-theses', [ThesisController::class, 'mySubmissions']);
         Route::post('/theses', [FacultyController::class, 'storeManagedThesis']);
         Route::post('/theses/{id}', [FacultyController::class, 'updateManagedThesis']);
         Route::patch('/theses/{id}', [FacultyController::class, 'updateManagedThesis']);

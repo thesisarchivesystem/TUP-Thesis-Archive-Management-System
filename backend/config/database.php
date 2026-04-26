@@ -19,7 +19,7 @@ return [
             'options' => extension_loaded('pdo_pgsql') ? array_filter([
                 // Helps when using transaction poolers (for example Supabase pooler:6543)
                 // where server-side prepared statements may fail across pooled connections.
-                \PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', false),
+                \PDO::ATTR_EMULATE_PREPARES => filter_var(env('DB_EMULATE_PREPARES', true), FILTER_VALIDATE_BOOL),
             ]) : [],
         ],
     ],

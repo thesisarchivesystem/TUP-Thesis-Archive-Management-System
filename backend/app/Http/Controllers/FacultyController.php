@@ -1093,6 +1093,7 @@ class FacultyController extends Controller
         $request->validate([
             'first_name'       => 'required|string|max:255',
             'last_name'        => 'required|string|max:255',
+            'suffix'           => 'nullable|string|max:50',
             'email'            => 'required|email|unique:users',
             'temporary_password' => 'required|string|min:8',
             'faculty_id'       => 'nullable|string|unique:faculty_profiles',
@@ -1116,7 +1117,8 @@ class FacultyController extends Controller
             $user = User::create([
                 'first_name' => $request->first_name,
                 'last_name'  => $request->last_name,
-                'name'      => trim($request->first_name . ' ' . $request->last_name),
+                'suffix'    => $request->input('suffix'),
+                'name'      => trim(implode(' ', array_filter([$request->first_name, $request->last_name, $request->input('suffix')]))),
                 'email'     => $request->email,
                 'password'  => Hash::make($request->temporary_password),
                 'role'      => 'faculty',
@@ -1190,6 +1192,7 @@ class FacultyController extends Controller
         $request->validate([
             'first_name'        => 'required|string|max:255',
             'last_name'         => 'required|string|max:255',
+            'suffix'            => 'nullable|string|max:50',
             'email'             => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'temporary_password' => 'nullable|string|min:8',
             'faculty_id'        => ['required', 'string', Rule::unique('faculty_profiles', 'faculty_id')->ignore($faculty->id)],
@@ -1209,6 +1212,7 @@ class FacultyController extends Controller
             $userData = [
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
+                'suffix' => $request->input('suffix'),
                 'email' => $request->email,
             ];
 

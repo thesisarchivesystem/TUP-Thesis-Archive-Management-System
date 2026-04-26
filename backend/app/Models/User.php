@@ -20,6 +20,7 @@ class User extends Authenticatable
     protected $fillable = [
         'first_name',
         'last_name',
+        'suffix',
         'name',
         'email',
         'password',
@@ -43,9 +44,10 @@ class User extends Authenticatable
         static::saving(function (User $user) {
             $first = trim((string) ($user->first_name ?? ''));
             $last = trim((string) ($user->last_name ?? ''));
+            $suffix = trim((string) ($user->suffix ?? ''));
 
             if ($first !== '' || $last !== '') {
-                $user->name = trim($first . ' ' . $last);
+                $user->name = trim(collect([$first, $last, $suffix])->filter()->implode(' '));
             }
         });
     }

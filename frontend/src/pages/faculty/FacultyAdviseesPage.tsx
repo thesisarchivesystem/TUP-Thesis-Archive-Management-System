@@ -19,8 +19,10 @@ const EDIT_PANEL_SHELL_CLOSE_DELAY = 180;
 const initialForm: StudentAccountPayload = {
   first_name: '',
   last_name: '',
+  suffix: '',
   email: '',
   temporary_password: generateTemporaryPassword(),
+  student_id: '',
   department: '',
   program: '',
   year_level: 4,
@@ -203,8 +205,9 @@ export default function FacultyAdviseesPage() {
         ...form,
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
+        suffix: form.suffix?.trim() || undefined,
         email: form.email.trim(),
-        student_id: adviseesData?.next_student_id,
+        student_id: form.student_id?.trim(),
         program: form.program.trim(),
         department: form.department || adviseesData?.department || '',
       });
@@ -304,7 +307,12 @@ export default function FacultyAdviseesPage() {
                 <div className="form-grid">
                   <label className="form-field">
                     Student ID
-                    <input value={adviseesData?.next_student_id ?? ''} placeholder="STU-26-0001" readOnly required />
+                    <input
+                      value={form.student_id ?? ''}
+                      onChange={(event) => setForm({ ...form, student_id: event.target.value })}
+                      placeholder="TUPM-00-0000"
+                      required
+                    />
                   </label>
                   <label className="form-field">
                     Institutional Email
@@ -321,6 +329,27 @@ export default function FacultyAdviseesPage() {
                   <label className="form-field">
                     Last Name
                     <input value={form.last_name} onChange={(event) => setForm({ ...form, last_name: event.target.value })} placeholder="Dela Cruz" required />
+                  </label>
+                  <label className="form-field">
+                    Suffix
+                    <input value={form.suffix ?? ''} onChange={(event) => setForm({ ...form, suffix: event.target.value })} placeholder="Jr." />
+                  </label>
+                  <label className="form-field">
+                    Year Level
+                    <select value={String(form.year_level ?? 4)} onChange={(event) => setForm({ ...form, year_level: Number(event.target.value) })}>
+                      {yearLevelOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    Program
+                    <select value={form.program} onChange={(event) => setForm({ ...form, program: event.target.value })} required>
+                      <option value="">Select program</option>
+                      {programOptions.filter((option) => option !== 'All Programs').map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    Department
+                    <input value={form.department} readOnly required />
                   </label>
                   <label className="form-field">
                     Temporary Password
@@ -340,23 +369,6 @@ export default function FacultyAdviseesPage() {
                         Generate
                       </button>
                     </div>
-                  </label>
-                  <label className="form-field">
-                    Year Level
-                    <select value={String(form.year_level ?? 4)} onChange={(event) => setForm({ ...form, year_level: Number(event.target.value) })}>
-                      {yearLevelOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
-                  </label>
-                  <label className="form-field">
-                    Program
-                    <select value={form.program} onChange={(event) => setForm({ ...form, program: event.target.value })} required>
-                      <option value="">Select program</option>
-                      {programOptions.filter((option) => option !== 'All Programs').map((option) => <option key={option} value={option}>{option}</option>)}
-                    </select>
-                  </label>
-                  <label className="form-field">
-                    Department
-                    <input value={form.department} readOnly required />
                   </label>
                 </div>
 

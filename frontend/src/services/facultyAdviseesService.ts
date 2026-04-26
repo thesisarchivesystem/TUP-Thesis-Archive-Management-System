@@ -44,6 +44,7 @@ export interface FacultyAdviseesResponse {
 export interface StudentAccountPayload {
   first_name: string;
   last_name: string;
+  suffix?: string;
   email: string;
   temporary_password: string;
   student_id?: string;

@@ -207,6 +207,8 @@ type ChatMessage = {
   text: string;
 };
 
+const CHATBOT_GREETING = 'Hello! I am Archi, your Archive Assistant. Pleasure to answer your questions';
+
 function ChevronDownIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -305,9 +307,7 @@ export default function Homepage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { type: 'bot', text: 'Hi! I can help with thesis review, faculty workflows, and archive support questions.' },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const chatPanelRef = useRef<HTMLDivElement | null>(null);
   const chatFabRef = useRef<HTMLButtonElement | null>(null);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
@@ -632,10 +632,10 @@ export default function Homepage() {
         <div className="vpaa-ai-chatbot-header">
           <div className="vpaa-ai-chatbot-title">
             <div className="vpaa-ai-chatbot-avatar" aria-hidden="true">
-              <img src={tamsBot} alt="TAMS chatbot" />
+              <img src={tamsBot} alt="Archi chatbot" />
             </div>
             <div>
-              <h3>Archive Assistant</h3>
+              <h3>Archi - Archive Assistant</h3>
               <p>Ask about reviews, faculty workflows, and support.</p>
             </div>
           </div>
@@ -688,11 +688,16 @@ export default function Homepage() {
         ref={chatFabRef}
         type="button"
         className="vpaa-ai-chatbot-fab"
-        aria-label="Open AI chatbot"
+        aria-label="Open Archi chatbot"
         aria-expanded={isChatOpen}
-        onClick={() => setIsChatOpen((current) => !current)}
+        onClick={() => {
+          if (!isChatOpen) {
+            setMessages((current) => current.length ? current : [{ type: 'bot', text: CHATBOT_GREETING }]);
+          }
+          setIsChatOpen((current) => !current);
+        }}
       >
-        <img src={tamsBot} alt="TAMS chatbot" />
+        <img src={tamsBot} alt="Archi chatbot" />
       </button>
     </div>
   );

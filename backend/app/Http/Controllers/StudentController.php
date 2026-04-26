@@ -262,6 +262,7 @@ class StudentController extends Controller
         $request->validate([
             'first_name'         => 'required|string|max:255',
             'last_name'          => 'required|string|max:255',
+            'suffix'             => 'nullable|string|max:50',
             'email'              => 'required|email|unique:users',
             'temporary_password' => 'required|string|min:8',
             'student_id'         => 'nullable|string|unique:student_profiles',
@@ -278,7 +279,8 @@ class StudentController extends Controller
             $user = User::create([
                 'first_name' => $request->first_name,
                 'last_name'  => $request->last_name,
-                'name'      => trim($request->first_name . ' ' . $request->last_name),
+                'suffix'    => $request->input('suffix'),
+                'name'      => trim(implode(' ', array_filter([$request->first_name, $request->last_name, $request->input('suffix')]))),
                 'email'     => $request->email,
                 'password'  => Hash::make($request->temporary_password),
                 'role'      => 'student',
@@ -360,6 +362,7 @@ class StudentController extends Controller
         $request->validate([
             'first_name'         => 'required|string|max:255',
             'last_name'          => 'required|string|max:255',
+            'suffix'             => 'nullable|string|max:50',
             'email'              => 'required|email|unique:users,email,' . $user->id,
             'temporary_password' => 'nullable|string|min:8',
             'student_id'         => 'required|string|unique:student_profiles,student_id,' . $student->id,
@@ -372,7 +375,8 @@ class StudentController extends Controller
             $userPayload = [
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
-                'name' => trim($request->first_name . ' ' . $request->last_name),
+                'suffix' => $request->input('suffix'),
+                'name' => trim(implode(' ', array_filter([$request->first_name, $request->last_name, $request->input('suffix')]))),
                 'email' => $request->email,
             ];
 

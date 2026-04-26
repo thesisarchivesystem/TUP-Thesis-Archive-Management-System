@@ -18,6 +18,8 @@ type ChatMessage = {
   text: string;
 };
 
+const CHATBOT_GREETING = 'Hello! I am Archi, your Archive Assistant. Pleasure to answer your questions';
+
 const formatTime = (date: Date) =>
   date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
@@ -51,9 +53,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: 'bot-1', type: 'bot', text: 'Hi! I can help you find thesis collections, browse categories, or guide you to the right sign-in page.' },
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
@@ -347,8 +347,8 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
       <div className={`vpaa-ai-chatbot-panel ${chatOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
         <div className="vpaa-ai-chatbot-header">
           <div className="vpaa-ai-chatbot-title">
-            <div className="vpaa-ai-chatbot-avatar"><img src={tamsBot} alt="TAMS chatbot" /></div>
-            <div><h3>Archive Assistant</h3><p>Ask about theses, departments, and access.</p></div>
+            <div className="vpaa-ai-chatbot-avatar"><img src={tamsBot} alt="Archi chatbot" /></div>
+            <div><h3>Archi - Archive Assistant</h3><p>Ask about theses, departments, and access.</p></div>
           </div>
           <button type="button" className="vpaa-ai-chatbot-close" onClick={() => setChatOpen(false)} aria-label="Close AI chatbot">&times;</button>
         </div>
@@ -375,11 +375,14 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
         </div>
       </div>
 
-      <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open AI chatbot" onClick={(event) => {
+      <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open Archi chatbot" onClick={(event) => {
         event.stopPropagation();
+        if (!chatOpen) {
+          setChatMessages((current) => current.length ? current : [{ id: 'bot-1', type: 'bot', text: CHATBOT_GREETING }]);
+        }
         setChatOpen((current) => !current);
       }}>
-        <img src={tamsBot} alt="TAMS chatbot" />
+        <img src={tamsBot} alt="Archi chatbot" />
       </button>
     </div>
   );

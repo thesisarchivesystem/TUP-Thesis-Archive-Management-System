@@ -36,6 +36,8 @@ type ChatMessage = {
   text: string;
 };
 
+const CHATBOT_GREETING = 'Hello! I am Archi, your Archive Assistant. Pleasure to answer your questions';
+
 type Props = {
   title: React.ReactNode;
   description: string;
@@ -63,9 +65,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: 'bot-1', type: 'bot', text: 'Hi! I can help with thesis uploads, archive browsing, and student support questions.' },
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
@@ -384,8 +384,8 @@ export default function StudentLayout({ title, description, children, hidePageIn
       <div className={`vpaa-ai-chatbot-panel ${chatOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
         <div className="vpaa-ai-chatbot-header">
           <div className="vpaa-ai-chatbot-title">
-            <div className="vpaa-ai-chatbot-avatar"><img src={tamsBot} alt="TAMS chatbot" /></div>
-            <div><h3>Archive Assistant</h3><p>Ask about uploads, submissions, and archive access.</p></div>
+          <div className="vpaa-ai-chatbot-avatar"><img src={tamsBot} alt="Archi chatbot" /></div>
+            <div><h3>Archi - Archive Assistant</h3><p>Ask about uploads, submissions, and archive access.</p></div>
           </div>
           <button type="button" className="vpaa-ai-chatbot-close" onClick={() => setChatOpen(false)} aria-label="Close AI chatbot">&times;</button>
         </div>
@@ -412,11 +412,14 @@ export default function StudentLayout({ title, description, children, hidePageIn
         </div>
       </div>
 
-      <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open AI chatbot" onClick={(event) => {
+      <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open Archi chatbot" onClick={(event) => {
         event.stopPropagation();
+        if (!chatOpen) {
+          setChatMessages((current) => current.length ? current : [{ id: 'bot-1', type: 'bot', text: CHATBOT_GREETING }]);
+        }
         setChatOpen((current) => !current);
       }}>
-        <img src={tamsBot} alt="TAMS chatbot" />
+        <img src={tamsBot} alt="Archi chatbot" />
       </button>
     </div>
   );

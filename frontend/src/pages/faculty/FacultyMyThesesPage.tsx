@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpenText, Check, Clock3, FileText, PencilLine, ShieldCheck, Sparkles } from 'lucide-react';
+import { AlertCircle, BookOpenText, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine, ShieldCheck, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { facultyThesisService } from '../../services/facultyThesisService';
@@ -86,6 +86,12 @@ const buildProgressSteps = (item: Thesis) => {
     { label: 'Approved', tone: 'current' },
     { label: 'Archived', tone: 'pending' },
   ];
+};
+
+const getTimelineIcon = (tone: string) => {
+  if (tone === 'done') return <Check size={16} />;
+  if (tone === 'current') return <AlertCircle size={16} />;
+  return <span className="student-submission-timeline-node-dot" />;
 };
 
 type FilterKey = 'all' | 'approved' | 'under_review' | 'rejected' | 'draft';
@@ -339,22 +345,28 @@ export default function FacultyMyThesesPage() {
                     <div className="student-submission-list-head">
                       <div>
                         <h3>{item.title}</h3>
-                        <p>
-                          {item.status === 'draft'
+                        <div className="student-submission-meta-strip">
+                          <span><CalendarDays size={14} />{item.status === 'draft'
                             ? 'Draft saved'
                             : item.status === 'approved' && item.is_archived
                               ? 'Archived'
-                              : 'Submitted'} {formatSubmissionDate(item.archived_at || item.approved_at || item.submitted_at || item.created_at)}
-                        </p>
+                              : 'Submitted'} {formatSubmissionDate(item.archived_at || item.approved_at || item.submitted_at || item.created_at)}</span>
+                          <span><Clock3 size={14} />{item.revision_due_at ? `Due ${formatSubmissionDate(item.revision_due_at)}` : 'No due date set'}</span>
+                        </div>
                       </div>
                       <span className={getStatusBadgeClass(item.status)}>{getStatusLabel(item)}</span>
                     </div>
 
-                    <div className="student-submission-list-steps">
-                      {buildProgressSteps(item).map((step) => (
-                        <div key={step.label} className={`student-submission-list-step ${step.tone}`}>
-                          <span className="student-submission-list-step-dot" />
-                          <span>{step.label}</span>
+                    <div className="student-submission-timeline">
+                      {buildProgressSteps(item).map((step, index, steps) => (
+                        <div key={step.label} className={`student-submission-timeline-step ${step.tone}`}>
+                          <div className="student-submission-timeline-rail">
+                            <span className="student-submission-timeline-node">
+                              {getTimelineIcon(step.tone)}
+                            </span>
+                            {index < steps.length - 1 ? <span className="student-submission-timeline-line" /> : null}
+                          </div>
+                          <span className="student-submission-timeline-label">{step.label}</span>
                         </div>
                       ))}
                     </div>
@@ -365,6 +377,7 @@ export default function FacultyMyThesesPage() {
                         className="student-submissions-secondary"
                         onClick={() => handleViewDetails(item)}
                       >
+                        <CirclePlus size={15} />
                         View Details
                       </button>
 
@@ -375,6 +388,7 @@ export default function FacultyMyThesesPage() {
                             className="student-submissions-secondary"
                             onClick={() => handleEditDraft(item)}
                           >
+                            <PencilLine size={15} />
                             Edit Draft
                           </button>
                           <button
@@ -383,6 +397,7 @@ export default function FacultyMyThesesPage() {
                             onClick={() => void handleDeleteDraft(item)}
                             disabled={deletingId === item.id}
                           >
+                            <PencilLine size={15} />
                             {deletingId === item.id ? 'Deleting...' : 'Delete Draft'}
                           </button>
                         </>
@@ -395,6 +410,7 @@ export default function FacultyMyThesesPage() {
                           onClick={() => void handleDownloadManuscript(item)}
                           disabled={downloadingId === item.id}
                         >
+                          <CirclePlus size={15} />
                           {downloadingId === item.id ? 'Downloading...' : 'Download PDF'}
                         </button>
                       ) : null}
@@ -406,6 +422,7 @@ export default function FacultyMyThesesPage() {
                           onClick={() => void handleArchive(item)}
                           disabled={archivingId === item.id}
                         >
+                          <Check size={15} />
                           {archivingId === item.id ? 'Archiving...' : 'Archive Thesis'}
                         </button>
                       ) : null}
@@ -418,20 +435,20 @@ export default function FacultyMyThesesPage() {
             )}
           </section>
 
-          <aside className="student-submissions-side vpaa-card thesis-details-side-card submission-accent-panel">
-            <div className="student-submissions-summary-head thesis-details-side-head">
+          <aside className="student-submissions-side vpaa-card submission-accent-panel submissions-summary-panel">
+            <div className="student-submissions-summary-head submissions-summary-head">
               <div>
                 <h2>Submission Summary</h2>
                 <p>Snapshot of your faculty archive workflow</p>
               </div>
-              <div className="thesis-details-side-graphic" aria-hidden="true">
-                <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
-                <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
-                <div className="thesis-details-side-cloud">
-                  <div className="thesis-details-side-graphic-book">
+              <div className="submissions-summary-graphic" aria-hidden="true">
+                <Sparkles size={12} className="submissions-summary-spark submissions-summary-spark-left" />
+                <Sparkles size={10} className="submissions-summary-spark submissions-summary-spark-right" />
+                <div className="submissions-summary-cloud">
+                  <div className="submissions-summary-graphic-book">
                     <BookOpenText size={24} />
                   </div>
-                  <div className="thesis-details-side-shield">
+                  <div className="submissions-summary-shield">
                     <ShieldCheck size={16} />
                   </div>
                 </div>
