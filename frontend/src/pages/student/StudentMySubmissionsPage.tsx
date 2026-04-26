@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, BookOpenText, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine, ShieldCheck, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
+import { messageService } from '../../services/messageService';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis, ThesisStatus } from '../../types/thesis.types';
 
@@ -198,6 +199,28 @@ export default function StudentMySubmissionsPage() {
     }
   };
 
+  const handleMessageAdviser = async (item: Thesis) => {
+    const adviserId = item.adviser?.id || item.adviser_id;
+
+    if (!adviserId) {
+      setError('No adviser is assigned to this submission yet.');
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const response = await messageService.startConversation(adviserId);
+      const conversationId = response?.data?.id;
+
+      navigate('/student/messages', {
+        state: conversationId ? { conversationId } : undefined,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to open your adviser conversation right now.');
+    }
+  };
+
   const handleDeleteDraft = async (item: Thesis) => {
     if (item.status !== 'draft') {
       setError('Only draft submissions can be deleted.');
@@ -215,6 +238,28 @@ export default function StudentMySubmissionsPage() {
       setItems((current) => current.filter((entry) => entry.id !== item.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to delete the draft right now.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleWithdrawSubmission = async (item: Thesis) => {
+    if (item.status === 'approved') {
+      setError('Approved submissions cannot be withdrawn.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Withdraw "${item.title}"? This will delete the submission.`);
+    if (!confirmed) return;
+
+    setError(null);
+    setDeletingId(item.id);
+
+    try {
+      await thesisService.delete(item.id);
+      setItems((current) => current.filter((entry) => entry.id !== item.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to withdraw this submission right now.');
     } finally {
       setDeletingId(null);
     }
@@ -440,6 +485,35 @@ export default function StudentMySubmissionsPage() {
                             >
                               <PencilLine size={15} />
                               {deletingId === item.id ? 'Deleting...' : action}
+                            </button>
+                          );
+                        }
+
+                        if (action === 'Message Adviser') {
+                          return (
+                            <button
+                              key={action}
+                              type="button"
+                              className="student-submissions-secondary"
+                              onClick={() => void handleMessageAdviser(item)}
+                            >
+                              <CirclePlus size={15} />
+                              {action}
+                            </button>
+                          );
+                        }
+
+                        if (action === 'Withdraw') {
+                          return (
+                            <button
+                              key={action}
+                              type="button"
+                              className="student-submissions-secondary"
+                              onClick={() => void handleWithdrawSubmission(item)}
+                              disabled={deletingId === item.id}
+                            >
+                              <CirclePlus size={15} />
+                              {deletingId === item.id ? 'Withdrawing...' : action}
                             </button>
                           );
                         }

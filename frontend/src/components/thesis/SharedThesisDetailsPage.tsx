@@ -139,8 +139,6 @@ export default function SharedThesisDetailsPage({
                     <h2>{thesis.title}</h2>
                   </div>
 
-                  <p className="student-submission-authors">{authorLabel}</p>
-
                   <div className="student-submission-meta-row">
                     {metadata.map((item) => (
                       <span key={item}>{item}</span>

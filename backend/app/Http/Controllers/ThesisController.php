@@ -407,13 +407,13 @@ class ThesisController extends Controller
             return response()->json(['error' => 'You are not allowed to delete this thesis.'], 403);
         }
 
-        if ($thesis->status !== 'draft') {
-            return response()->json(['error' => 'Only draft submissions can be deleted.'], 403);
+        if ($thesis->status === 'approved') {
+            return response()->json(['error' => 'Approved submissions cannot be deleted.'], 403);
         }
 
         $thesis->delete();
 
-        return response()->json(['message' => 'Draft deleted successfully.']);
+        return response()->json(['message' => 'Submission deleted successfully.']);
     }
 
     public function recentlyViewed(Request $request): JsonResponse
