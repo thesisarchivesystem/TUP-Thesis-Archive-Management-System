@@ -13,6 +13,7 @@ const generateTemporaryPassword = () => {
 
 const EDIT_PANEL_CLOSE_DELAY = 280;
 const EDIT_PANEL_SHELL_CLOSE_DELAY = 180;
+const NEW_ACCOUNT_WINDOW_DAYS = 3;
 
 const initialForm: FacultyAccountPayload = {
   first_name: '',
@@ -38,6 +39,18 @@ const displayRoleLabel = (role: string) => {
 };
 
 const needsAssignedDean = (role: string) => role !== 'Dean';
+
+const isNewAccount = (createdAt?: string) => {
+  if (!createdAt) return false;
+
+  const createdDate = new Date(createdAt);
+  if (Number.isNaN(createdDate.getTime())) return false;
+
+  const now = new Date();
+  const ageInMs = now.getTime() - createdDate.getTime();
+
+  return ageInMs >= 0 && ageInMs <= NEW_ACCOUNT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+};
 
 const statusBadgeClass = (status: FacultyProfile['status']) => {
   if (status === 'active') return 'status-approved';
@@ -191,7 +204,7 @@ export default function VpaaAdviseesPage() {
         const matchesQuick = quickFilter === 'all'
           || (quickFilter === 'chairs' && member.faculty_role === 'Dean')
           || (quickFilter === 'changes' && false)
-          || (quickFilter === 'new' && new Date(member.user.created_at).getTime() >= Date.now() - (1000 * 60 * 60 * 24 * 30));
+          || (quickFilter === 'new' && isNewAccount(member.user.created_at));
 
         return matchesSearch && matchesRole && matchesStatus && matchesQuick;
       }),

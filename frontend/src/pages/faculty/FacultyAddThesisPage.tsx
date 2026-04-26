@@ -40,6 +40,7 @@ type UploadFieldErrors = Partial<Record<
 
 const MAX_CATEGORY_SELECTIONS = 5;
 const COMPUTER_STUDIES_PROGRAMS = ['BSCS', 'BSIT', 'BSIS'];
+const FIXED_SCHOOL_YEAR_OPTIONS = ['2022', '2023', '2024', '2025', '2026'];
 
 const normalizeProgramLabel = (program?: string | null) => {
   const normalized = (program ?? '').trim().toUpperCase();
@@ -111,6 +112,7 @@ export default function FacultyAddThesisPage() {
   const [draftId, setDraftId] = useState<string | null>(draftFromState?.id ?? null);
   const manuscriptInputRef = useRef<HTMLInputElement | null>(null);
   const supplementaryInputRef = useRef<HTMLInputElement | null>(null);
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
   const availableDepartments = departmentsByCollege[form.college] ?? [];
   const selectedAdviser = advisers.find((adviser) => adviser.id === form.adviserId) ?? null;
   const filteredAdvisers = advisers.filter((adviser) => {
@@ -142,15 +144,14 @@ export default function FacultyAddThesisPage() {
         const adviseePrograms = adviseesResponse.advisees
           .map((item) => normalizeProgramLabel(item.program))
           .filter(Boolean);
-        const yearsFromLibrary = libraryResponse.items.map((item) => item.school_year).filter(Boolean) as string[];
-        const fallbackYear = String(new Date().getFullYear());
+        const fallbackYear = '2026';
         const isComputerStudiesDepartment = (libraryResponse.department ?? '').trim().toLowerCase() === 'computer studies department';
         const preferredPrograms = isComputerStudiesDepartment ? COMPUTER_STUDIES_PROGRAMS : [];
 
         setAvailableColleges(libraryResponse.share_options?.colleges ?? []);
         setDepartmentsByCollege(libraryResponse.share_options?.departments_by_college ?? {});
         setProgramOptions(Array.from(new Set([...preferredPrograms, ...adviseePrograms, ...libraryPrograms])).sort());
-        setSchoolYearOptions(Array.from(new Set([fallbackYear, ...yearsFromLibrary])).sort().reverse());
+        setSchoolYearOptions(FIXED_SCHOOL_YEAR_OPTIONS);
         setForm((current) => ({
           ...current,
           college: current.college || libraryResponse.college || '',
@@ -161,7 +162,7 @@ export default function FacultyAddThesisPage() {
       })
       .catch(() => {
         if (!isMounted) return;
-        setSchoolYearOptions([String(new Date().getFullYear())]);
+        setSchoolYearOptions(FIXED_SCHOOL_YEAR_OPTIONS);
       });
 
     return () => {
@@ -237,6 +238,12 @@ export default function FacultyAddThesisPage() {
 
   useEffect(() => {
     if (!success && !error) return;
+
+    if (feedbackRef.current) {
+      feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [success, error]);
 
@@ -391,8 +398,10 @@ export default function FacultyAddThesisPage() {
       title="Add Thesis"
       description="Submit a thesis entry with complete metadata, abstract, and required documents for review."
     >
-      {error ? <div className="vpaa-banner-error">{error}</div> : null}
-      {success ? <div className="vpaa-banner-success">{success}</div> : null}
+      <div ref={feedbackRef}>
+        {error ? <div className="vpaa-banner-error">{error}</div> : null}
+        {success ? <div className="vpaa-banner-success">{success}</div> : null}
+      </div>
 
       <div className="student-upload-shell">
         <section className="student-upload-main vpaa-card">

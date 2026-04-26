@@ -32,6 +32,15 @@ const formatDate = (value?: string | null) => {
   });
 };
 
+const getInitials = (value: string) =>
+  value
+    .split(' ')
+    .map((part) => part.trim()[0] ?? '')
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
 export default function FacultySharedFileDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -77,7 +86,6 @@ export default function FacultySharedFileDetailsPage() {
     return file.authors?.filter(Boolean).join(', ') || file.author || 'Unknown author';
   }, [file]);
 
-  const keywords = file?.keywords?.filter(Boolean) ?? [];
   const metadata = [
     file?.department,
     file?.college,
@@ -107,28 +115,32 @@ export default function FacultySharedFileDetailsPage() {
           <div className="vpaa-card student-submission-details-loading">No shared file details were found.</div>
         ) : (
           <div className="student-submission-details-grid">
-            <section className="vpaa-card student-submission-hero-card">
-              <div className="student-submission-hero-top">
-                <div className="student-submission-cover">
+            <section className="vpaa-card student-submission-hero-card shared-file-hero-card">
+              <div className="student-submission-hero-top shared-file-hero-top">
+                <div className="student-submission-cover shared-file-cover">
                   <span className="student-submission-cover-meta">TUP Shared Archive</span>
                   <span className="student-submission-cover-meta">{file.department || 'Faculty Library'}</span>
                   <strong>{file.title}</strong>
                 </div>
 
-                <div className="student-submission-hero-copy">
+                <div className="student-submission-hero-copy shared-file-hero-copy">
                   <div className="student-submission-hero-title-row">
                     <h2>{file.title}</h2>
                   </div>
 
-                  <p className="student-submission-authors">{authorLabel}</p>
+                  <div className="shared-file-author-inline">
+                    <span className="shared-file-author-avatar">{getInitials(authorLabel)}</span>
+                    <p className="student-submission-authors shared-file-author-name">{authorLabel}</p>
+                  </div>
 
-                  <div className="student-submission-meta-row">
+                  <div className="student-submission-meta-row shared-file-meta-row">
                     {metadata.map((item) => (
                       <span key={item}>{item}</span>
                     ))}
                     <span>{file.is_draft ? 'Draft file' : file.type || 'Shared file'}</span>
-                    <span>Updated {formatDate(file.shared_at || file.created_at)}</span>
                   </div>
+
+                  <div className="shared-file-updated-row">Updated {formatDate(file.shared_at || file.created_at)}</div>
 
                   {file.is_draft ? (
                     <div className="shared-file-draft-actions">
@@ -161,22 +173,16 @@ export default function FacultySharedFileDetailsPage() {
                 </div>
               </div>
 
-              <div className="student-submission-summary">
+              <div className="student-submission-summary shared-file-summary-row">
                 <strong>Abstract</strong>
                 <p>{file.abstract || 'No abstract or notes provided for this file.'}</p>
               </div>
 
-              <div className="student-submission-summary">
+              <div className="student-submission-summary shared-file-summary-row shared-file-author-row">
                 <strong>Authors</strong>
-                <p>{authorLabel}</p>
-              </div>
-
-              <div className="student-submission-summary">
-                <strong>Keywords</strong>
-                <div className="faculty-submission-keywords">
-                  {keywords.length ? keywords.map((keyword) => (
-                    <span key={keyword}>{keyword}</span>
-                  )) : <span>No keywords provided</span>}
+                <div className="shared-file-author-chip">
+                  <span className="shared-file-author-avatar">{getInitials(authorLabel)}</span>
+                  <span>{authorLabel}</span>
                 </div>
               </div>
             </section>
