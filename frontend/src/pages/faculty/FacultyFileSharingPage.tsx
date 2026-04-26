@@ -359,24 +359,25 @@ export default function FacultyFileSharingPage() {
                 key={item.id}
                 to={`/faculty/students/${encodeURIComponent(item.id)}`}
                 state={{ file: item }}
-                className="min-w-0 rounded-[18px] border border-[var(--border)] bg-[var(--bg-card)] p-3.5 shadow-[var(--shadow-sm)] transition-transform duration-200 hover:-translate-y-1"
+                className="faculty-shared-file-card"
               >
-                <div className="flex h-[150px] flex-col justify-between rounded-[14px] bg-[linear-gradient(180deg,#8b2332_0%,#6f1e2a_100%)] p-3.5 text-white shadow-[var(--shadow-md)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/70">{item.department || 'Faculty Library'}</div>
-                    <span className="rounded-full bg-white/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]">
+                <div className="faculty-shared-file-cover">
+                  <div className="faculty-shared-file-cover-top">
+                    <div className="faculty-shared-file-cover-meta">{item.department || 'Faculty Library'}</div>
+                    <span className="faculty-shared-file-type-chip">
                       {item.is_draft ? 'Draft' : item.type}
                     </span>
                   </div>
-                  <h3 className="mb-0 text-lg leading-tight" style={{ fontFamily: 'DM Serif Display, serif' }}>{item.title}</h3>
+                  <h3 className="faculty-shared-file-cover-title">{truncateTitle(item.title, 18)}</h3>
                 </div>
-                <div className="space-y-2 px-1 pt-3">
-                  <div className="truncate text-base font-semibold text-text-primary">{truncateTitle(item.title)}</div>
-                  <div className="text-sm text-text-secondary">{item.author || 'Unknown author'}</div>
-                  <div className="text-xs text-text-secondary">{item.share_scope_label}</div>
-                  {item.shared_with_count ? <div className="text-xs text-text-secondary">Recipients: {item.shared_with_count}</div> : null}
-                  <div className="text-xs text-text-secondary">
-                    {item.file_name || 'No file attached'}
+                <div className="faculty-shared-file-body">
+                  <div className="faculty-shared-file-record-title">{truncateTitle(item.title, 22)}</div>
+                  <div className="faculty-shared-file-detail-row">{item.author || 'Unknown author'}</div>
+                  <div className="faculty-shared-file-detail-row">{item.department || 'No department assigned'}</div>
+                  <div className="faculty-shared-file-divider" />
+                  <div className="faculty-shared-file-attachment-chip">
+                    <Paperclip size={14} />
+                    <span>{item.file_name || 'No file attached'}</span>
                   </div>
                 </div>
               </Link>
