@@ -137,42 +137,54 @@ class User extends Authenticatable
             $senderName = (string) config('mail.from.name', 'Example');
             $brevoBaseUrl = rtrim((string) config('services.brevo.base_url', 'https://api.brevo.com/v3'), '/');
 
-            $response = Http::acceptJson()
-                ->withHeaders([
-                    'api-key' => $brevoApiKey,
-                ])
-                ->post($brevoBaseUrl.'/smtp/email', [
-                    'sender' => [
-                        'name' => $senderName,
-                        'email' => $senderEmail,
-                    ],
-                    'to' => [[
-                        'email' => (string) $this->email,
-                        'name' => (string) $this->name,
-                    ]],
-                    'subject' => 'Reset Your Thesis Archive Password',
-                    'htmlContent' => '<p>Hello '.e((string) $this->name).',</p>'
-                        .'<p>We received a request to reset the password for your Thesis Archive account.</p>'
-                        .'<p><a href="'.e($resetUrl).'">Reset Password</a></p>'
-                        .'<p>This password reset link will expire in 60 minutes.</p>'
-                        .'<p>If you did not request a password reset, no further action is needed.</p>',
-                    'textContent' => "Hello {$this->name},\n\n"
-                        ."We received a request to reset the password for your Thesis Archive account.\n"
-                        ."Reset Password: {$resetUrl}\n\n"
-                        .'This password reset link will expire in 60 minutes.\n'
-                        .'If you did not request a password reset, no further action is needed.',
-                ]);
+            try {
+                $response = Http::acceptJson()
+                    ->timeout(15)
+                    ->withHeaders([
+                        'api-key' => $brevoApiKey,
+                    ])
+                    ->post($brevoBaseUrl.'/smtp/email', [
+                        'sender' => [
+                            'name' => $senderName,
+                            'email' => $senderEmail,
+                        ],
+                        'to' => [[
+                            'email' => (string) $this->email,
+                            'name' => (string) $this->name,
+                        ]],
+                        'subject' => 'Reset Your Thesis Archive Password',
+                        'htmlContent' => '<p>Hello '.e((string) $this->name).',</p>'
+                            .'<p>We received a request to reset the password for your Thesis Archive account.</p>'
+                            .'<p><a href="'.e($resetUrl).'">Reset Password</a></p>'
+                            .'<p>This password reset link will expire in 60 minutes.</p>'
+                            .'<p>If you did not request a password reset, no further action is needed.</p>',
+                        'textContent' => "Hello {$this->name},\n\n"
+                            ."We received a request to reset the password for your Thesis Archive account.\n"
+                            ."Reset Password: {$resetUrl}\n\n"
+                            .'This password reset link will expire in 60 minutes.\n'
+                            .'If you did not request a password reset, no further action is needed.',
+                    ]);
 
-            if ($response->successful()) {
-                return;
+                if ($response->successful()) {
+                    return;
+                }
+
+                Log::error('Brevo password reset send failed.', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'user_id' => $this->id,
+                    'email' => $this->email,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Brevo password reset send exception.', [
+                    'message' => $e->getMessage(),
+                    'user_id' => $this->id,
+                    'email' => $this->email,
+                ]);
             }
 
-            Log::error('Brevo password reset send failed.', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-                'user_id' => $this->id,
-                'email' => $this->email,
-            ]);
+            // Avoid falling back to SMTP in production, since SMTP connectivity is timing out.
+            return;
         }
 
         $this->notify(new ResetPasswordNotification($token));
