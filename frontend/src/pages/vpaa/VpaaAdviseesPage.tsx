@@ -81,8 +81,7 @@ export default function VpaaAdviseesPage() {
   const [editSuccess, setEditSuccess] = useState('');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [quickFilter, setQuickFilter] = useState<'all' | 'chairs' | 'changes' | 'new'>('all');
+  const [quickFilter, setQuickFilter] = useState<'all' | 'changes' | 'new'>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -200,15 +199,13 @@ export default function VpaaAdviseesPage() {
         ].join(' ').toLowerCase().includes(search.trim().toLowerCase());
 
         const matchesRole = roleFilter === 'all' || member.faculty_role === roleFilter;
-        const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
         const matchesQuick = quickFilter === 'all'
-          || (quickFilter === 'chairs' && member.faculty_role === 'Dean')
           || (quickFilter === 'changes' && false)
           || (quickFilter === 'new' && isNewAccount(member.user.created_at));
 
-        return matchesSearch && matchesRole && matchesStatus && matchesQuick;
+        return matchesSearch && matchesRole && matchesQuick;
       }),
-    [faculty, quickFilter, roleFilter, search, statusFilter],
+    [faculty, quickFilter, roleFilter, search],
   );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -425,27 +422,20 @@ export default function VpaaAdviseesPage() {
 
         <div className={`vpaa-collapsible${directoryOpen ? ' open' : ''}`}>
           <div className="vpaa-collapsible-body">
-            <div className="filter-row">
-              <div className="filter-group">
-                <input className="filter-input" type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search faculty, ID, or role..." />
-                <select className="filter-select" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
+            <div className="filter-row faculty-directory-filter-row">
+              <div className="filter-group faculty-directory-filter-group">
+                <input className="filter-input faculty-directory-filter-input" type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search faculty, ID, or role..." />
+                <select className="filter-select faculty-directory-filter-select" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
                   <option value="all">All Roles</option>
                   <option value="Dean">Dean</option>
                   <option value="Adviser">Adviser</option>
                   <option value="Co-Adviser">Co-Adviser</option>
                 </select>
-                <select className="filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Access Review</option>
-                  <option value="on_leave">On Leave</option>
-                </select>
               </div>
-              <div className="filter-chips">
-                <button type="button" className={`chip${quickFilter === 'all' ? ' active' : ''}`} onClick={() => setQuickFilter('all')}>All</button>
-                <button type="button" className={`chip${quickFilter === 'chairs' ? ' active' : ''}`} onClick={() => setQuickFilter('chairs')}>Deans</button>
-                <button type="button" className={`chip${quickFilter === 'changes' ? ' active' : ''}`} onClick={() => setQuickFilter('changes')}>Role Changes</button>
-                <button type="button" className={`chip${quickFilter === 'new' ? ' active' : ''}`} onClick={() => setQuickFilter('new')}>New Accounts</button>
+              <div className="filter-chips faculty-directory-filter-chips">
+                <button type="button" className={`chip faculty-directory-chip${quickFilter === 'all' ? ' active' : ''}`} onClick={() => setQuickFilter('all')}>All</button>
+                <button type="button" className={`chip faculty-directory-chip${quickFilter === 'changes' ? ' active' : ''}`} onClick={() => setQuickFilter('changes')}>Role Changes</button>
+                <button type="button" className={`chip faculty-directory-chip${quickFilter === 'new' ? ' active' : ''}`} onClick={() => setQuickFilter('new')}>New Accounts</button>
               </div>
             </div>
 

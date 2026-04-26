@@ -4,6 +4,19 @@ import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
 
+const PROGRAM_OPTIONS = ['All Programs', 'BSCS', 'BSIT', 'BSIS'] as const;
+
+const normalizeProgram = (value?: string | null) => {
+  const normalized = (value ?? '').trim().toUpperCase();
+
+  if (!normalized) return '';
+  if (normalized === 'BSCS' || normalized.includes('COMPUTER SCIENCE')) return 'BSCS';
+  if (normalized === 'BSIT' || normalized.includes('INFORMATION TECHNOLOGY')) return 'BSIT';
+  if (normalized === 'BSIS' || normalized.includes('INFORMATION SYSTEM')) return 'BSIS';
+
+  return normalized;
+};
+
 const formatRelativeSync = (value?: string) => {
   if (!value) return 'No sync yet';
   const timestamp = new Date(value).getTime();
@@ -21,13 +34,8 @@ const formatApprovedDate = (value?: string) => {
 };
 
 const getProgramBadge = (program?: string | null) => {
-  if (!program) return 'GEN';
-  return program
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase())
-    .join('')
-    .slice(0, 3);
+  const normalized = normalizeProgram(program);
+  return normalized || 'GEN';
 };
 
 export default function FacultyApprovedThesesPage() {
@@ -37,7 +45,6 @@ export default function FacultyApprovedThesesPage() {
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [programFilter, setProgramFilter] = useState('All Programs');
-  const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [tagFilter, setTagFilter] = useState<'All' | 'This Month'>('All');
   const [archivingId, setArchivingId] = useState<string | null>(null);
 
@@ -115,15 +122,7 @@ export default function FacultyApprovedThesesPage() {
     };
   }, []);
 
-  const programs = useMemo(
-    () => ['All Programs', ...Array.from(new Set(theses.map((item) => item.program).filter(Boolean) as string[]))],
-    [theses],
-  );
-
-  const departments = useMemo(
-    () => ['All Departments', ...Array.from(new Set(theses.map((item) => item.department).filter(Boolean)))],
-    [theses],
-  );
+  const programs = PROGRAM_OPTIONS;
 
   const filteredTheses = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -132,14 +131,13 @@ export default function FacultyApprovedThesesPage() {
     return theses.filter((thesis) => {
       const matchesSearch = !normalizedSearch || [
         thesis.title,
-        thesis.program,
-        thesis.department,
+        normalizeProgram(thesis.program),
         thesis.submitter?.name,
         thesis.authors?.join(', '),
+        thesis.adviser?.name,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(normalizedSearch));
 
-      const matchesProgram = programFilter === 'All Programs' || thesis.program === programFilter;
-      const matchesDepartment = departmentFilter === 'All Departments' || thesis.department === departmentFilter;
+      const matchesProgram = programFilter === 'All Programs' || normalizeProgram(thesis.program) === programFilter;
 
       const matchesTag = (() => {
         if (tagFilter === 'All') return true;
@@ -148,9 +146,9 @@ export default function FacultyApprovedThesesPage() {
         return approvedDate.getMonth() === now.getMonth() && approvedDate.getFullYear() === now.getFullYear();
       })();
 
-      return matchesSearch && matchesProgram && matchesDepartment && matchesTag;
+      return matchesSearch && matchesProgram && matchesTag;
     });
-  }, [departmentFilter, programFilter, searchTerm, tagFilter, theses]);
+  }, [programFilter, searchTerm, tagFilter, theses]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -224,36 +222,29 @@ export default function FacultyApprovedThesesPage() {
             </div>
           </div>
 
-          <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="grid gap-3 md:grid-cols-3 xl:w-[58%]">
+          <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between faculty-directory-filter-row">
+            <div className="grid gap-3 md:grid-cols-2 xl:w-[48%] faculty-directory-filter-group">
               <input
-                className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                className="w-full faculty-directory-filter-input"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search title, author, program..."
               />
               <select
-                className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                className="w-full faculty-directory-filter-select"
                 value={programFilter}
                 onChange={(event) => setProgramFilter(event.target.value)}
               >
                 {programs.map((program) => <option key={program} value={program}>{program}</option>)}
               </select>
-              <select
-                className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                value={departmentFilter}
-                onChange={(event) => setDepartmentFilter(event.target.value)}
-              >
-                {departments.map((department) => <option key={department} value={department}>{department}</option>)}
-              </select>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 faculty-directory-filter-chips">
               {(['All', 'This Month'] as const).map((filter) => (
                 <button
                   key={filter}
                   type="button"
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold ${tagFilter === filter ? 'border-[var(--maroon)] bg-[rgba(139,35,50,0.06)] text-[var(--maroon)]' : 'border-[var(--border)] bg-white text-text-secondary'}`}
+                  className={`chip faculty-directory-chip${tagFilter === filter ? ' active' : ''}`}
                   onClick={() => setTagFilter(filter)}
                 >
                   {filter}
@@ -266,12 +257,12 @@ export default function FacultyApprovedThesesPage() {
             <table className="vpaa-table">
               <thead>
                 <tr>
-                  <th>Thesis Title</th>
-                  <th>Author</th>
-                  <th>Program</th>
-                  <th>Approved By</th>
-                  <th>Date Approved</th>
-                  <th>Status</th>
+                  <th style={{ textAlign: 'center' }}>Thesis Title</th>
+                  <th style={{ textAlign: 'center' }}>Author</th>
+                  <th style={{ textAlign: 'center' }}>Program</th>
+                  <th style={{ textAlign: 'center' }}>Approved By</th>
+                  <th style={{ textAlign: 'center' }}>Date Approved</th>
+                  <th style={{ textAlign: 'center' }}>Status</th>
                   <th style={{ textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
@@ -305,10 +296,10 @@ export default function FacultyApprovedThesesPage() {
                       </span>
                     </td>
                     <td className="text-center">
-                      <div className={`mx-auto grid min-w-[280px] max-w-[320px] gap-2.5 ${thesis.is_archived ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                      <div className={`mx-auto grid min-w-[220px] max-w-[260px] gap-2 ${thesis.is_archived ? 'grid-cols-1' : 'grid-cols-2'}`}>
                         <button
                           type="button"
-                          className="inline-flex min-h-[44px] w-full items-center justify-center whitespace-nowrap rounded-xl bg-[var(--maroon)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(139,35,50,0.16)] transition hover:-translate-y-[1px] hover:shadow-[0_14px_28px_rgba(139,35,50,0.2)]"
+                          className="inline-flex min-h-[38px] w-full items-center justify-center whitespace-nowrap rounded-xl bg-[var(--maroon)] px-3 py-2 text-xs font-semibold text-white shadow-[0_10px_24px_rgba(139,35,50,0.16)] transition hover:-translate-y-[1px] hover:shadow-[0_14px_28px_rgba(139,35,50,0.2)]"
                           onClick={() => void handleOpenManuscript(thesis)}
                         >
                           View Manuscript
@@ -316,7 +307,7 @@ export default function FacultyApprovedThesesPage() {
                         {!thesis.is_archived ? (
                           <button
                             type="button"
-                            className="inline-flex min-h-[44px] w-full items-center justify-center whitespace-nowrap rounded-xl border border-[var(--maroon)] bg-[rgba(139,35,50,0.04)] px-4 py-2.5 text-sm font-semibold text-[var(--maroon)] transition hover:-translate-y-[1px] hover:bg-[rgba(139,35,50,0.08)]"
+                            className="inline-flex min-h-[38px] w-full items-center justify-center whitespace-nowrap rounded-xl border border-[var(--maroon)] bg-[rgba(139,35,50,0.04)] px-3 py-2 text-xs font-semibold text-[var(--maroon)] transition hover:-translate-y-[1px] hover:bg-[rgba(139,35,50,0.08)]"
                             onClick={() => void handleArchiveThesis(thesis)}
                             disabled={archivingId === thesis.id}
                           >
