@@ -67,4 +67,12 @@ export const searchService = {
     const { data } = await api.get<SearchResponse>('/search', { params: { q: query } });
     return data;
   },
+
+  async trackClick(thesisId: string, query: string) {
+    const { data } = await api.post('/search/click', {
+      thesis_id: thesisId,
+      query,
+    });
+    return data;
+  },
 };

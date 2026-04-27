@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, FilePlus2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import StudentLayout from '../../components/student/StudentLayout';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
@@ -12,15 +12,20 @@ import {
 } from '../../services/studentDashboardService';
 
 export default function StudentDashboard() {
-  const DISPLAY_LIMIT = 10;
+  const DISPLAY_LIMIT = 12;
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [recentTheses, setRecentTheses] = useState<StudentDashboardThesis[]>([]);
   const [topSearches, setTopSearches] = useState<StudentDashboardThesis[]>([]);
   const [quote, setQuote] = useState<StudentDailyQuote | null>(null);
-  const [recentlyAddedExpanded, setRecentlyAddedExpanded] = useState(false);
-  const [topSearchesExpanded, setTopSearchesExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const sortDashboardTheses = (items: StudentDashboardThesis[]) => [...items].sort((left, right) => {
+    const leftTime = new Date(left.archived_at || left.updated_at || left.approved_at || left.created_at || 0).getTime();
+    const rightTime = new Date(right.archived_at || right.updated_at || right.approved_at || right.created_at || 0).getTime();
+    return rightTime - leftTime;
+  });
 
   useEffect(() => {
     if (user?.role !== 'student') return;
@@ -30,7 +35,7 @@ export default function StudentDashboard() {
 
     void studentDashboardService.getDashboard()
       .then((dashboardResponse) => {
-        setRecentTheses(dashboardResponse.recent_theses ?? []);
+        setRecentTheses(sortDashboardTheses(dashboardResponse.recent_theses ?? []));
         setTopSearches(dashboardResponse.top_searches ?? []);
         setQuote(dashboardResponse.daily_quote ?? null);
       })
@@ -48,12 +53,16 @@ export default function StudentDashboard() {
 
   const recentCards = useMemo(() => recentTheses.slice(0, 4), [recentTheses]);
   const recentlyAddedCards = useMemo(
-    () => (recentlyAddedExpanded ? recentTheses : recentTheses.slice(0, DISPLAY_LIMIT)),
-    [recentTheses, recentlyAddedExpanded, DISPLAY_LIMIT],
+    () => recentTheses.slice(0, DISPLAY_LIMIT),
+    [recentTheses, DISPLAY_LIMIT],
   );
   const topSearchCards = useMemo(
-    () => (topSearchesExpanded ? topSearches : topSearches.slice(0, DISPLAY_LIMIT)),
-    [topSearches, topSearchesExpanded, DISPLAY_LIMIT],
+    () => topSearches.slice(0, DISPLAY_LIMIT),
+    [topSearches, DISPLAY_LIMIT],
+  );
+  const allCards = useMemo(
+    () => [...recentTheses].sort((left, right) => left.title.localeCompare(right.title, undefined, { sensitivity: 'base' })).slice(0, DISPLAY_LIMIT),
+    [recentTheses, DISPLAY_LIMIT],
   );
   const firstName = user?.first_name || user?.name?.split(' ')[0] || 'Student';
   const thesisHref = (item: StudentDashboardThesis) => `/student/theses/${encodeURIComponent(item.id)}`;
@@ -199,9 +208,9 @@ export default function StudentDashboard() {
                 <button
                   type="button"
                   className="vpaa-dashboard-toggle"
-                  onClick={() => setRecentlyAddedExpanded((current) => !current)}
+                  onClick={() => navigate('/student/dashboard/recently-added')}
                 >
-                  {recentlyAddedExpanded ? 'Show Less' : 'Show All'}
+                  View All
                 </button>
               ) : null}
             </div>
@@ -222,9 +231,9 @@ export default function StudentDashboard() {
                 <button
                   type="button"
                   className="vpaa-dashboard-toggle"
-                  onClick={() => setTopSearchesExpanded((current) => !current)}
+                  onClick={() => navigate('/student/dashboard/top-searches')}
                 >
-                  {topSearchesExpanded ? 'Show Less' : 'Show All'}
+                  View All
                 </button>
               ) : null}
             </div>
@@ -235,6 +244,29 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <div className="vpaa-dashboard-empty">No top searches are available yet.</div>
+            )}
+          </div>
+
+          <div className="vpaa-card vpaa-dashboard-panel">
+            <div className="vpaa-dashboard-head">
+              <h3><FilePlus2 size={16} /> All</h3>
+              {recentTheses.length > DISPLAY_LIMIT ? (
+                <button
+                  type="button"
+                  className="vpaa-dashboard-toggle"
+                  onClick={() => navigate('/student/dashboard/all')}
+                >
+                  View All
+                </button>
+              ) : null}
+            </div>
+
+            {allCards.length ? (
+              <div className="recent-added-grid">
+                {allCards.map(renderRecentlyAddedCard)}
+              </div>
+            ) : (
+              <div className="vpaa-dashboard-empty">No archived theses are available yet.</div>
             )}
           </div>
         </>

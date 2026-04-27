@@ -17,6 +17,11 @@ class SearchLog extends Model
         'query',
         'result_rank',
         'results_count',
+        'clicked_at',
+    ];
+
+    protected $casts = [
+        'clicked_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
