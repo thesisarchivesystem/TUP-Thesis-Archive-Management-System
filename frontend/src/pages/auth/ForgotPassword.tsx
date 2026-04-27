@@ -1,12 +1,10 @@
-import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MoonStar, SunMedium } from 'lucide-react';
 import BrandMarkIcon from '../../components/BrandMarkIcon';
 import { useTheme } from '../../hooks/useTheme';
 import { authService } from '../../services/authService';
 import tupBuilding from '../../assets/tup-building.gif';
-
-type AccountRole = 'student' | 'faculty' | 'vpaa';
 
 function LogoIcon() {
   return <BrandMarkIcon />;
@@ -25,14 +23,6 @@ function MailIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="5" width="18" height="14" rx="2" />
       <path d="m3 7 9 6 9-6" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
     </svg>
   );
 }
@@ -56,8 +46,9 @@ function ForgotPasswordStyles() {
         --gold: #c9963a;
         --sky: #4a8fb5;
         --transition-speed: 0.35s;
-        min-height: 100vh;
+        height: 100vh;
         display: flex;
+        overflow: hidden;
         font-family: 'Plus Jakarta Sans', sans-serif;
         -webkit-font-smoothing: antialiased;
         background: var(--bg-primary);
@@ -122,10 +113,10 @@ function ForgotPasswordStyles() {
         flex: 1;
         position: relative;
         overflow: hidden;
+        height: 100vh;
         display: flex;
         align-items: flex-end;
-        padding: 48px;
-        min-height: 100vh;
+        padding: clamp(24px, 2.5vw, 34px);
       }
 
       .forgot-showcase-bg {
@@ -145,16 +136,16 @@ function ForgotPasswordStyles() {
       }
 
       .forgot-showcase-content,
-      .forgot-panel-inner {
+      .forgot-panel-inner,
+      .forgot-role-chip {
         position: relative;
         z-index: 1;
       }
 
       .forgot-showcase-content {
-        max-width: 500px;
+        max-width: 440px;
       }
 
-      .forgot-kicker,
       .forgot-role-chip {
         display: inline-flex;
         align-items: center;
@@ -167,12 +158,31 @@ function ForgotPasswordStyles() {
         text-transform: uppercase;
       }
 
+      .forgot-logo-text,
+      .forgot-header h1 {
+        font-family: 'DM Serif Display', serif;
+      }
+
+      .forgot-showcase h2,
+      .forgot-showcase-number {
+        font-family: 'DM Serif Display', serif;
+      }
+
       .forgot-kicker {
-        margin-bottom: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
         background: rgba(139, 35, 50, 0.15);
         border: 1px solid rgba(139, 35, 50, 0.2);
         color: var(--maroon);
         backdrop-filter: blur(8px);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       .forgot-kicker-dot {
@@ -182,16 +192,9 @@ function ForgotPasswordStyles() {
         background: currentColor;
       }
 
-      .forgot-showcase h2,
-      .forgot-logo-text,
-      .forgot-header h1,
-      .forgot-showcase-number {
-        font-family: 'DM Serif Display', serif;
-      }
-
       .forgot-showcase h2 {
-        margin: 0 0 12px;
-        font-size: 38px;
+        margin: 0 0 10px;
+        font-size: clamp(32px, 2.7vw, 38px);
         line-height: 1.1;
         color: var(--text-primary);
       }
@@ -202,22 +205,22 @@ function ForgotPasswordStyles() {
       }
 
       .forgot-showcase p {
-        margin: 0 0 28px;
-        font-size: 14px;
-        line-height: 1.7;
+        margin: 0 0 22px;
+        font-size: 13px;
+        line-height: 1.65;
         color: var(--text-secondary);
       }
 
       .forgot-showcase-stats {
         display: flex;
-        gap: 32px;
-        padding-top: 20px;
+        gap: 24px;
+        padding-top: 14px;
         border-top: 1px solid var(--border);
       }
 
       .forgot-showcase-number {
         margin-bottom: 3px;
-        font-size: 26px;
+        font-size: 24px;
         line-height: 1;
         color: var(--text-primary);
       }
@@ -233,9 +236,9 @@ function ForgotPasswordStyles() {
       }
 
       .forgot-panel {
-        width: 520px;
-        min-height: 100vh;
-        padding: 48px 56px;
+        width: 470px;
+        height: 100vh;
+        padding: 30px 44px 24px;
         background: var(--panel-bg);
         border-left: 1px solid var(--border);
         backdrop-filter: blur(30px);
@@ -244,16 +247,19 @@ function ForgotPasswordStyles() {
         align-items: center;
       }
 
-      .forgot-panel-inner { width: 100%; }
+      .forgot-panel-inner {
+        width: 100%;
+        max-height: 100%;
+      }
 
       .forgot-theme-toggle {
         position: absolute;
-        top: 28px;
-        right: 28px;
-        width: 40px;
-        height: 40px;
+        top: 20px;
+        right: 26px;
+        width: 44px;
+        height: 44px;
         border: 1.5px solid var(--border-hover);
-        border-radius: 10px;
+        border-radius: 14px;
         background: var(--bg-card);
         display: flex;
         align-items: center;
@@ -284,7 +290,7 @@ function ForgotPasswordStyles() {
         align-items: center;
         gap: 6px;
         font-size: 13px;
-        margin-bottom: 36px;
+        margin-bottom: 20px;
         color: var(--text-tertiary);
       }
 
@@ -300,40 +306,40 @@ function ForgotPasswordStyles() {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-bottom: 8px;
+        margin-bottom: 14px;
       }
 
       .forgot-logo-icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
         background: var(--maroon);
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
-      .forgot-logo-icon svg { width: 22px; height: 22px; fill: white; color: white; }
-      .forgot-logo-text { font-size: 18px; color: var(--text-primary); }
+      .forgot-logo-icon svg { width: 20px; height: 20px; fill: white; color: white; }
+      .forgot-logo-text { font-size: 17px; color: var(--text-primary); }
       .forgot-logo-text span { color: var(--maroon); }
 
-      .forgot-header { margin-bottom: 26px; }
+      .forgot-header { margin-bottom: 16px; }
 
       .forgot-header h1 {
-        margin: 20px 0 10px;
-        font-size: 30px;
+        margin: 0 0 8px;
+        font-size: clamp(28px, 2.2vw, 30px);
         color: var(--text-primary);
       }
 
       .forgot-header p {
         margin: 0;
-        font-size: 14px;
-        line-height: 1.65;
+        font-size: 13px;
+        line-height: 1.6;
         color: var(--text-secondary);
       }
 
       .forgot-role-chip {
-        margin-top: 14px;
+        margin-top: 10px;
         background: rgba(74, 143, 181, 0.08);
         color: var(--sky);
       }
@@ -348,17 +354,11 @@ function ForgotPasswordStyles() {
       .forgot-note,
       .forgot-success,
       .forgot-error {
-        margin-bottom: 18px;
-        padding: 14px 16px;
-        border-radius: 14px;
-        font-size: 13px;
+        margin-bottom: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 12px;
         line-height: 1.6;
-      }
-
-      .forgot-note {
-        background: var(--note-bg);
-        border: 1px solid var(--note-border);
-        color: var(--note-text);
       }
 
       .forgot-success {
@@ -388,17 +388,17 @@ function ForgotPasswordStyles() {
       .forgot-form {
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 14px;
       }
 
       .forgot-form-group {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
       }
 
       .forgot-form-label {
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 600;
         color: var(--text-secondary);
       }
@@ -411,57 +411,48 @@ function ForgotPasswordStyles() {
 
       .forgot-input-icon {
         position: absolute;
-        left: 14px;
+        left: 13px;
         color: var(--text-tertiary);
         pointer-events: none;
       }
 
-      .forgot-input,
-      .forgot-select {
+      .forgot-input {
         width: 100%;
-        border-radius: 12px;
+        border-radius: 16px;
         border: 1.5px solid var(--input-border);
         background: var(--input-bg);
         color: var(--text-primary);
         outline: none;
         transition: all 0.25s ease;
-      }
-
-      .forgot-input {
-        padding: 13px 14px 13px 42px;
-      }
-
-      .forgot-select {
-        padding: 13px 14px;
-        appearance: none;
+        padding: 13px 16px 13px 44px;
+        font-size: 14px;
       }
 
       .forgot-input::placeholder { color: var(--input-placeholder); }
 
-      .forgot-input:focus,
-      .forgot-select:focus {
+      .forgot-input:focus {
         border-color: var(--maroon);
         box-shadow: 0 0 0 3px var(--input-focus);
       }
 
       .forgot-hint {
         font-size: 12px;
-        line-height: 1.6;
+        line-height: 1.55;
         color: var(--text-tertiary);
       }
 
       .forgot-submit {
         width: 100%;
-        margin-top: 4px;
+        margin-top: 12px;
         padding: 14px;
-        border-radius: 12px;
+        border-radius: 14px;
         background: var(--maroon);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 700;
         box-shadow: 0 4px 16px rgba(139, 35, 50, 0.25);
       }
@@ -483,17 +474,57 @@ function ForgotPasswordStyles() {
       }
 
       .forgot-actions {
+        margin-top: 24px;
+        padding-top: 12px;
+        text-align: center;
+      }
+
+      .forgot-divider {
         display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-top: 6px;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin-bottom: 14px;
+        color: var(--text-tertiary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .forgot-divider::before,
+      .forgot-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .forgot-signin-copy {
+        margin: 0 0 6px;
         font-size: 13px;
         color: var(--text-secondary);
       }
 
+      .forgot-signin-links {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.65;
+      }
+
+      .forgot-signin-links a {
+        color: var(--maroon);
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .forgot-signin-links a:hover {
+        text-decoration: underline;
+      }
+
       .forgot-footer {
-        margin-top: 36px;
-        padding-top: 20px;
+        margin-top: 22px;
+        padding-top: 14px;
         border-top: 1px solid var(--border);
         text-align: center;
         font-size: 11px;
@@ -511,10 +542,9 @@ function ForgotPasswordStyles() {
       @media (max-width: 480px) {
         .forgot-panel { padding: 32px 24px; }
         .forgot-header h1 { font-size: 26px; }
-        .forgot-showcase-stats { gap: 20px; }
-        .forgot-actions {
-          flex-direction: column;
-          align-items: flex-start;
+        .forgot-theme-toggle {
+          top: 18px;
+          right: 18px;
         }
       }
     `}</style>
@@ -524,39 +554,10 @@ function ForgotPasswordStyles() {
 export default function ForgotPassword() {
   const { theme, toggle } = useTheme();
   const [identifier, setIdentifier] = useState('');
-  const [role, setRole] = useState<AccountRole>('student');
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  const roleMeta = useMemo(
-    () => ({
-      student: {
-        signInTo: '/sign-in/student',
-        label: 'Student recovery',
-      },
-      faculty: {
-        signInTo: '/sign-in/faculty',
-        label: 'Faculty recovery',
-      },
-      vpaa: {
-        signInTo: '/sign-in/vpaa',
-        label: 'VPAA recovery',
-      },
-    }),
-    [],
-  );
-
-  const currentRole = roleMeta[role];
-  const rootStyle = useMemo(
-    () =>
-      ({
-        ['--badge-accent' as string]:
-          role === 'student' ? '#3D8B4A' : role === 'faculty' ? '#4A8FB5' : '#A07A28',
-      }) as CSSProperties,
-    [role],
-  );
 
   useEffect(() => {
     document.title = 'Forgot Password - Thesis Archive Management System';
@@ -587,43 +588,42 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="forgot-shell" data-theme={theme} style={rootStyle}>
+    <div className="forgot-shell" data-theme={theme}>
       <ForgotPasswordStyles />
-
       <div className="forgot-showcase">
         <div className="forgot-showcase-bg" style={{ backgroundImage: `url(${tupBuilding})` }} />
         <div className="forgot-showcase-overlay" />
         <div className="forgot-showcase-content">
           <div className="forgot-kicker">
             <span className="forgot-kicker-dot" />
-            Account Recovery
+            Computer Studies Department
           </div>
           <h2>
-            Recover your
+            Reset your
             <br />
-            Thesis <em>Archive</em> access
+            Thesis <em>Archive</em> password
           </h2>
           <p>
-            Use your institutional email or account identifier so the system can match your profile and send the right password reset link.
+            Enter the exact email address saved on your account. If it exists in the system, we&apos;ll send a password reset link so you can choose a new password.
           </p>
           <div className="forgot-showcase-stats">
             <div>
               <div className="forgot-showcase-number">
                 1<span>.</span>
               </div>
-              <div className="forgot-showcase-label">Choose account type</div>
+              <div className="forgot-showcase-label">Enter email</div>
             </div>
             <div>
               <div className="forgot-showcase-number">
                 2<span>.</span>
               </div>
-              <div className="forgot-showcase-label">Submit account ID</div>
+              <div className="forgot-showcase-label">Get reset link</div>
             </div>
             <div>
               <div className="forgot-showcase-number">
                 3<span>.</span>
               </div>
-              <div className="forgot-showcase-label">Check your email</div>
+              <div className="forgot-showcase-label">Create password</div>
             </div>
           </div>
         </div>
@@ -636,9 +636,9 @@ export default function ForgotPassword() {
         </button>
 
         <div className="forgot-panel-inner">
-          <Link to={currentRole.signInTo} className="forgot-back-link">
+          <Link to="/" className="forgot-back-link">
             <BackIcon />
-            Back to Sign In
+            Back to Home
           </Link>
 
           <div className="forgot-logo">
@@ -652,15 +652,11 @@ export default function ForgotPassword() {
 
           <div className="forgot-header">
             <h1>Forgot Password</h1>
-            <p>Tell us which account you need help with and we&apos;ll email a reset link if the account can be matched.</p>
+            <p>Use only your registered email address. The reset link will be sent there, and it will open the page where you can create a new password.</p>
             <div className="forgot-role-chip">
               <ShieldIcon />
-              {currentRole.label}
+              Password Recovery
             </div>
-          </div>
-
-          <div className="forgot-note">
-            Enter your institutional email or account ID. Use the same identifier you normally use to sign in.
           </div>
 
           {error ? <div className="forgot-error">{error}</div> : null}
@@ -668,26 +664,16 @@ export default function ForgotPassword() {
 
           <form className="forgot-form" onSubmit={handleSubmit}>
             <div className="forgot-form-group">
-              <label className="forgot-form-label" htmlFor="account-role">
-                Account type
-              </label>
-              <select id="account-role" className="forgot-select" value={role} onChange={(event) => setRole(event.target.value as AccountRole)}>
-                <option value="student">Student</option>
-                <option value="faculty">Faculty</option>
-                <option value="vpaa">VPAA</option>
-              </select>
-            </div>
-
-            <div className="forgot-form-group">
               <label className="forgot-form-label" htmlFor="account-identifier">
-                Institutional email or account ID
+                Registered email address
               </label>
               <div className="forgot-input-wrapper">
                 <input
                   id="account-identifier"
                   className="forgot-input"
-                  type="text"
-                  placeholder="e.g. TUPM-21-0001 or juan.delacruz@tup.edu.ph"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="name@tup.edu.ph"
                   value={identifier}
                   onChange={(event) => setIdentifier(event.target.value)}
                 />
@@ -695,22 +681,20 @@ export default function ForgotPassword() {
                   <MailIcon />
                 </div>
               </div>
-              <div className="forgot-hint">The system will send the reset link to the email attached to the matched account.</div>
+              <div className="forgot-hint">The email must already belong to your student, faculty, or VPAA account in this system.</div>
             </div>
 
             <button className="forgot-submit" type="submit" disabled={!identifier.trim() || isSubmitting}>
-              {isSubmitting ? 'Sending Reset Link...' : 'Request Password Help'}
-              <ArrowRightIcon />
+              {isSubmitting ? 'Sending password reset link...' : 'Send password reset link'}
             </button>
           </form>
 
           <div className="forgot-actions">
-            <span>
-              Remembered it? <Link to={currentRole.signInTo} className="forgot-inline-link">Return to sign in</Link>
-            </span>
-            <span>
-              Need another role? <Link to="/" className="forgot-inline-link">Go to homepage</Link>
-            </span>
+            <div className="forgot-divider">Sign Back In</div>
+            <p className="forgot-signin-copy">Remembered your password?</p>
+            <div className="forgot-signin-links">
+              Sign in as <Link to="/sign-in/student">Student</Link>, <Link to="/sign-in/faculty">Faculty</Link>, or <Link to="/sign-in/vpaa">VPAA</Link>
+            </div>
           </div>
 
           <div className="forgot-footer">&copy; 2026 Thesis Archive Management System &middot; TUP Manila</div>

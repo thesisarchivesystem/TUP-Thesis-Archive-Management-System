@@ -76,9 +76,8 @@ function ResetPasswordStyles() {
         --gold: #c9963a;
         --sky: #4a8fb5;
         --transition-speed: 0.35s;
-        height: 100vh;
+        min-height: 100vh;
         display: flex;
-        overflow: hidden;
         font-family: 'Plus Jakarta Sans', sans-serif;
         -webkit-font-smoothing: antialiased;
         background: var(--bg-primary);
@@ -159,8 +158,8 @@ function ResetPasswordStyles() {
         overflow: hidden;
         display: flex;
         align-items: flex-end;
-        padding: 40px;
-        height: 100vh;
+        padding: 36px;
+        min-height: 100vh;
       }
 
       .reset-showcase-bg {
@@ -190,6 +189,7 @@ function ResetPasswordStyles() {
         min-height: 100%;
         display: flex;
         flex-direction: column;
+        justify-content: flex-start;
       }
 
       .reset-showcase-content {
@@ -234,9 +234,9 @@ function ResetPasswordStyles() {
       }
 
       .reset-showcase-content h2 {
-        font-size: 32px;
+        font-size: 34px;
         color: var(--text-primary);
-        line-height: 1.15;
+        line-height: 1.1;
         margin: 0 0 12px;
         font-weight: 700;
       }
@@ -249,19 +249,19 @@ function ResetPasswordStyles() {
       .reset-showcase-content p {
         font-size: 13px;
         color: var(--text-secondary);
-        line-height: 1.65;
-        margin: 0 0 24px;
+        line-height: 1.6;
+        margin: 0 0 22px;
       }
 
       .reset-showcase-stats {
         display: flex;
-        gap: 28px;
-        padding-top: 18px;
+        gap: 24px;
+        padding-top: 16px;
         border-top: 1px solid var(--border);
       }
 
       .reset-showcase-number {
-        font-size: 23px;
+        font-size: 24px;
         color: var(--text-primary);
         line-height: 1;
         margin-bottom: 3px;
@@ -279,21 +279,22 @@ function ResetPasswordStyles() {
 
       .reset-panel {
         width: 470px;
-        height: 100vh;
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        padding: 40px 44px;
+        justify-content: flex-start;
+        padding: 24px 40px 20px;
         background: var(--panel-bg);
         backdrop-filter: blur(30px);
         border-left: 1px solid var(--border);
         position: relative;
+        overflow-y: auto;
       }
 
       .reset-theme-toggle {
         position: absolute;
-        top: 28px;
-        right: 28px;
+        top: 20px;
+        right: 20px;
         width: 40px;
         height: 40px;
         border: 1.5px solid var(--border-hover);
@@ -328,9 +329,9 @@ function ResetPasswordStyles() {
         align-items: center;
         gap: 6px;
         color: var(--text-tertiary);
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 500;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
       }
 
       .reset-back-link:hover { color: var(--maroon); }
@@ -339,45 +340,45 @@ function ResetPasswordStyles() {
       .reset-logo {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
+        gap: 12px;
+        margin-bottom: 16px;
       }
 
       .reset-logo-icon {
-        width: 38px;
-        height: 38px;
+        width: 42px;
+        height: 42px;
         background: var(--maroon);
-        border-radius: 10px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
-      .reset-logo-icon svg { width: 20px; height: 20px; color: white; }
-      .reset-logo-text { font-size: 16px; color: var(--text-primary); }
+      .reset-logo-icon svg { width: 22px; height: 22px; color: white; }
+      .reset-logo-text { font-size: 18px; color: var(--text-primary); }
       .reset-logo-text span { color: var(--maroon); }
 
       .reset-header {
-        margin-bottom: 28px;
+        margin-bottom: 18px;
       }
 
       .reset-header h1 {
-        font-size: 24px;
+        font-size: 26px;
         color: var(--text-primary);
-        margin: 18px 0 6px;
+        margin: 0 0 8px;
       }
 
       .reset-header p {
         font-size: 13px;
         color: var(--text-secondary);
-        line-height: 1.5;
+        line-height: 1.55;
         margin: 0;
       }
 
       .reset-role-badge {
-        padding: 5px 14px;
+        padding: 6px 14px;
         margin-top: 12px;
-        background: rgba(74, 143, 181, 0.1);
+        background: rgba(74, 143, 181, 0.08);
         color: #4a8fb5;
       }
 
@@ -395,9 +396,9 @@ function ResetPasswordStyles() {
       }
 
       .reset-message {
-        margin-bottom: 18px;
-        border-radius: 12px;
-        padding: 12px 14px;
+        margin-bottom: 14px;
+        border-radius: 16px;
+        padding: 14px 16px;
         font-size: 13px;
         line-height: 1.6;
         border: 1px solid transparent;
@@ -424,7 +425,7 @@ function ResetPasswordStyles() {
       .reset-form {
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 16px;
       }
 
       .reset-form-group {
@@ -434,7 +435,7 @@ function ResetPasswordStyles() {
       }
 
       .reset-form-label {
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
         color: var(--text-secondary);
         letter-spacing: 0.02em;
@@ -448,7 +449,7 @@ function ResetPasswordStyles() {
 
       .reset-input-icon {
         position: absolute;
-        left: 14px;
+        left: 16px;
         width: 14px;
         height: 14px;
         color: var(--text-tertiary);
@@ -457,11 +458,11 @@ function ResetPasswordStyles() {
 
       .reset-input {
         width: 100%;
-        padding: 12px 44px 12px 40px;
+        padding: 13px 46px 13px 44px;
         background: var(--input-bg);
         border: 1.5px solid var(--input-border);
-        border-radius: 12px;
-        font-size: 13px;
+        border-radius: 16px;
+        font-size: 14px;
         color: var(--text-primary);
         outline: none;
         transition: all 0.25s ease;
@@ -478,7 +479,7 @@ function ResetPasswordStyles() {
 
       .reset-password-toggle {
         position: absolute;
-        right: 14px;
+        right: 16px;
         background: none;
         border: none;
         cursor: pointer;
@@ -491,7 +492,7 @@ function ResetPasswordStyles() {
       .reset-password-toggle svg { width: 18px; height: 18px; }
 
       .reset-hint {
-        margin-top: -2px;
+        margin-top: 0;
         font-size: 12px;
         color: var(--text-tertiary);
         line-height: 1.5;
@@ -499,12 +500,12 @@ function ResetPasswordStyles() {
 
       .reset-submit {
         width: 100%;
-        padding: 12px;
-        background: var(--maroon);
+        padding: 14px;
+        background: #bf7d85;
         color: white;
         border: none;
-        border-radius: 12px;
-        font-size: 14px;
+        border-radius: 16px;
+        font-size: 15px;
         font-weight: 700;
         cursor: pointer;
         display: flex;
@@ -512,25 +513,26 @@ function ResetPasswordStyles() {
         justify-content: center;
         gap: 8px;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 16px rgba(139, 35, 50, 0.25);
-        margin-top: 4px;
+        box-shadow: none;
+        margin-top: 6px;
       }
 
       .reset-submit:hover:not(:disabled) {
-        background: var(--maroon-dark);
+        background: #ad6972;
         transform: translateY(-1px);
       }
 
       .reset-submit:disabled {
-        opacity: 0.6;
+        opacity: 1;
         cursor: default;
       }
 
       .reset-submit svg { width: 18px; height: 18px; }
 
       .reset-actions {
-        margin-top: 6px;
-        font-size: 12px;
+        margin-top: 12px;
+        padding-top: 0;
+        font-size: 13px;
         color: var(--text-secondary);
       }
 
@@ -545,14 +547,14 @@ function ResetPasswordStyles() {
 
       .reset-footer {
         margin-top: auto;
-        padding-top: 18px;
+        padding-top: 14px;
         border-top: 1px solid var(--border);
         text-align: center;
       }
 
       .reset-footer p {
         margin: 0;
-        font-size: 11px;
+        font-size: 12px;
         color: var(--text-tertiary);
       }
 
@@ -561,12 +563,12 @@ function ResetPasswordStyles() {
         .reset-panel {
           width: 100%;
           max-width: 100%;
-          padding: 36px 28px;
+          padding: 28px 24px 20px;
         }
       }
 
       @media (max-width: 480px) {
-        .reset-panel { padding: 28px 20px; }
+        .reset-panel { padding: 24px 18px 18px; }
         .reset-header h1 { font-size: 22px; }
         .reset-showcase-stats { gap: 20px; }
       }
