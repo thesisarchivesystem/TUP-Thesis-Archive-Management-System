@@ -30,7 +30,7 @@ class ThesisController extends Controller
     public function index(): JsonResponse
     {
         $theses = Thesis::where('status', 'approved')
-            ->where('is_archived', true)
+            ->whereRaw('"is_archived" = true')
             ->with('submitter:id,name', 'category:id,name,slug')
             ->orderByDesc('approved_at')
             ->paginate(20);
@@ -539,10 +539,10 @@ class ThesisController extends Controller
         $categories = Category::query()
             ->whereRaw('is_active = true')
             ->withCount(['theses as document_count' => function ($query) {
-                $query->where('status', 'approved')->where('is_archived', true);
+                $query->where('status', 'approved')->whereRaw('"is_archived" = true');
             }])
             ->withMax(['theses as latest_approved_at' => function ($query) {
-                $query->where('status', 'approved')->where('is_archived', true);
+                $query->where('status', 'approved')->whereRaw('"is_archived" = true');
             }], 'approved_at')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -568,7 +568,7 @@ class ThesisController extends Controller
                 ->with('submitter:id,name')
                 ->whereIn('category_id', $categoryIds)
                 ->where('status', 'approved')
-                ->where('is_archived', true)
+                ->whereRaw('"is_archived" = true')
                 ->orderBy('category_id')
                 ->orderByDesc('approved_at')
                 ->get()

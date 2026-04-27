@@ -120,7 +120,7 @@ class StudentController extends Controller
 
         $recentTheses = Thesis::query()
             ->where('status', 'approved')
-            ->where('is_archived', true)
+            ->whereRaw('"is_archived" = true')
             ->with(['submitter:id,name', 'category:id,name'])
             ->orderByDesc('approved_at')
             ->orderByDesc('created_at')
@@ -232,7 +232,7 @@ class StudentController extends Controller
 
         $theses = Thesis::query()
             ->where('status', 'approved')
-            ->where('is_archived', true)
+            ->whereRaw('"is_archived" = true')
             ->whereIn('id', $topThesisIds)
             ->with(['submitter:id,name', 'category:id,name'])
             ->get()
