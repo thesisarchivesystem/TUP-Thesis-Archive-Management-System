@@ -1,3 +1,5 @@
+// frontend/src/components/vpaa/VpaaLayout.tsx
+
 import { useEffect, useRef, useState } from 'react';
 import { Bell, CalendarDays, ChevronRight, Clock3, FileClock, GraduationCap, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Settings, Shapes, SunMedium, User } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -7,9 +9,9 @@ import { useNotificationChannel } from '../../hooks/useNotificationChannel';
 import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
 import { aiService } from '../../services/aiService';
+import ChatMessageContent from '../chats/ChatMessageContent';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
-import { isNotificationTypeAllowedForRole } from '../../utils/notificationRules';
 import '../../styles/vpaa-shell.css';
 import tamsBot from '../../assets/tams-bot.png';
 
@@ -19,7 +21,7 @@ type ChatMessage = {
   text: string;
 };
 
-const CHATBOT_GREETING = 'Hello! I am Archi, your Archive Assistant. Pleasure to answer your questions';
+const CHATBOT_GREETING = 'Hello! I am Archie, your Archive Assistant. Pleasure to answer your questions';
 
 const formatTime = (date: Date) =>
   date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -64,7 +66,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
   const markRead = useNotificationStore((state) => state.markRead);
   const clearNotifications = useNotificationStore((state) => state.clearNotifications);
 
-  useNotificationChannel(user?.id ?? null, user?.role ?? null);
+  useNotificationChannel(user?.id ?? null);
 
   useEffect(() => {
     const tick = () => {
@@ -117,8 +119,7 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
 
     void notificationService.list()
       .then((response) => {
-        setNotifications(((response?.data ?? []) as AppNotification[])
-          .filter((notification) => isNotificationTypeAllowedForRole('vpaa', notification.type)));
+        setNotifications((response?.data ?? []) as AppNotification[]);
       })
       .catch(() => {
         setNotifications([]);
@@ -157,7 +158,11 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
           role: message.type === 'user' ? 'user' : 'assistant',
           content: message.text,
         }));
-      const response = await aiService.chat(trimmed, history);
+      const response = await aiService.chat(trimmed, history, {
+        role: 'vpaa',
+        page: 'VPAA layout',
+        path: location.pathname,
+      });
       setChatMessages((current) => [
         ...current,
         { id: `bot-${Date.now() + 1}`, type: 'bot', text: response.reply || 'No reply was returned by the chatbot.' },
@@ -349,15 +354,17 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
       <div className={`vpaa-ai-chatbot-panel ${chatOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
         <div className="vpaa-ai-chatbot-header">
           <div className="vpaa-ai-chatbot-title">
-            <div className="vpaa-ai-chatbot-avatar"><img src={tamsBot} alt="Archi chatbot" /></div>
-            <div><h3>Archi - Archive Assistant</h3><p>Ask about theses, departments, and access.</p></div>
+            <div className="vpaa-ai-chatbot-avatar"><img src={tamsBot} alt="Archie chatbot" /></div>
+            <div><h3>Archie - Archive Assistant</h3><p>Ask about theses, departments, and access.</p></div>
           </div>
           <button type="button" className="vpaa-ai-chatbot-close" onClick={() => setChatOpen(false)} aria-label="Close AI chatbot">&times;</button>
         </div>
         <div className="vpaa-ai-chatbot-body">
           <div className="vpaa-ai-chatbot-messages" ref={chatMessagesRef}>
             {chatMessages.map((message) => (
-              <div className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`} key={message.id}>{message.text}</div>
+              <div className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`} key={message.id}>
+                <ChatMessageContent text={message.text} variant={message.type} />
+              </div>
             ))}
             {chatSending ? (
               <div className="vpaa-chat-bubble other typing" aria-label="Chatbot is typing" aria-live="polite">
@@ -377,14 +384,14 @@ export default function VpaaLayout({ title, description, children, hidePageIntro
         </div>
       </div>
 
-      <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open Archi chatbot" onClick={(event) => {
+      <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open Archie chatbot" onClick={(event) => {
         event.stopPropagation();
         if (!chatOpen) {
           setChatMessages((current) => current.length ? current : [{ id: 'bot-1', type: 'bot', text: CHATBOT_GREETING }]);
         }
         setChatOpen((current) => !current);
       }}>
-        <img src={tamsBot} alt="Archi chatbot" />
+        <img src={tamsBot} alt="Archie chatbot" />
       </button>
     </div>
   );

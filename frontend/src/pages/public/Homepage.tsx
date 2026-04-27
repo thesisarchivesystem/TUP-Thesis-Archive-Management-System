@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+// frontend/src/pages/public/Homepage.tsx
+
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { MoonStar, SunMedium } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../hooks/useTheme';
 import { aiService } from '../../services/aiService';
+import ChatMessageContent from '../../components/chats/ChatMessageContent';
 import BrandMarkIcon from '../../components/BrandMarkIcon';
 import tupBuilding from '../../assets/tup-building.gif';
 import tamsBot from '../../assets/tams-bot.png';
@@ -207,7 +210,26 @@ type ChatMessage = {
   text: string;
 };
 
-const CHATBOT_GREETING = 'Hello! I am Archi, your Archive Assistant. Pleasure to answer your questions';
+const CHATBOT_GREETING = 'Hello! I am Archie, your Archive Assistant. Pleasure to answer your questions';
+const CHAT_FAB_RIGHT = 28;
+const CHAT_FAB_BOTTOM = 28;
+const CHAT_FAB_SIZE = 74;
+const CHAT_PANEL_GAP = 16;
+const CHAT_DRAG_MARGIN = 16;
+
+type ChatDragState = {
+  startX: number;
+  startY: number;
+  startRight: number;
+  startBottom: number;
+  moved: boolean;
+  pointerId: number;
+};
+
+type ChatPosition = {
+  right: number;
+  bottom: number;
+};
 
 function ChevronDownIcon() {
   return (
@@ -289,8 +311,8 @@ function HomePageStyles() {
       .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}.reveal.visible{opacity:1;transform:translateY(0)}.reveal-delay-1{transition-delay:.1s}.reveal-delay-2{transition-delay:.2s}.reveal-delay-3{transition-delay:.3s}.reveal-delay-4{transition-delay:.4s}
       .homepage-shell .vpaa-chat-bubble.self{max-width:78%;padding:10px 16px;border-radius:999px;align-self:flex-end}
       .homepage-shell .vpaa-chat-bubble.other{max-width:88%}
-      .ai-chatbot-fab{position:fixed;right:28px;bottom:28px;width:74px;height:74px;border:0;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1200;transition:transform .25s ease,box-shadow .25s ease}.ai-chatbot-fab:hover{transform:translateY(-2px) scale(1.02)}.ai-chatbot-fab img{width:84%;height:84%;object-fit:contain;display:block}
-      .ai-chatbot-panel{position:fixed;right:28px;bottom:118px;width:320px;max-width:calc(100vw - 32px);border-radius:26px;overflow:hidden;border:1px solid var(--border);background:var(--bg-card);box-shadow:var(--shadow-xl);transform:translateY(16px);opacity:0;pointer-events:none;z-index:120;transition:opacity .3s ease,transform .3s ease}.ai-chatbot-panel.open{transform:translateY(0);opacity:1;pointer-events:auto}.ai-chatbot-header,.ai-chatbot-title,.ai-chatbot-form{display:flex;align-items:center}.ai-chatbot-header{justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 14px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--bg-tertiary),var(--bg-card))}.ai-chatbot-title{gap:10px}.ai-chatbot-avatar{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.ai-chatbot-avatar img{width:100%;height:100%;object-fit:contain;display:block}.ai-chatbot-title h3{margin:0 0 2px;font-size:14px;color:var(--text-primary)}.ai-chatbot-title p{margin:0;font-size:11px;color:var(--text-tertiary)}.ai-chatbot-close{width:32px;height:32px;border:0;background:transparent;color:var(--text-tertiary);border-radius:12px;cursor:pointer;font-size:22px;line-height:1;transition:all .25s ease}.ai-chatbot-close:hover{background:rgba(139,35,50,.06);color:var(--maroon)}.ai-chatbot-body{padding:14px;display:flex;flex-direction:column}.ai-chatbot-messages{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}.chat-bubble{max-width:90%;border-radius:18px;padding:9px 11px;font-size:12px;line-height:1.45}.chat-bubble.bot{background:var(--bg-secondary);color:var(--text-secondary);border-top-left-radius:6px}.chat-bubble.user{margin-left:auto;background:var(--maroon);color:#fff;border-top-right-radius:6px}.ai-chatbot-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.chat-suggestion{border-radius:999px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);padding:7px 10px;font-size:11px !important;line-height:1.2 !important;font-weight:500;cursor:pointer;transition:all .25s ease;font-family:'Plus Jakarta Sans',sans-serif}.chat-suggestion:hover{border-color:var(--maroon);color:var(--maroon)}.ai-chatbot-form{margin-top:10px;gap:6px;border-radius:16px;border:1px solid var(--border);background:var(--bg-card);padding:6px}.ai-chatbot-input{flex:1;border:0;outline:none;background:transparent;color:var(--text-primary);padding:7px 9px;font-size:11px}.ai-chatbot-input::placeholder{color:var(--text-tertiary)}.ai-chatbot-send{width:34px;height:34px;border:0;border-radius:12px;background:var(--maroon);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s ease}.ai-chatbot-send:hover{background:var(--maroon-dark)}.ai-chatbot-send svg{width:14px;height:14px;fill:currentColor}
+      .ai-chatbot-fab{position:fixed;right:28px;bottom:28px;width:74px;height:74px;border:0;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;z-index:1301;transition:transform .25s ease,box-shadow .25s ease}.ai-chatbot-fab:active{cursor:grabbing}.ai-chatbot-fab:hover{transform:translateY(-2px) scale(1.02)}.ai-chatbot-fab img{width:84%;height:84%;object-fit:contain;display:block;pointer-events:none}
+      .ai-chatbot-panel{position:fixed;right:28px;bottom:118px;width:320px;max-width:calc(100vw - 32px);border-radius:26px;overflow:hidden;border:1px solid var(--border);background:var(--bg-card);box-shadow:var(--shadow-xl);transform:translateY(16px);opacity:0;pointer-events:none;z-index:1300;transition:opacity .3s ease,transform .3s ease}.ai-chatbot-panel.open{transform:translateY(0);opacity:1;pointer-events:auto}.ai-chatbot-header,.ai-chatbot-title,.ai-chatbot-form{display:flex;align-items:center}.ai-chatbot-header{justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 14px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--bg-tertiary),var(--bg-card))}.homepage-ai-chatbot-drag-handle{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.homepage-ai-chatbot-drag-handle:active{cursor:grabbing}.ai-chatbot-title{gap:10px}.ai-chatbot-avatar{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.ai-chatbot-avatar img{width:100%;height:100%;object-fit:contain;display:block}.ai-chatbot-title h3{margin:0 0 2px;font-size:14px;color:var(--text-primary)}.ai-chatbot-title p{margin:0;font-size:11px;color:var(--text-tertiary)}.ai-chatbot-close{width:32px;height:32px;border:0;background:transparent;color:var(--text-tertiary);border-radius:12px;cursor:pointer;font-size:22px;line-height:1;transition:all .25s ease}.ai-chatbot-close:hover{background:rgba(139,35,50,.06);color:var(--maroon)}.ai-chatbot-body{padding:14px;display:flex;flex-direction:column}.ai-chatbot-messages{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}.chat-bubble{max-width:90%;border-radius:18px;padding:9px 11px;font-size:12px;line-height:1.45}.chat-bubble.bot{background:var(--bg-secondary);color:var(--text-secondary);border-top-left-radius:6px}.chat-bubble.user{margin-left:auto;background:var(--maroon);color:#fff;border-top-right-radius:6px}.ai-chatbot-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.chat-suggestion{border-radius:999px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);padding:7px 10px;font-size:11px !important;line-height:1.2 !important;font-weight:500;cursor:pointer;transition:all .25s ease;font-family:'Plus Jakarta Sans',sans-serif}.chat-suggestion:hover{border-color:var(--maroon);color:var(--maroon)}.ai-chatbot-form{margin-top:10px;gap:6px;border-radius:16px;border:1px solid var(--border);background:var(--bg-card);padding:6px}.ai-chatbot-input{flex:1;border:0;outline:none;background:transparent;color:var(--text-primary);padding:7px 9px;font-size:11px}.ai-chatbot-input::placeholder{color:var(--text-tertiary)}.ai-chatbot-send{width:34px;height:34px;border:0;border-radius:12px;background:var(--maroon);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s ease}.ai-chatbot-send:hover{background:var(--maroon-dark)}.ai-chatbot-send svg{width:14px;height:14px;fill:currentColor}
       @keyframes homepagePulse{0%,100%{opacity:1}50%{opacity:.3}}@keyframes homepageFadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}@keyframes homepageFadeInDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
       @media (max-width:1024px){.homepage-shell nav{padding:0 24px}.features-grid,.dept-grid{grid-template-columns:1fr}.cat-grid{grid-template-columns:1fr}.footer-main{flex-direction:column;align-items:flex-start}.footer-uni{text-align:left}}
       @media (max-width:768px){.nav-links{display:none}.features,.departments,.categories,.cta{padding:68px 24px}.hero-content{padding:0 20px}.hero-stats{gap:18px;flex-wrap:wrap}.hero-actions,.cta-buttons{flex-direction:column;align-items:center}footer{padding:30px 24px 18px}.ai-chatbot-panel{right:16px;left:16px;bottom:102px;width:auto;max-width:none}.ai-chatbot-fab{right:16px;bottom:16px;width:68px;height:68px}.ai-chatbot-fab svg{width:32px;height:32px}}
@@ -302,15 +324,135 @@ export default function Homepage() {
   const navigate = useNavigate();
   const { theme, toggle } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth > 768);
   const [activeSection, setActiveSection] = useState<(typeof sections)[number]['id']>('home');
   const [revealed, setRevealed] = useState<string[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatPosition, setChatPosition] = useState<ChatPosition>({ right: CHAT_FAB_RIGHT, bottom: CHAT_FAB_BOTTOM });
   const chatPanelRef = useRef<HTMLDivElement | null>(null);
   const chatFabRef = useRef<HTMLButtonElement | null>(null);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
+  const chatDragRef = useRef<ChatDragState | null>(null);
+  const suppressFabClickRef = useRef(false);
+
+  const clampChatPosition = (position: ChatPosition) => {
+    const fabRect = chatFabRef.current?.getBoundingClientRect();
+    const fabWidth = fabRect?.width ?? CHAT_FAB_SIZE;
+    const fabHeight = fabRect?.height ?? CHAT_FAB_SIZE;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    const minRight = CHAT_DRAG_MARGIN;
+    const maxRight = Math.max(minRight, viewportWidth - CHAT_DRAG_MARGIN - fabWidth);
+    const minBottom = CHAT_DRAG_MARGIN;
+    const maxBottom = Math.max(minBottom, viewportHeight - CHAT_DRAG_MARGIN - fabHeight);
+
+    return {
+      right: Math.min(maxRight, Math.max(minRight, position.right)),
+      bottom: Math.min(maxBottom, Math.max(minBottom, position.bottom)),
+    };
+  };
+
+  const resolveChatPanelStyle = (position: ChatPosition) => {
+    const panelRect = chatPanelRef.current?.getBoundingClientRect();
+    const fabRect = chatFabRef.current?.getBoundingClientRect();
+    const panelWidth = panelRect?.width ?? 360;
+    const panelHeight = panelRect?.height ?? 520;
+    const fabWidth = fabRect?.width ?? CHAT_FAB_SIZE;
+    const fabHeight = fabRect?.height ?? CHAT_FAB_SIZE;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const fabLeft = viewportWidth - position.right - fabWidth;
+    const fabCenterX = fabLeft + (fabWidth / 2);
+    const iconOnLeftSide = fabCenterX < viewportWidth / 2;
+    const minPanelLeft = CHAT_DRAG_MARGIN;
+    const maxPanelLeft = Math.max(minPanelLeft, viewportWidth - CHAT_DRAG_MARGIN - panelWidth);
+    const maxPanelBottom = Math.max(
+      CHAT_DRAG_MARGIN,
+      viewportHeight - CHAT_DRAG_MARGIN - panelHeight
+    );
+    const rawPanelLeft = iconOnLeftSide
+      ? fabLeft + fabWidth + CHAT_PANEL_GAP
+      : fabLeft - panelWidth - CHAT_PANEL_GAP;
+    const panelLeft = Math.min(maxPanelLeft, Math.max(minPanelLeft, rawPanelLeft));
+    const panelBottom = Math.min(maxPanelBottom, Math.max(CHAT_DRAG_MARGIN, position.bottom));
+
+    return {
+      left: `${panelLeft}px`,
+      right: 'auto',
+      bottom: `${panelBottom}px`,
+    };
+  };
+
+  const startChatDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!isDesktop || event.button !== 0) return;
+
+    const clamped = clampChatPosition(chatPosition);
+    chatDragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      startRight: clamped.right,
+      startBottom: clamped.bottom,
+      moved: false,
+      pointerId: event.pointerId,
+    };
+    suppressFabClickRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth > 768;
+      setIsDesktop(desktop);
+      if (!desktop) {
+        setChatPosition({ right: CHAT_FAB_RIGHT, bottom: CHAT_FAB_BOTTOM });
+      } else {
+        setChatPosition((current) => clampChatPosition(current));
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const endDrag = () => {
+      const drag = chatDragRef.current;
+      suppressFabClickRef.current = Boolean(drag?.moved);
+      chatDragRef.current = null;
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const drag = chatDragRef.current;
+      if (!drag) return;
+
+      const nextPosition = clampChatPosition({
+        right: drag.startRight - (event.clientX - drag.startX),
+        bottom: drag.startBottom - (event.clientY - drag.startY),
+      });
+      const movedDistance = Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY);
+      if (movedDistance > 4) {
+        drag.moved = true;
+      }
+
+      setChatPosition(nextPosition);
+      event.preventDefault();
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', endDrag);
+      window.removeEventListener('pointercancel', endDrag);
+    };
+  }, [isChatOpen]);
 
   useEffect(() => {
     const updateNavbarState = () => {
@@ -389,7 +531,11 @@ export default function Homepage() {
           role: message.type === 'user' ? 'user' : 'assistant',
           content: message.text,
         }));
-      const response = await aiService.chat(trimmedMessage, history);
+      const response = await aiService.chat(trimmedMessage, history, {
+        page: 'Public homepage',
+        section: activeSection,
+        path: '/',
+      });
       setMessages((current) => [...current, { type: 'bot', text: response.reply || 'No reply was returned by the chatbot.' }]);
     } catch {
       setMessages((current) => [...current, { type: 'bot', text: 'The AI chatbot is unavailable right now. Please try again in a moment.' }]);
@@ -628,14 +774,19 @@ export default function Homepage() {
         </footer>
       </main>
 
-      <div ref={chatPanelRef} className={`vpaa-ai-chatbot-panel ${isChatOpen ? 'open' : ''}`} aria-hidden={!isChatOpen}>
+      <div
+        ref={chatPanelRef}
+        className={`vpaa-ai-chatbot-panel ${isChatOpen ? 'open' : ''}`}
+        aria-hidden={!isChatOpen}
+        style={isDesktop ? resolveChatPanelStyle(chatPosition) : undefined}
+      >
         <div className="vpaa-ai-chatbot-header">
           <div className="vpaa-ai-chatbot-title">
             <div className="vpaa-ai-chatbot-avatar" aria-hidden="true">
-              <img src={tamsBot} alt="Archi chatbot" />
+              <img src={tamsBot} alt="Archie chatbot" />
             </div>
             <div>
-              <h3>Archi - Archive Assistant</h3>
+              <h3>Archie - Archive Assistant</h3>
               <p>Ask about reviews, faculty workflows, and support.</p>
             </div>
           </div>
@@ -649,7 +800,7 @@ export default function Homepage() {
           <div className="vpaa-ai-chatbot-messages" ref={chatMessagesRef}>
             {messages.map((message, index) => (
               <div key={`${message.type}-${index}`} className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`}>
-                {message.text}
+                <ChatMessageContent text={message.text} variant={message.type} />
               </div>
             ))}
             {chatSending ? (
@@ -688,16 +839,23 @@ export default function Homepage() {
         ref={chatFabRef}
         type="button"
         className="vpaa-ai-chatbot-fab"
-        aria-label="Open Archi chatbot"
+        aria-label="Open Archie chatbot"
         aria-expanded={isChatOpen}
+        style={isDesktop ? { right: `${chatPosition.right}px`, bottom: `${chatPosition.bottom}px` } : undefined}
+        onPointerDown={startChatDrag}
         onClick={() => {
+          if (suppressFabClickRef.current) {
+            suppressFabClickRef.current = false;
+            return;
+          }
           if (!isChatOpen) {
+            setChatPosition((current) => clampChatPosition(current));
             setMessages((current) => current.length ? current : [{ type: 'bot', text: CHATBOT_GREETING }]);
           }
           setIsChatOpen((current) => !current);
         }}
       >
-        <img src={tamsBot} alt="Archi chatbot" />
+        <img src={tamsBot} alt="Archie chatbot" draggable={false} />
       </button>
     </div>
   );

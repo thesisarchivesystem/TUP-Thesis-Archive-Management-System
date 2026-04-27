@@ -1,3 +1,5 @@
+phpunit.xml
+2 KB
 <?php
 
 namespace Tests;
@@ -15,3 +17,4 @@ trait CreatesApplication
         return $app;
     }
 }
+

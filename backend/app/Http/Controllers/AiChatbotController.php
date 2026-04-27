@@ -1,15 +1,21 @@
 <?php
+// backend/app/Http/Controllers/AiChatbotController.php
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use App\Models\Thesis;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class AiChatbotController extends Controller
 {
-    private const OUT_OF_SCOPE_REPLY = 'Sorry! I can only help with the Thesis Archive Management System. If you have questions related to it, feel free to ask.';
+    private const DEFAULT_FREE_MODEL = 'openrouter/free';
 
     public function chat(Request $request): JsonResponse
     {
@@ -18,41 +24,27 @@ class AiChatbotController extends Controller
             'history' => 'nullable|array',
             'history.*.role' => 'required|in:user,assistant',
             'history.*.content' => 'required|string',
+            'context' => 'nullable|array',
+            'context.role' => 'nullable|string|max:100',
+            'context.page' => 'nullable|string|max:255',
+            'context.path' => 'nullable|string|max:255',
+            'context.section' => 'nullable|string|max:255',
         ]);
 
-        $conversationText = collect($request->history ?? [])
-            ->pluck('content')
-            ->push($request->message)
-            ->implode(' ');
-
-        if (!$this->isWithinThesisArchiveScope($conversationText)) {
-            return response()->json([
-                'reply' => self::OUT_OF_SCOPE_REPLY,
-            ]);
-        }
-
-        $systemPrompt = <<<EOT
-You are Archi - Archive Assistant, the intelligent assistant for the TUP Manila Thesis Archive Management System (TAMS).
-Only answer questions that are directly related to the Thesis Archive Management System.
-You help students, faculty, and administrators with:
-- Find and browse thesis records by title, keyword, department, or author
-- Understand the thesis submission and approval workflow
-- Navigate the system (sign in, upload, review, messaging)
-- Answer questions about TUP Manila academic programs and departments
-If the user asks anything unrelated to the Thesis Archive Management System, reply exactly:
-Sorry! I can only help with the Thesis Archive Management System. If you have questions related to it, feel free to ask.
-Keep responses concise, friendly, and academically professional.
-EOT;
+        $context = $request->input('context', []);
+        $systemPrompt = $this->buildSystemPrompt();
+        $systemContext = $this->buildSystemContext($context, $request->message);
 
         $messages = [
             ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'system', 'content' => $systemContext],
             ...($request->history ?? []),
             ['role' => 'user', 'content' => $request->message],
         ];
 
         $apiKey = config('services.openrouter.key');
         $baseUrl = rtrim((string) config('services.openrouter.base_url', 'https://openrouter.ai/api/v1'), '/');
-        $model = (string) config('services.openrouter.model', 'openai/gpt-4o-mini');
+        $model = (string) config('services.openrouter.model', self::DEFAULT_FREE_MODEL);
         $siteUrl = (string) config('services.openrouter.site_url', config('app.url'));
         $siteName = (string) config('services.openrouter.site_name', config('app.name', 'TUP Thesis Archive'));
 
@@ -86,118 +78,181 @@ EOT;
         ]);
     }
 
-    private function isWithinThesisArchiveScope(string $text): bool
+    private function buildSystemPrompt(): string
     {
-        $normalized = Str::of($text)->lower()->squish()->toString();
-
-        if ($normalized === '') {
-            return false;
-        }
-
-        $explicitScopePhrases = [
-            'thesis archive management system',
-            'thesis archive system',
-            'tams',
-            'archiveai',
-            'thesis archive',
-        ];
-
-        if ($this->containsAny($normalized, $explicitScopePhrases)) {
-            return true;
-        }
-
-        $archiveEntities = [
-            'manuscript',
-            'thesis submission',
-            'thesis review',
-            'thesis approval',
-            'approved thesis',
-            'archived thesis',
-            'archived theses',
-            'recently viewed',
-            'support ticket',
-            'extension request',
-            'faculty',
-            'student',
-            'vpaa',
-            'adviser',
-            'advisor',
-            'category',
-            'department',
-            'college',
-            'notification',
-            'conversation',
-            'dashboard',
-            'search thesis',
-            'browse thesis',
-            'thesis record',
-        ];
-
-        if ($this->containsAny($normalized, $archiveEntities)) {
-            return true;
-        }
-
-        $accountSupportTerms = [
-            'login',
-            'log in',
-            'sign in',
-            'logout',
-            'reset password',
-            'forgot password',
-            'dashboard',
-        ];
-
-        if ($this->containsAny($normalized, $accountSupportTerms)) {
-            return true;
-        }
-
-        $workflowTerms = [
-            'upload',
-            'submit',
-            'review',
-            'approve',
-            'reject',
-            'archive',
-            'search',
-            'browse',
-            'message',
-            'notification',
-        ];
-
-        $thesisContextTerms = [
-            'thesis',
-            'theses',
-            'manuscript',
-            'submission',
-            'approved thesis',
-            'archived thesis',
-            'archived theses',
-            'faculty',
-            'student',
-            'vpaa',
-            'adviser',
-            'advisor',
-            'category',
-            'department',
-            'college',
-            'support ticket',
-            'extension request',
-            'conversation',
-            'notification',
-        ];
-
-        return $this->containsAny($normalized, $workflowTerms)
-            && $this->containsAny($normalized, $thesisContextTerms);
+        return trim(<<<EOT
+You are Archie - Archive Assistant, the intelligent assistant for the TUP Manila Thesis Archive Management System.
+Your job is to answer questions about the whole system accurately, using only the system facts provided to you.
+Only answer questions related to searching theses, uploading theses, managing thesis records, user access, categories, and system features within the Thesis Archive System.
+Respond in a clear, concise, and structured format.
+Use bullet points or numbered steps when explaining processes.
+Keep answers short but helpful.
+Maintain a friendly and professional tone.
+Only provide detailed explanations when necessary.
+Avoid markdown heading markers like ### and avoid divider lines like ---.
+Use plain text headings instead of markdown symbols.
+When applicable, follow this structure:
+Title/Topic
+Short explanation (1-2 sentences)
+Steps or key details (bulleted or numbered)
+Optional note or reminder
+If the user asks about something outside the system, refuse politely using this format:
+Sorry, this chatbot is designed only for the Thesis Archive Management System.
+I can help you with tasks like searching, uploading, or managing theses.
+If the question is close to the system, answer it helpfully instead of refusing too early.
+Never invent screens, routes, or features that are not supported by the facts below.
+When you need to provide a list, format it as bullet points.
+If the user encounters an issue, clearly explain the problem and suggest simple steps to fix it.
+Keep responses concise, friendly, and academically professional.
+EOT);
     }
 
-    private function containsAny(string $text, array $needles): bool
+    private function buildSystemContext(array $context = [], string $message = ''): string
     {
-        foreach ($needles as $needle) {
-            if ($needle !== '' && Str::contains($text, $needle)) {
-                return true;
-            }
+        $role = Arr::get($context, 'role');
+        $page = Arr::get($context, 'page');
+        $path = Arr::get($context, 'path');
+        $section = Arr::get($context, 'section');
+
+        $facts = [
+            'Application: TUP Thesis Archive Management System.',
+            'Frontend: React 18, TypeScript, Vite.',
+            'Backend: Laravel 11 REST API with Sanctum authentication.',
+            'Realtime: Ably for notifications, typing indicators, presence, and chat updates.',
+            'Storage: Supabase PostgreSQL for data and Supabase Storage for thesis files.',
+            'Chatbot name: Archie - Archive Assistant.',
+            'Roles: student, faculty, and vpaa.',
+            'Shared features: login, logout, password reset, search, thesis details, manuscript access, notifications, messages, support tickets, and extension requests.',
+            'Student features: dashboard, profile, advisers, my submissions, recently viewed, archive browsing, and thesis search.',
+            'Faculty features: dashboard, profile, activity log, advisees, library items, my theses, thesis submission review, approved theses, and extension request handling.',
+            'VPAA features: dashboard, profile, categories, activity log, daily quote, faculty management, and export tools.',
+            $this->buildCategoryKnowledge(),
+            $this->buildRelevantThesisKnowledge($message, $context),
+            'If the user asks how to use the system, explain the exact workflow based on these facts.',
+        ];
+
+        if ($role || $page || $path || $section) {
+            $facts[] = 'Current UI context: ' . collect([
+                $role ? 'role=' . $role : null,
+                $page ? 'page=' . $page : null,
+                $section ? 'section=' . $section : null,
+                $path ? 'path=' . $path : null,
+            ])->filter()->implode(', ');
         }
 
-        return false;
+        return implode("\n", $facts);
+    }
+
+    private function buildCategoryKnowledge(): string
+    {
+        $categories = $this->resolveArchiveCategories();
+
+        if ($categories->isEmpty()) {
+            return 'Browse by Category section: Web & Mobile Development, Artificial Intelligence & ML, Cybersecurity & Networking, IoT & Embedded Systems, Data Science & Analytics, Human-Computer Interaction, Game Development, and Automation & Robotics.';
+        }
+
+        return 'Browse by Category section: ' . $categories->map(function (array $category) {
+            return $category['name'] . ($category['description'] ? ' - ' . $category['description'] : '');
+        })->implode(', ') . '.';
+    }
+
+    private function buildRelevantThesisKnowledge(string $message, array $context = []): string
+    {
+        $theses = $this->resolveRelevantTheses($message, $context);
+
+        if ($theses->isEmpty()) {
+            return 'Relevant thesis records: no specific thesis records matched the current question.';
+        }
+
+        $lines = $theses->map(function (array $thesis) {
+            $parts = array_filter([
+                $thesis['title'] ?? null,
+                isset($thesis['authors']) && $thesis['authors'] !== [] ? 'Authors: ' . implode(', ', $thesis['authors']) : null,
+                $thesis['department'] ? 'Department: ' . $thesis['department'] : null,
+                $thesis['program'] ? 'Program: ' . $thesis['program'] : null,
+                $thesis['school_year'] ? 'School year: ' . $thesis['school_year'] : null,
+                $thesis['category'] ? 'Category: ' . $thesis['category'] : null,
+            ]);
+
+            return '- ' . implode(' | ', $parts);
+        });
+
+        return "Relevant thesis records:\n" . $lines->implode("\n");
+    }
+
+    private function resolveArchiveCategories(): Collection
+    {
+        if (!Schema::hasTable('categories')) {
+            return collect();
+        }
+
+        return Category::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['name', 'description'])
+            ->map(fn (Category $category) => [
+                'name' => $category->name,
+                'description' => $category->description ? trim((string) $category->description) : null,
+            ]);
+    }
+
+    private function resolveRelevantTheses(string $message, array $context = []): Collection
+    {
+        if (!Schema::hasTable('theses')) {
+            return collect();
+        }
+
+        $queryText = trim(collect([
+            $message,
+            Arr::get($context, 'page', ''),
+            Arr::get($context, 'section', ''),
+        ])->filter()->implode(' '));
+
+        $searchTerms = collect(preg_split('/[^\pL\pN]+/u', Str::lower($queryText)) ?: [])
+            ->map(fn (string $term) => trim($term))
+            ->filter(fn (string $term) => mb_strlen($term) >= 3)
+            ->unique()
+            ->take(8)
+            ->values();
+
+        $query = Thesis::query()
+            ->where('status', 'approved')
+            ->with(['category:id,name'])
+            ->orderByDesc('approved_at')
+            ->orderByDesc('created_at');
+
+        if ($searchTerms->isNotEmpty()) {
+            $hasKeywordsColumn = Schema::hasColumn('theses', 'keywords');
+
+            $query->where(function ($builder) use ($searchTerms, $hasKeywordsColumn) {
+                // The searchable thesis columns vary by deployment, so only use fields that are known to exist.
+                foreach ($searchTerms as $term) {
+                    $like = '%' . $term . '%';
+                    $builder->orWhereRaw('LOWER(title) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(COALESCE(abstract, \'\')) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(COALESCE(department, \'\')) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(COALESCE(program, \'\')) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(COALESCE(CAST(authors AS TEXT), \'\')) LIKE ?', [$like]);
+
+                    if ($hasKeywordsColumn) {
+                        $builder->orWhereRaw('LOWER(COALESCE(CAST(keywords AS TEXT), \'\')) LIKE ?', [$like]);
+                    }
+                }
+            });
+        }
+
+        return $query->limit(5)
+            ->get(['id', 'title', 'abstract', 'authors', 'department', 'program', 'school_year', 'category_id', 'approved_at'])
+            ->map(function (Thesis $thesis) {
+                return [
+                    'title' => $thesis->title,
+                    'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+                    'department' => $thesis->department,
+                    'program' => $thesis->program,
+                    'school_year' => $thesis->school_year,
+                    'category' => $thesis->category?->name,
+                ];
+            });
     }
 }

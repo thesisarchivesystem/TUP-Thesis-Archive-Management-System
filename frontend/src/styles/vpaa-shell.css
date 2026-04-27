@@ -9555,7 +9555,7 @@
   transform: translateY(16px);
   pointer-events: none;
   transition: opacity 0.3s ease, transform 0.3s ease;
-  z-index: 120;
+  z-index: 1200;
   overflow: hidden;
 }
 
@@ -9733,7 +9733,7 @@
   box-shadow: none;
   cursor: pointer;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
-  z-index: 121;
+  z-index: 1201;
 }
 
 .vpaa-ai-chatbot-fab:hover {
