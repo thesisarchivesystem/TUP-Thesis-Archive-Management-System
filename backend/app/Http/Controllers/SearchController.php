@@ -52,6 +52,26 @@ class SearchController extends Controller
         ]);
     }
 
+    public function click(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'thesis_id' => 'required|uuid|exists:theses,id',
+            'query' => 'required|string|min:2|max:255',
+        ]);
+
+        SearchLog::query()->create([
+            'user_id' => $request->user()?->id,
+            'thesis_id' => $validated['thesis_id'],
+            'query' => trim($validated['query']),
+            'results_count' => 1,
+            'clicked_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Search click logged successfully.',
+        ]);
+    }
+
     private function searchUsers(?User $actor, string $query): Collection
     {
         $normalizedQuery = '%' . mb_strtolower(trim($query)) . '%';

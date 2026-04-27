@@ -62,8 +62,8 @@ export interface FacultyReviewStats {
 }
 
 export const thesisService = {
-  async list() {
-    const { data } = await api.get('/thesis');
+  async list(params?: { per_page?: number; sort?: 'recent' | 'title' }) {
+    const { data } = await api.get('/thesis', { params });
     return data;
   },
 

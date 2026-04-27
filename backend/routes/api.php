@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Shared
     Route::get('/search', [SearchController::class, 'search']);
+    Route::post('/search/click', [SearchController::class, 'click']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);

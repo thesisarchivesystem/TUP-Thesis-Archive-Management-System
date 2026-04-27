@@ -122,9 +122,10 @@ class StudentController extends Controller
             ->where('status', 'approved')
             ->whereRaw('"is_archived" = true')
             ->with(['submitter:id,name', 'category:id,name'])
-            ->orderByDesc('approved_at')
+            ->orderByDesc('archived_at')
+            ->orderByDesc('updated_at')
             ->orderByDesc('created_at')
-            ->limit(8)
+            ->limit(24)
             ->get()
             ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
 
@@ -164,7 +165,9 @@ class StudentController extends Controller
             'categories' => $categories,
             'keywords' => collect($thesis->keywords ?? [])->filter()->values()->all(),
             'view_count' => (int) $thesis->view_count,
+            'archived_at' => $this->formatIsoTimestamp($thesis->archived_at),
             'approved_at' => $this->formatIsoTimestamp($thesis->approved_at),
+            'updated_at' => $this->formatIsoTimestamp($thesis->updated_at),
             'created_at' => $this->formatIsoTimestamp($thesis->created_at),
         ];
     }
@@ -219,11 +222,12 @@ class StudentController extends Controller
     {
         $topThesisIds = SearchLog::query()
             ->whereNotNull('thesis_id')
+            ->whereNotNull('clicked_at')
             ->select('thesis_id')
-            ->selectRaw('COUNT(*) as search_hits')
+            ->selectRaw('COUNT(*) as click_hits')
             ->groupBy('thesis_id')
-            ->orderByDesc('search_hits')
-            ->limit(8)
+            ->orderByDesc('click_hits')
+            ->limit(24)
             ->pluck('thesis_id');
 
         if ($topThesisIds->isEmpty()) {

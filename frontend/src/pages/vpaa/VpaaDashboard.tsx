@@ -1,20 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, FilePlus2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
 import { vpaaDashboardService, type DailyQuote, type VpaaDashboardThesis } from '../../services/vpaaDashboardService';
 
 export default function VpaaDashboard() {
-  const DISPLAY_LIMIT = 10;
+  const DISPLAY_LIMIT = 12;
+  const navigate = useNavigate();
   const [recentTheses, setRecentTheses] = useState<VpaaDashboardThesis[]>([]);
   const [topSearches, setTopSearches] = useState<VpaaDashboardThesis[]>([]);
   const [quote, setQuote] = useState<DailyQuote | null>(null);
-  const [recentlyAddedExpanded, setRecentlyAddedExpanded] = useState(false);
-  const [topSearchesExpanded, setTopSearchesExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const sortDashboardTheses = (items: VpaaDashboardThesis[]) => [...items].sort((left, right) => {
+    const leftTime = new Date(left.archived_at || left.updated_at || left.approved_at || 0).getTime();
+    const rightTime = new Date(right.archived_at || right.updated_at || right.approved_at || 0).getTime();
+    return rightTime - leftTime;
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -25,7 +30,7 @@ export default function VpaaDashboard() {
       vpaaDashboardService.getDailyQuote(),
     ])
       .then(([dashboardResponse, dailyQuote]) => {
-        setRecentTheses(dashboardResponse.recent_theses ?? []);
+        setRecentTheses(sortDashboardTheses(dashboardResponse.recent_theses ?? []));
         setTopSearches(dashboardResponse.top_searches ?? []);
         setQuote(dailyQuote ?? null);
       })
@@ -41,13 +46,17 @@ export default function VpaaDashboard() {
   }, []);
 
   const recentCards = useMemo(
-    () => (recentlyAddedExpanded ? recentTheses : recentTheses.slice(0, DISPLAY_LIMIT)),
-    [recentTheses, recentlyAddedExpanded, DISPLAY_LIMIT],
+    () => recentTheses.slice(0, DISPLAY_LIMIT),
+    [recentTheses, DISPLAY_LIMIT],
   );
   const continueReadingCards = useMemo(() => recentTheses.slice(0, 4), [recentTheses]);
   const topSearchCards = useMemo(
-    () => (topSearchesExpanded ? topSearches : topSearches.slice(0, DISPLAY_LIMIT)),
-    [topSearches, topSearchesExpanded, DISPLAY_LIMIT],
+    () => topSearches.slice(0, DISPLAY_LIMIT),
+    [topSearches, DISPLAY_LIMIT],
+  );
+  const allCards = useMemo(
+    () => [...recentTheses].sort((left, right) => left.title.localeCompare(right.title, undefined, { sensitivity: 'base' })).slice(0, DISPLAY_LIMIT),
+    [recentTheses, DISPLAY_LIMIT],
   );
 
   const thesisHref = (item: VpaaDashboardThesis) => `/vpaa/theses/${encodeURIComponent(item.id)}`;
@@ -187,9 +196,9 @@ export default function VpaaDashboard() {
                 <button
                   type="button"
                   className="vpaa-dashboard-toggle"
-                  onClick={() => setRecentlyAddedExpanded((current) => !current)}
+                  onClick={() => navigate('/vpaa/dashboard/recently-added')}
                 >
-                  {recentlyAddedExpanded ? 'Show Less' : 'Show All'}
+                  View All
                 </button>
               ) : null}
             </div>
@@ -209,9 +218,9 @@ export default function VpaaDashboard() {
                 <button
                   type="button"
                   className="vpaa-dashboard-toggle"
-                  onClick={() => setTopSearchesExpanded((current) => !current)}
+                  onClick={() => navigate('/vpaa/dashboard/top-searches')}
                 >
-                  {topSearchesExpanded ? 'Show Less' : 'Show All'}
+                  View All
                 </button>
               ) : null}
             </div>
@@ -221,6 +230,28 @@ export default function VpaaDashboard() {
               </div>
             ) : (
               <div className="vpaa-dashboard-empty">No top searches available yet.</div>
+            )}
+          </div>
+
+          <div className="vpaa-card vpaa-dashboard-panel">
+            <div className="vpaa-dashboard-head">
+              <h3><FilePlus2 size={16} /> All</h3>
+              {recentTheses.length > DISPLAY_LIMIT ? (
+                <button
+                  type="button"
+                  className="vpaa-dashboard-toggle"
+                  onClick={() => navigate('/vpaa/dashboard/all')}
+                >
+                  View All
+                </button>
+              ) : null}
+            </div>
+            {allCards.length ? (
+              <div className="recent-added-grid">
+                {allCards.map(renderRecentlyAddedCard)}
+              </div>
+            ) : (
+              <div className="vpaa-dashboard-empty">No archived theses are available yet.</div>
             )}
           </div>
         </>

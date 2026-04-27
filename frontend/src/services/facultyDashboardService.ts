@@ -23,7 +23,9 @@ export interface FacultyDashboardThesis {
   categories?: Array<{ id: string; name: string; slug: string }>;
   keywords?: string[];
   view_count: number;
+  archived_at?: string | null;
   approved_at?: string | null;
+  updated_at?: string | null;
   created_at?: string | null;
 }
 

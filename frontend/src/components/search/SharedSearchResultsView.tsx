@@ -103,6 +103,12 @@ export default function SharedSearchResultsView() {
     }
   };
 
+  const handleThesisClick = (thesisId: string) => {
+    void searchService.trackClick(thesisId, query).catch(() => {
+      // Keep navigation responsive even if analytics logging fails.
+    });
+  };
+
   if (query.length < 2) {
     return (
       <div className="vpaa-card vpaa-search-results-empty">
@@ -219,7 +225,13 @@ export default function SharedSearchResultsView() {
 
               <div className="recent-added-grid">
                 {results.theses.map((result) => (
-                  <Link className="recent-added-card" key={result.id} to={`${routeBase}/theses/${encodeURIComponent(result.id)}`} state={{ thesis: result }}>
+                  <Link
+                    className="recent-added-card"
+                    key={result.id}
+                    to={`${routeBase}/theses/${encodeURIComponent(result.id)}`}
+                    state={{ thesis: result }}
+                    onClick={() => handleThesisClick(result.id)}
+                  >
                     <ThesisArchiveCover
                       className="recent-added-card-cover"
                       compact

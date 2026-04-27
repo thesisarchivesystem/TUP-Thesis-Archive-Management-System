@@ -58,6 +58,15 @@ import StudentExtensionRequestPage from '../pages/student/StudentExtensionReques
 import StudentProfilePage from '../pages/student/StudentProfilePage';
 import StudentThesisDetailsPage from '../pages/student/StudentThesisDetailsPage';
 import VpaaSearchResultsPage from '../pages/vpaa/VpaaSearchResultsPage';
+import StudentRecentlyAddedPage from '../pages/student/StudentRecentlyAddedPage';
+import StudentTopSearchesPage from '../pages/student/StudentTopSearchesPage';
+import StudentAllThesesPage from '../pages/student/StudentAllThesesPage';
+import FacultyRecentlyAddedPage from '../pages/faculty/FacultyRecentlyAddedPage';
+import FacultyTopSearchesPage from '../pages/faculty/FacultyTopSearchesPage';
+import FacultyAllThesesPage from '../pages/faculty/FacultyAllThesesPage';
+import VpaaRecentlyAddedPage from '../pages/vpaa/VpaaRecentlyAddedPage';
+import VpaaTopSearchesPage from '../pages/vpaa/VpaaTopSearchesPage';
+import VpaaAllThesesPage from '../pages/vpaa/VpaaAllThesesPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -110,6 +119,9 @@ export default function AppRouter() {
         <Route path="/vpaa" element={<ProtectedRoute allowedRoles={['vpaa']} />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<VpaaDashboard />} />
+          <Route path="dashboard/recently-added" element={<VpaaRecentlyAddedPage />} />
+          <Route path="dashboard/top-searches" element={<VpaaTopSearchesPage />} />
+          <Route path="dashboard/all" element={<VpaaAllThesesPage />} />
           <Route path="categories" element={<VpaaCategoriesPage />} />
           <Route path="search" element={<VpaaSearchResultsPage />} />
           <Route path="thesis/:id" element={<VpaaThesisDetailsPage />} />
@@ -129,6 +141,9 @@ export default function AppRouter() {
         <Route path="/faculty" element={<ProtectedRoute allowedRoles={['faculty']} />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<FacultyDashboard />} />
+          <Route path="dashboard/recently-added" element={<FacultyRecentlyAddedPage />} />
+          <Route path="dashboard/top-searches" element={<FacultyTopSearchesPage />} />
+          <Route path="dashboard/all" element={<FacultyAllThesesPage />} />
           <Route path="categories" element={<FacultyCategoriesPage />} />
           <Route path="search" element={<FacultySearchResultsPage />} />
           <Route path="thesis/:id" element={<FacultyThesisDetailsPage />} />
@@ -158,6 +173,9 @@ export default function AppRouter() {
         <Route path="/student" element={<ProtectedRoute allowedRoles={['student']} />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StudentDashboard />} />
+          <Route path="dashboard/recently-added" element={<StudentRecentlyAddedPage />} />
+          <Route path="dashboard/top-searches" element={<StudentTopSearchesPage />} />
+          <Route path="dashboard/all" element={<StudentAllThesesPage />} />
           <Route path="categories" element={<StudentCategoriesPage />} />
           <Route path="search" element={<StudentSearchResultsPage />} />
           <Route path="thesis/:id" element={<StudentThesisDetailsPage />} />

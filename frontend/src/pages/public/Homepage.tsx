@@ -66,7 +66,7 @@ const features = [
 
 const departments = [
   {
-    count: '150+',
+    count: '80+',
     name: 'Computer Science',
     label: 'Thesis Documents',
     iconClass: 'di-maroon',
@@ -77,7 +77,7 @@ const departments = [
     ),
   },
   {
-    count: '120+',
+    count: '20+',
     name: 'Information Technology',
     label: 'Thesis Documents',
     iconClass: 'di-sky',
@@ -88,7 +88,7 @@ const departments = [
     ),
   },
   {
-    count: '100+',
+    count: '15+',
     name: 'Information Systems',
     label: 'Thesis Documents',
     iconClass: 'di-sage',

@@ -27,13 +27,22 @@ class ThesisController extends Controller
         private NotificationService $notifications,
     ) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $perPage = max(1, min((int) $request->integer('per_page', 20), 200));
+        $sort = trim((string) $request->input('sort', 'recent'));
+
         $theses = Thesis::where('status', 'approved')
             ->whereRaw('"is_archived" = true')
             ->with('submitter:id,name', 'category:id,name,slug')
-            ->orderByDesc('approved_at')
-            ->paginate(20);
+            ->when($sort === 'title', function ($query) {
+                $query->orderByRaw('LOWER(title) asc');
+            }, function ($query) {
+                $query->orderByDesc('archived_at')
+                    ->orderByDesc('updated_at')
+                    ->orderByDesc('created_at');
+            })
+            ->paginate($perPage);
 
         return response()->json($theses);
     }
