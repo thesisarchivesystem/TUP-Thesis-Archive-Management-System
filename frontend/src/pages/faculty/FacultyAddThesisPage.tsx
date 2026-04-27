@@ -529,9 +529,9 @@ export default function FacultyAddThesisPage() {
                 />
                 <div className="student-upload-author-tags">
                   {form.authors.map((author) => (
-                    <span className="student-upload-adviser-chip" key={author}>
-                      <span className="student-upload-adviser-avatar">{getNameInitials(author)}</span>
-                      <span className="student-upload-adviser-name">{author}</span>
+                    <span className="student-upload-author-chip student-upload-author-pill" key={author}>
+                      <span className="student-upload-author-avatar">{getNameInitials(author)}</span>
+                      <span className="student-upload-author-name">{author}</span>
                       <button
                         type="button"
                         className="student-upload-adviser-remove"

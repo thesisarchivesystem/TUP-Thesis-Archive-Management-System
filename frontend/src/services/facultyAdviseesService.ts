@@ -72,4 +72,8 @@ export const facultyAdviseesService = {
     const response = await api.put<StudentRecordResponse>(`/faculty/students/${studentId}`, payload);
     return response.data.data;
   },
+
+  async removeStudentAccount(studentId: string): Promise<void> {
+    await api.delete(`/faculty/students/${studentId}`);
+  },
 };

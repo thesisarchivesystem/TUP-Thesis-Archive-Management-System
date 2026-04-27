@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarDays, FileText, Send, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileText, MoveDown, UserRound, WandSparkles } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { extensionRequestService } from '../../services/extensionRequestService';
@@ -98,7 +98,7 @@ export default function FacultyExtensionRequestDetailsPage() {
       title="Extension Request"
       description="Review the student request and decide whether to extend the revision deadline."
     >
-      <div className="faculty-submission-details-shell">
+      <div className="faculty-submission-details-shell faculty-extension-request-shell">
         <div className="faculty-submission-details-topbar">
           <Link to="/faculty/manage-thesis/review" className="faculty-submission-back-link">
             <ArrowLeft size={16} />
@@ -113,13 +113,13 @@ export default function FacultyExtensionRequestDetailsPage() {
         ) : !request ? (
           <div className="vpaa-card faculty-submission-details-loading">No extension request details were found.</div>
         ) : (
-          <div className="faculty-submission-details-grid">
-            <section className="vpaa-card faculty-submission-hero-card">
-              <div className="faculty-submission-hero-header">
-                <div className="faculty-submission-title-block">
+          <div className="faculty-submission-details-grid faculty-extension-request-grid">
+            <section className="vpaa-card faculty-submission-hero-card faculty-extension-request-hero">
+              <div className="faculty-submission-hero-header faculty-extension-request-header">
+                <div className="faculty-submission-title-block faculty-extension-request-title-block">
                   <span className="faculty-submission-eyebrow">Student Extension Request</span>
                   <h2>{request.thesis?.title || 'Untitled thesis'}</h2>
-                  <p className="faculty-submission-hero-copy">
+                  <p className="faculty-submission-hero-copy faculty-extension-request-copy">
                     Review the requested revision extension and decide whether to update the student&apos;s deadline.
                   </p>
                 </div>
@@ -128,14 +128,25 @@ export default function FacultyExtensionRequestDetailsPage() {
                 </span>
               </div>
 
-              <div className="faculty-submission-meta-chips">
+              <div className="faculty-submission-meta-chips faculty-extension-request-chips">
                 <span><UserRound size={14} /> {request.student?.name || 'Student'}</span>
                 <span><CalendarDays size={14} /> Current Due {currentRevisionDueDate}</span>
-                <span><CalendarDays size={14} /> Requested {formatDate(request.requested_deadline)}</span>
-                <span><FileText size={14} /> Thesis Status {formatStatus(request.thesis?.status)}</span>
+                <span className="faculty-extension-request-chip-alert"><CalendarDays size={14} /> Requested {formatDate(request.requested_deadline)}</span>
+                <span><FileText size={14} /> Thesis Status: {formatStatus(request.thesis?.status)}</span>
               </div>
 
-              <div className="faculty-submission-metrics">
+              <div className="faculty-extension-request-summary-strip">
+                <div>
+                  <span>Deadline Shift</span>
+                  <strong>{currentRevisionDueDate} to {formatDate(request.requested_deadline)}</strong>
+                </div>
+                <div>
+                  <span>Decision State</span>
+                  <strong>{formatStatus(request.status)}</strong>
+                </div>
+              </div>
+
+              <div className="faculty-submission-metrics faculty-extension-request-metrics">
                 <article>
                   <span>Student Email</span>
                   <strong>{request.student?.email || 'Not available'}</strong>
@@ -150,27 +161,32 @@ export default function FacultyExtensionRequestDetailsPage() {
                 </article>
               </div>
 
-              <div className="faculty-submission-section">
-                <h3>Reason for Extension</h3>
-                <p>{request.reason}</p>
+              <div className="faculty-submission-section faculty-extension-request-reason">
+                <div className="faculty-extension-request-section-head">
+                  <h3>Reason for Extension</h3>
+                  <small>Student statement</small>
+                </div>
+                <div className="faculty-extension-request-reason-box">
+                  <p>&quot;{request.reason}&quot;</p>
+                </div>
               </div>
             </section>
 
-            <aside className="faculty-submission-side-panel">
-              <section className="vpaa-card faculty-submission-manuscript-card">
-                <div className="faculty-submission-manuscript-header">
+            <aside className="faculty-submission-side-panel faculty-extension-request-side">
+              <section className="vpaa-card faculty-submission-manuscript-card faculty-extension-request-decision-card">
+                <div className="faculty-submission-manuscript-header faculty-extension-request-decision-header">
                   <div>
                     <h3>Decision</h3>
                     <p className="faculty-submission-manuscript-copy">
                       Approving this request updates the thesis revision due date to the student&apos;s requested deadline.
                     </p>
                   </div>
-                  <span className="faculty-submission-manuscript-icon">
-                    <Send size={20} />
+                  <span className="faculty-submission-manuscript-icon faculty-extension-request-icon">
+                    <WandSparkles size={18} />
                   </span>
                 </div>
 
-                <div className="faculty-submission-review-panel">
+                <div className="faculty-submission-review-panel faculty-extension-request-review-panel">
                   <div className="faculty-submission-review-head">
                     <div>
                       <span className="faculty-submission-eyebrow">Faculty Decision</span>
@@ -178,27 +194,42 @@ export default function FacultyExtensionRequestDetailsPage() {
                     </div>
                   </div>
 
-                  <div className="student-upload-note">
-                    Current revision due date: <strong>{currentRevisionDueDate}</strong><br />
-                    Requested new deadline: <strong>{formatDate(request.requested_deadline)}</strong>
+                  <div className="faculty-extension-request-comparison">
+                    <div className="faculty-extension-request-comparison-row">
+                      <span>Current due date</span>
+                      <strong>{currentRevisionDueDate}</strong>
+                    </div>
+                    <div className="faculty-extension-request-comparison-arrow" aria-hidden="true">
+                      <MoveDown size={16} />
+                    </div>
+                    <div className="faculty-extension-request-comparison-row requested">
+                      <span>Requested deadline</span>
+                      <strong>{formatDate(request.requested_deadline)}</strong>
+                    </div>
                   </div>
 
-                  <div className="faculty-submission-review-actions">
+                  <div className="faculty-extension-request-decision-note">
+                    {request.status === 'pending'
+                      ? 'Choose an action to keep the revision schedule accurate for both the student and the archive record.'
+                      : `This request has already been marked as ${formatStatus(request.status)}.`}
+                  </div>
+
+                  <div className="faculty-submission-review-actions faculty-extension-request-actions">
                     <button
                       type="button"
-                      className="faculty-submission-review-button reject"
-                      onClick={() => void handleDecision('rejected')}
-                      disabled={submitting || request.status !== 'pending'}
-                    >
-                      {submitting ? 'Saving...' : 'Reject Request'}
-                    </button>
-                    <button
-                      type="button"
-                      className="faculty-submission-review-button approve"
+                      className="faculty-submission-review-button approve faculty-extension-request-action-button"
                       onClick={() => void handleDecision('approved')}
                       disabled={submitting || request.status !== 'pending'}
                     >
                       {submitting ? 'Saving...' : 'Approve Request'}
+                    </button>
+                    <button
+                      type="button"
+                      className="faculty-submission-review-button reject faculty-extension-request-action-button"
+                      onClick={() => void handleDecision('rejected')}
+                      disabled={submitting || request.status !== 'pending'}
+                    >
+                      {submitting ? 'Saving...' : 'Reject Request'}
                     </button>
                   </div>
                 </div>

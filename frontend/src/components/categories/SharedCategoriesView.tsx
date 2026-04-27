@@ -9,6 +9,12 @@ const categoryIcons = [Globe, Brain, Shield, Cpu, Database, Users2, Smartphone, 
 
 const formatDocumentCount = (count: number) => `${count}+ document${count === 1 ? '' : 's'}`;
 
+const isSharedLibraryRecord = (thesis: VpaaCategory['theses'][number]) => {
+  const normalizedType = (thesis.resource_type ?? thesis.type ?? '').trim().toLowerCase();
+  const hasShareScope = Boolean((thesis.share_scope ?? '').trim());
+  return hasShareScope || normalizedType === 'book';
+};
+
 const formatUpdatedAt = (value?: string | null) => {
   if (!value) return 'Updated recently';
   const date = new Date(value);
@@ -56,11 +62,22 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
     };
   }, [role]);
 
-  const selectedCategory = useMemo(
-    () => categories.find((category) => category.slug === selectedSlug) ?? categories[0] ?? null,
-    [categories, selectedSlug],
+  const filteredCategories = useMemo(
+    () => categories.map((category) => {
+      const theses = category.theses.filter((thesis) => !isSharedLibraryRecord(thesis));
+      return {
+        ...category,
+        document_count: theses.length,
+        theses,
+      };
+    }),
+    [categories],
   );
-  const visibleCategories = selectedCategory ? [selectedCategory] : categories.slice(0, 1);
+  const selectedCategory = useMemo(
+    () => filteredCategories.find((category) => category.slug === selectedSlug) ?? filteredCategories[0] ?? null,
+    [filteredCategories, selectedSlug],
+  );
+  const visibleCategories = selectedCategory ? [selectedCategory] : filteredCategories.slice(0, 1);
   const combinedTheses = useMemo(
     () => visibleCategories.flatMap((category) => category.theses.map((thesis) => ({ ...thesis, categoryLabel: category.label }))),
     [visibleCategories],
@@ -84,7 +101,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
   return (
     <div className="vpaa-category-browser" ref={browserRef}>
       <div className="vpaa-category-list">
-        {categories.map((category, index) => {
+        {filteredCategories.map((category, index) => {
           const Icon = categoryIcons[index % categoryIcons.length];
           const isActive = selectedSlug === category.slug;
 
@@ -134,6 +151,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
                 >
                   <ThesisArchiveCover
                     className="vpaa-category-thesis-cover"
+                    compact
                     title={thesis.title}
                     college={thesis.college}
                     department={thesis.department}

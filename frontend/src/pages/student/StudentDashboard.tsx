@@ -56,11 +56,13 @@ export default function StudentDashboard() {
   );
   const firstName = user?.first_name || user?.name?.split(' ')[0] || 'Student';
   const thesisHref = (item: StudentDashboardThesis) => `/student/theses/${encodeURIComponent(item.id)}`;
-  const truncateTitle = (title: string, maxWords = 6) => {
+  const truncateContinueReadingTitle = (title: string, maxWords = 5) => {
     const words = title.trim().split(/\s+/).filter(Boolean);
     if (words.length <= maxWords) return title;
     return `${words.slice(0, maxWords).join(' ')}...`;
   };
+  const truncateContinueReadingAuthor = (value: string, maxLength = 22) =>
+    value.length <= maxLength ? value : `${value.slice(0, maxLength).trimEnd()}...`;
   const formatAuthorLine = (item: StudentDashboardThesis) => {
     const rawAuthor = item.author || item.submitter_name || 'Unknown author';
     const authors = rawAuthor
@@ -85,7 +87,7 @@ export default function StudentDashboard() {
         <ThesisArchiveCover
           className="vpaa-category-thesis-cover"
           compact
-          title={truncateTitle(item.title)}
+          title={item.title}
           college={item.college}
           department={item.department}
           author={formatAuthorLine(item)}
@@ -109,7 +111,7 @@ export default function StudentDashboard() {
         <ThesisArchiveCover
           className="recent-added-card-cover"
           compact
-          title={truncateTitle(item.title)}
+          title={item.title}
           college={item.college}
           department={item.department}
           author={formatAuthorLine(item)}
@@ -125,18 +127,26 @@ export default function StudentDashboard() {
     );
   };
 
-  const renderCover = (item: StudentDashboardThesis) => (
-    <Link className="continue-reading-card" key={item.id} to={thesisHref(item)} state={{ thesis: item }}>
-      <div className="continue-reading-card-head">
-        <div className="continue-reading-card-meta">TECHNOLOGICAL UNIVERSITY OF THE PHILIPPINES</div>
-        <div className="continue-reading-card-meta">{item.department || 'COMPUTER STUDIES DEPARTMENT'}</div>
-      </div>
-      <div className="continue-reading-card-body">
-        <h4>{truncateTitle(item.title)}</h4>
-        <p>{item.author || item.submitter_name || 'Unknown author'}{item.year ? `, ${item.year}` : ''}</p>
-      </div>
-    </Link>
-  );
+  const renderCover = (item: StudentDashboardThesis) => {
+    const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
+
+    return (
+      <Link className="continue-reading-card" key={item.id} to={thesisHref(item)} state={{ thesis: item }}>
+        <ThesisArchiveCover
+          className="continue-reading-cover"
+          compact
+          title={truncateContinueReadingTitle(item.title)}
+          college={item.college}
+          department={item.department}
+          author={truncateContinueReadingAuthor(formatAuthorLine(item))}
+          year={item.year}
+          categories={item.categories?.filter((category) => Boolean(category?.name)).length
+            ? item.categories.filter((category): category is { id: string; name: string; slug: string } => Boolean(category?.name))
+            : tags.map((tag, index) => ({ id: `${item.id}-${index}`, name: String(tag) }))}
+        />
+      </Link>
+    );
+  };
 
   return (
     <StudentLayout
@@ -176,10 +186,8 @@ export default function StudentDashboard() {
               <div className="vpaa-cover-scroll">
                 {recentCards.map(renderCover)}
                 {!recentCards.length ? (
-                  <div className="vpaa-cover" aria-hidden="true">
-                    <div className="vpaa-cover-meta">Technological University of the Philippines</div>
-                    <div className="vpaa-cover-meta">Student Workspace</div>
-                    <div className="vpaa-cover-title">No recent submissions yet</div>
+                  <div className="continue-reading-card" aria-hidden="true">
+                    <ThesisArchiveCover className="continue-reading-cover" compact title="No recent submissions yet" author="Student Workspace" year="" categories={[]} />
                   </div>
                 ) : null}
               </div>

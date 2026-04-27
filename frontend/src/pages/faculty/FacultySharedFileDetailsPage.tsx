@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpenText, CalendarDays, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
+import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import { facultyLibraryService, type FacultyLibraryItem } from '../../services/facultyLibraryService';
 
 type LocationState = {
@@ -40,6 +41,12 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .join('')
     .toUpperCase();
+
+const truncateCoverTitle = (title: string, maxWords = 5) => {
+  const words = title.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return title;
+  return `${words.slice(0, maxWords).join(' ')}...`;
+};
 
 export default function FacultySharedFileDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -116,14 +123,26 @@ export default function FacultySharedFileDetailsPage() {
         ) : (
           <div className="student-submission-details-grid">
             <section className="vpaa-card student-submission-hero-card shared-file-hero-card">
-              <div className="student-submission-hero-top shared-file-hero-top">
-                <div className="student-submission-cover shared-file-cover">
-                  <span className="student-submission-cover-meta">TUP Shared Archive</span>
-                  <span className="student-submission-cover-meta">{file.department || 'Faculty Library'}</span>
-                  <strong>{file.title}</strong>
-                </div>
+              <div className="student-submission-hero-top shared-file-details-hero-top">
+                <ThesisArchiveCover
+                  className="continue-reading-cover shared-file-details-cover"
+                  compact
+                  title={truncateCoverTitle(file.title)}
+                  college={file.college}
+                  department={file.department || 'Faculty Library'}
+                  author={authorLabel}
+                  authors={file.authors ?? undefined}
+                  year={file.year || file.school_year || ''}
+                  categories={(file.keywords?.length
+                    ? file.keywords
+                    : [file.category, file.type, file.program]
+                  )
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((tag, index) => ({ id: `${file.id}-tag-${index}`, name: String(tag) }))}
+                />
 
-                <div className="student-submission-hero-copy shared-file-hero-copy">
+                <div className="student-submission-hero-copy">
                   <div className="student-submission-hero-title-row">
                     <h2>{file.title}</h2>
                   </div>

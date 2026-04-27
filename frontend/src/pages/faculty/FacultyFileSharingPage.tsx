@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, ChevronDown, Clock3, Files, Layers3, Paperclip, Search, Upload, UserRound, Users } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
+import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import { categoryService, type CategoryOption } from '../../services/categoryService';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -38,6 +39,7 @@ const initialForm = {
 
 export default function FacultyFileSharingPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as { draft?: FacultyLibraryItem } | null;
   const [formOpen, setFormOpen] = useState(false);
@@ -83,6 +85,7 @@ export default function FacultyFileSharingPage() {
     () => departmentsByCollege[form.targetCollege || ''] ?? [],
     [departmentsByCollege, form.targetCollege],
   );
+  const visibleLibraryItems = useMemo(() => libraryItems.slice(0, 6), [libraryItems]);
 
   const loadLibrary = async () => {
     const response: FacultyLibraryResponse = await facultyLibraryService.getLibrary();
@@ -334,47 +337,54 @@ export default function FacultyFileSharingPage() {
                 <p className="text-sm text-text-secondary">{libraryDepartment}{libraryCollege ? `, ${libraryCollege}` : ''}</p>
               </div>
             </div>
+            {!libraryLoading && libraryItems.length > 6 ? (
+              <button
+                type="button"
+                className="vpaa-button-ghost faculty-shared-files-toggle"
+                onClick={() => navigate('/faculty/students/all')}
+              >
+                View All
+              </button>
+            ) : null}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="faculty-shared-files-grid">
             {libraryLoading ? (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-10 text-center text-text-secondary md:col-span-2 xl:col-span-4">
+              <div className="faculty-shared-files-empty rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-10 text-center text-text-secondary">
                 Loading shared files from the backend...
               </div>
             ) : null}
 
             {!libraryLoading && !libraryItems.length ? (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-10 text-center text-text-secondary md:col-span-2 xl:col-span-4">
+              <div className="faculty-shared-files-empty rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-10 text-center text-text-secondary">
                 No shared files are available yet.
               </div>
             ) : null}
 
-            {libraryItems.map((item) => (
+            {visibleLibraryItems.map((item) => (
               <Link
                 key={item.id}
                 to={`/faculty/students/${encodeURIComponent(item.id)}`}
                 state={{ file: item }}
                 className="faculty-shared-file-card"
               >
-                <div className="faculty-shared-file-cover">
-                  <div className="faculty-shared-file-cover-top">
-                    <div className="faculty-shared-file-cover-meta">{item.department || 'Faculty Library'}</div>
-                    <span className="faculty-shared-file-type-chip">
-                      {item.is_draft ? 'Draft' : item.type}
-                    </span>
-                  </div>
-                  <h3 className="faculty-shared-file-cover-title">{truncateTitle(item.title, 18)}</h3>
-                </div>
-                <div className="faculty-shared-file-body">
-                  <div className="faculty-shared-file-record-title">{truncateTitle(item.title, 22)}</div>
-                  <div className="faculty-shared-file-detail-row">{item.author || 'Unknown author'}</div>
-                  <div className="faculty-shared-file-detail-row">{item.department || 'No department assigned'}</div>
-                  <div className="faculty-shared-file-divider" />
-                  <div className="faculty-shared-file-attachment-chip">
-                    <Paperclip size={14} />
-                    <span>{item.file_name || 'No file attached'}</span>
-                  </div>
-                </div>
+                <ThesisArchiveCover
+                  className="faculty-shared-file-cover"
+                  compact
+                  title={truncateTitle(item.title, 18)}
+                  college={item.college}
+                  department={item.department || 'Faculty Library'}
+                  author={item.author || item.authors?.filter(Boolean).join(', ') || 'Unknown author'}
+                  authors={item.authors ?? undefined}
+                  year={item.year || item.school_year || ''}
+                  categories={(item.keywords?.length
+                    ? item.keywords
+                    : [item.category, item.type, item.program]
+                  )
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((tag, index) => ({ id: `${item.id}-tag-${index}`, name: String(tag) }))}
+                />
               </Link>
             ))}
           </div>

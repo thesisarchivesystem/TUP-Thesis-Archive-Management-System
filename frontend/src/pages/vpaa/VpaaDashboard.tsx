@@ -50,11 +50,13 @@ export default function VpaaDashboard() {
   );
 
   const thesisHref = (item: VpaaDashboardThesis) => `/vpaa/theses/${encodeURIComponent(item.id)}`;
-  const truncateTitle = (title: string, maxWords = 6) => {
+  const truncateContinueReadingTitle = (title: string, maxWords = 5) => {
     const words = title.trim().split(/\s+/).filter(Boolean);
     if (words.length <= maxWords) return title;
     return `${words.slice(0, maxWords).join(' ')}...`;
   };
+  const truncateContinueReadingAuthor = (value: string, maxLength = 22) =>
+    value.length <= maxLength ? value : `${value.slice(0, maxLength).trimEnd()}...`;
   const formatAuthorLine = (item: VpaaDashboardThesis) => {
     const rawAuthor = item.author || 'Unknown author';
     const authors = rawAuthor
@@ -79,7 +81,7 @@ export default function VpaaDashboard() {
         <ThesisArchiveCover
           className="vpaa-category-thesis-cover"
           compact
-          title={truncateTitle(item.title)}
+          title={item.title}
           college={item.college}
           department={item.department}
           author={formatAuthorLine(item)}
@@ -103,7 +105,7 @@ export default function VpaaDashboard() {
         <ThesisArchiveCover
           className="recent-added-card-cover"
           compact
-          title={truncateTitle(item.title)}
+          title={item.title}
           college={item.college}
           department={item.department}
           author={formatAuthorLine(item)}
@@ -114,6 +116,27 @@ export default function VpaaDashboard() {
                 .filter(Boolean)
                 .slice(0, 2)
                 .map((tag, index) => ({ id: `${item.id}-${index}`, name: String(tag) }))}
+        />
+      </Link>
+    );
+  };
+
+  const renderContinueReadingCard = (item: VpaaDashboardThesis) => {
+    const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
+
+    return (
+      <Link className="continue-reading-card" key={item.id} to={thesisHref(item)} state={{ thesis: item }}>
+        <ThesisArchiveCover
+          className="continue-reading-cover"
+          compact
+          title={truncateContinueReadingTitle(item.title)}
+          college={item.college}
+          department={item.department}
+          author={truncateContinueReadingAuthor(formatAuthorLine(item))}
+          year={item.year}
+          categories={item.categories?.filter((category) => Boolean(category?.name)).length
+            ? item.categories.filter((category): category is { id: string; name: string; slug: string } => Boolean(category?.name))
+            : tags.map((tag, index) => ({ id: `${item.id}-${index}`, name: String(tag) }))}
         />
       </Link>
     );
@@ -149,27 +172,10 @@ export default function VpaaDashboard() {
             <div className="vpaa-cover-strip">
               <div className="vpaa-cover-strip-label">Continue Reading</div>
               <div className="vpaa-cover-scroll">
-                {continueReadingCards.map((item) => (
-                  <Link className="continue-reading-card" key={item.id} to={thesisHref(item)} state={{ thesis: item }}>
-                    <div className="continue-reading-card-head">
-                      <div className="continue-reading-card-meta">TECHNOLOGICAL UNIVERSITY OF THE PHILIPPINES</div>
-                      <div className="continue-reading-card-meta">{item.department || 'COMPUTER STUDIES DEPARTMENT'}</div>
-                    </div>
-                    <div className="continue-reading-card-body">
-                      <h4>{truncateTitle(item.title)}</h4>
-                      <p>{item.author || 'Unknown author'}{item.year ? `, ${item.year}` : ''}</p>
-                    </div>
-                  </Link>
-                ))}
+                {continueReadingCards.map(renderContinueReadingCard)}
                 {!continueReadingCards.length ? (
                   <div className="continue-reading-card" aria-hidden="true">
-                    <div className="continue-reading-card-head">
-                      <div className="continue-reading-card-meta">TECHNOLOGICAL UNIVERSITY OF THE PHILIPPINES</div>
-                      <div className="continue-reading-card-meta">VPAA WORKSPACE</div>
-                    </div>
-                    <div className="continue-reading-card-body">
-                      <h4>No recent theses yet</h4>
-                    </div>
+                    <ThesisArchiveCover className="continue-reading-cover" compact title="No recent theses yet" author="VPAA Workspace" year="" categories={[]} />
                   </div>
                 ) : null}
               </div>

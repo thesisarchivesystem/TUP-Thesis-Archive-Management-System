@@ -452,11 +452,38 @@ class StudentController extends Controller
 
     public function destroy(string $id): JsonResponse
     {
-        $student = StudentProfile::findOrFail($id);
+        $student = StudentProfile::with('user')->findOrFail($id);
         $user = $student->user;
-        $user->delete();
+        $actor = request()->user();
 
-        return response()->json(['message' => 'Student deleted']);
+        if ($actor?->role === 'faculty' && $student->adviser_id !== $actor->id) {
+            return response()->json([
+                'message' => 'You can only remove advisees assigned to your account.',
+            ], 403);
+        }
+
+        DB::transaction(function () use ($student, $user) {
+            Thesis::query()
+                ->where('submitted_by', $student->user_id)
+                ->update([
+                    'submitter_name' => DB::raw("COALESCE(submitter_name, " . DB::getPdo()->quote((string) ($user?->name ?? 'Former student')) . ')'),
+                ]);
+
+            if ($user) {
+                $user->delete();
+            }
+        });
+
+        if ($actor) {
+            $this->logger->log($actor, 'student.deleted', 'user', $student->user_id, [
+                'student_name' => $user?->name,
+                'preserved_thesis_records' => true,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Student account deleted. Thesis records were preserved.',
+        ]);
     }
 
     private function sortedParticipantAttributes(string $firstUserId, string $secondUserId): array

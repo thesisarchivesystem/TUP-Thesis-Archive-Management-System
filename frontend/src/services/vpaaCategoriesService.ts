@@ -15,6 +15,9 @@ export interface VpaaCategoryThesis {
   categories?: Array<{ id: string; name: string; slug: string }>;
   keywords: string[];
   approved_at?: string | null;
+  type?: string | null;
+  resource_type?: string | null;
+  share_scope?: string | null;
 }
 
 export interface VpaaCategory {
@@ -42,6 +45,9 @@ interface RawCategoryThesis {
   keywords?: string[];
   approved_at?: string | null;
   created_at?: string | null;
+  type?: string | null;
+  resource_type?: string | null;
+  share_scope?: string | null;
 }
 
 interface RawCategory {
@@ -86,6 +92,9 @@ const normalizeThesis = (thesis: RawCategoryThesis): VpaaCategoryThesis => ({
     : [],
   keywords: Array.isArray(thesis.keywords) ? thesis.keywords.filter(Boolean) : [],
   approved_at: thesis.approved_at ?? thesis.created_at ?? null,
+  type: thesis.type ?? null,
+  resource_type: thesis.resource_type ?? null,
+  share_scope: thesis.share_scope ?? null,
 });
 
 const normalizeCategory = (category: RawCategory): VpaaCategory => ({

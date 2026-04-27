@@ -11,6 +11,7 @@ const generateTemporaryPassword = () => {
 const defaultProgramOptions = [
   'BSCS',
   'BSIT',
+  'BSIS',
 ];
 
 const EDIT_PANEL_CLOSE_DELAY = 280;
@@ -68,6 +69,7 @@ export default function FacultyAdviseesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const editPanelRef = useRef<HTMLDivElement | null>(null);
   const editCloseTimeoutRef = useRef<number | null>(null);
 
@@ -142,6 +144,7 @@ export default function FacultyAdviseesPage() {
     { label: 'On Track', value: summary?.on_track ?? 0, icon: <CheckCircle2 size={20} />, tone: 'si-sage' },
     { label: 'Account Changed', value: summary?.info_changed ?? 0, icon: <Users2 size={20} />, tone: 'si-maroon' },
   ];
+  const selectedAdvisee = editingId ? advisees.find((advisee) => advisee.id === editingId) ?? null : null;
 
   const resetEditForm = () => {
     if (editCloseTimeoutRef.current) {
@@ -264,6 +267,31 @@ export default function FacultyAdviseesPage() {
       setEditError(String(firstValidationMessage || err.response?.data?.message || err.response?.data?.error || 'Unable to update the student account.'));
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const handleRemoveAdvisee = async (advisee: FacultyAdviseeRecord) => {
+    const confirmed = window.confirm(
+      `Delete ${advisee.student_name}'s student account?\n\nTheir account will be removed, and any thesis records already added to the archive will stay stored.`,
+    );
+
+    if (!confirmed) return;
+
+    setError('');
+    setSuccess('');
+    setRemovingId(advisee.id);
+
+    try {
+      await facultyAdviseesService.removeStudentAccount(advisee.id);
+      if (editingId === advisee.id) {
+        resetEditForm();
+      }
+      setSuccess(`${advisee.student_name}'s student account was deleted. Thesis records remain preserved.`);
+      await loadAdvisees({ silent: true });
+    } catch (err: any) {
+      setError(String(err.response?.data?.message || err.response?.data?.error || 'Unable to delete this student account right now.'));
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -445,7 +473,9 @@ export default function FacultyAdviseesPage() {
                         <td>{advisee.year_level ? `${advisee.year_level}${advisee.year_level === 1 ? 'st' : advisee.year_level === 2 ? 'nd' : advisee.year_level === 3 ? 'rd' : 'th'} Year` : 'Not set'}</td>
                         <td>{formatDate(advisee.last_update)}</td>
                         <td><span className={`status-badge ${statusClassMap[advisee.status_tone]}`}>{advisee.status}</span></td>
-                        <td className="table-actions"><button type="button" className="btn-review" onClick={() => startEdit(advisee)}>Edit</button></td>
+                        <td className="table-actions">
+                          <button type="button" className="btn-review" onClick={() => startEdit(advisee)} disabled={removingId === advisee.id}>Edit</button>
+                        </td>
                       </tr>
                     )) : (
                       <tr>
@@ -539,6 +569,19 @@ export default function FacultyAdviseesPage() {
                       Department
                       <input value={editForm.department} onChange={(event) => setEditForm({ ...editForm, department: event.target.value })} required />
                     </label>
+                    {selectedAdvisee ? (
+                      <div className="form-field faculty-advisee-delete-field">
+                        <span>Delete Student Account</span>
+                        <button
+                          className="btn-review btn-review-danger faculty-advisee-delete-btn"
+                          type="button"
+                          onClick={() => handleRemoveAdvisee(selectedAdvisee)}
+                          disabled={editSaving || removingId === selectedAdvisee.id}
+                        >
+                          {removingId === selectedAdvisee.id ? 'Deleting...' : 'Delete Student'}
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="form-actions">

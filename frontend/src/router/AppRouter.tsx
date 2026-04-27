@@ -30,6 +30,7 @@ import FacultyMessagesPage from '../pages/faculty/FacultyMessagesPage';
 import FacultySupportPage from '../pages/faculty/FacultySupportPage';
 import FacultyAboutPage from '../pages/faculty/FacultyAboutPage';
 import FacultyFileSharingPage from '../pages/faculty/FacultyFileSharingPage';
+import FacultyAllSharedFilesPage from '../pages/faculty/FacultyAllSharedFilesPage';
 import FacultyAddThesisPage from '../pages/faculty/FacultyAddThesisPage';
 import FacultyMyThesesPage from '../pages/faculty/FacultyMyThesesPage';
 import FacultyApprovedThesesPage from '../pages/faculty/FacultyApprovedThesesPage';
@@ -144,6 +145,7 @@ export default function AppRouter() {
           <Route path="terms" element={<FacultyTermsPage />} />
           <Route path="my-advisees" element={<FacultyAdviseesPage />} />
           <Route path="students" element={<FacultyFileSharingPage />} />
+          <Route path="students/all" element={<FacultyAllSharedFilesPage />} />
           <Route path="students/:id" element={<FacultySharedFileDetailsPage />} />
           <Route path="manage-thesis/add" element={<FacultyAddThesisPage />} />
           <Route path="my-submissions" element={<FacultyMyThesesPage />} />

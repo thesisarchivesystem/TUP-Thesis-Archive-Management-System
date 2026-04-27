@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpenText, CalendarDays, FolderOpen, GraduationCap, Shiel
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
+import ThesisArchiveCover from './ThesisArchiveCover';
 
 type SharedThesisDetailsPageProps = {
   role: 'vpaa' | 'faculty' | 'student';
@@ -44,6 +45,12 @@ const formatDate = (value?: string) => {
     day: 'numeric',
     year: 'numeric',
   });
+};
+
+const truncateCoverTitle = (title: string, maxWords = 5) => {
+  const words = title.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return title;
+  return `${words.slice(0, maxWords).join(' ')}...`;
 };
 
 export default function SharedThesisDetailsPage({
@@ -128,11 +135,21 @@ export default function SharedThesisDetailsPage({
           <div className="student-submission-details-grid">
             <section className="vpaa-card student-submission-hero-card">
               <div className="student-submission-hero-top">
-                <div className="student-submission-cover">
-                  <span className="student-submission-cover-meta">TUP Thesis Archive</span>
-                  <span className="student-submission-cover-meta">{thesis.department || 'Archive Record'}</span>
-                  <strong>{thesis.title}</strong>
-                </div>
+                <ThesisArchiveCover
+                  className="continue-reading-cover"
+                  compact
+                  title={truncateCoverTitle(thesis.title)}
+                  college={thesis.college}
+                  department={thesis.department}
+                  author={authorLabel}
+                  authors={thesis.authors}
+                  year={thesis.school_year ?? thesis.created_at?.slice(0, 4) ?? ''}
+                  categories={thesisCategories.map((category, index) => ({
+                    id: category.id ?? `${thesis.id}-category-${index}`,
+                    name: category.name,
+                    slug: category.slug,
+                  }))}
+                />
 
                 <div className="student-submission-hero-copy">
                   <div className="student-submission-hero-title-row">
