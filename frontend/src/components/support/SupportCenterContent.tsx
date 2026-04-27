@@ -16,9 +16,9 @@ const faqs = [
   ['How long does the review process take?', 'Most reviews finish within 7-14 days depending on adviser availability and revision cycles.'],
   ['What file formats are accepted?', 'Submit the final copy as PDF. Drafts during review may include DOCX and supporting attachments.'],
   ['Can submission deadlines be extended?', 'Yes. Extension requests must be coordinated through your adviser or the department office before the deadline.'],
-  ['Who can access my thesis while it’s under review?', 'Only you and your assigned adviser can view a draft. It becomes visible to authorized users once archived.'],
+  ['Who can access my thesis while it\'s under review?', 'Only you and your assigned adviser can view a draft. It becomes visible to authorized users once archived.'],
   ['How do I update metadata after approval?', 'Open a support request using the ticket form and include the corrected title, author, or archive details.'],
-  ['Can I edit my thesis after it’s been archived?', 'The archived document is locked, but all revision history is preserved. Contact the library team for corrections.'],
+  ['Can I edit my thesis after it\'s been archived?', 'The archived document is locked, but all revision history is preserved. Contact the library team for corrections.'],
 ] as const;
 
 const categoryOptions = [
@@ -103,12 +103,14 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
     <div className="vpaa-support-reference-layout">
       <section className="vpaa-support-reference-top">
         <article className="vpaa-support-reference-hero">
-          <span className="vpaa-support-reference-label">We’re Here To Help</span>
-          <h2>Browse guidance, or open a request and our team will assist you.</h2>
-          <p>
-            Choose a support topic below, check the frequently asked questions, or submit a ticket directly. For urgent
-            concerns, use the contact details on the right.
-          </p>
+          <div className="vpaa-support-reference-summary">
+            <span className="vpaa-support-reference-label">Support Center</span>
+            <h2>Browse guidance, or open a request and our team will assist you.</h2>
+            <p>
+              Choose a support topic below, check the frequently asked questions, or submit a ticket directly. For urgent
+              concerns, use the contact details on the right.
+            </p>
+          </div>
         </article>
 
         <aside className="vpaa-support-reference-contacts">

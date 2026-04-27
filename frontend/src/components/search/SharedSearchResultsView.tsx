@@ -155,33 +155,54 @@ export default function SharedSearchResultsView() {
                     className="vpaa-search-user-card"
                     onClick={() => setSelectedUser(user)}
                   >
-                    <div className="vpaa-search-user-card-top">
-                      <div className="vpaa-search-user-card-icon">
-                        <UserRound size={20} />
-                      </div>
-                      <div className="vpaa-search-user-card-copy">
-                        <div className="vpaa-search-user-card-name">{user.name}</div>
-                        <div className="vpaa-search-user-card-email">{user.email}</div>
-                        <div className="vpaa-search-user-card-pills">
-                          <span className="vpaa-search-user-pill">{user.role_label}</span>
-                          {user.department ? <span className="vpaa-search-user-pill">{user.department}</span> : null}
+                    <div className="vpaa-search-user-card-banner">
+                      <div className="vpaa-search-user-card-kicker">Profile Card</div>
+                      <div className="vpaa-search-user-card-top">
+                        <div className="vpaa-search-user-card-icon">
+                          <UserRound size={20} />
+                        </div>
+                        <div className="vpaa-search-user-card-copy">
+                          <div className="vpaa-search-user-card-name">{user.name}</div>
+                          <div className="vpaa-search-user-card-email">{user.email}</div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="vpaa-search-user-card-stats">
-                      <div className="vpaa-search-user-card-stat">
-                        <strong className="block text-sm text-text-primary">{user.contributions.theses}</strong>
-                        <span className="text-[11px] text-text-secondary">Theses</span>
+                    <div className="vpaa-search-user-card-body">
+                      <div className="vpaa-search-user-card-pills">
+                        <span className="vpaa-search-user-pill">{user.role_label}</span>
+                        {user.department ? <span className="vpaa-search-user-pill">{user.department}</span> : null}
+                        {!user.department && user.college ? <span className="vpaa-search-user-pill">{user.college}</span> : null}
+                        {user.department && user.college ? <span className="vpaa-search-user-pill">{user.college}</span> : null}
                       </div>
-                      <div className="vpaa-search-user-card-stat">
-                        <strong className="block text-sm text-text-primary">{user.contributions.approved_theses}</strong>
-                        <span className="text-[11px] text-text-secondary">Approved</span>
+
+                      <div className="vpaa-search-user-card-stats">
+                        <div className="vpaa-search-user-card-stat">
+                          <strong>{user.contributions.theses}</strong>
+                          <span>Theses</span>
+                        </div>
+                        <div className="vpaa-search-user-card-stat">
+                          <strong>{user.contributions.approved_theses}</strong>
+                          <span>Approved</span>
+                        </div>
+                        <div className="vpaa-search-user-card-stat">
+                          <strong>{user.contributions.shared_files}</strong>
+                          <span>Shared</span>
+                        </div>
                       </div>
-                      <div className="vpaa-search-user-card-stat">
-                        <strong className="block text-sm text-text-primary">{user.contributions.shared_files}</strong>
-                        <span className="text-[11px] text-text-secondary">Shared</span>
-                      </div>
+
+                      <button
+                        type="button"
+                        className="vpaa-search-user-card-action"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void openConversation(user);
+                        }}
+                        disabled={startingConversation === user.id}
+                      >
+                        <MessageSquare size={16} />
+                        <span>{startingConversation === user.id ? 'Opening...' : 'Message User'}</span>
+                      </button>
                     </div>
                   </button>
                 ))}
@@ -196,11 +217,12 @@ export default function SharedSearchResultsView() {
                 <strong className="vpaa-search-results-query">{results.theses.length}</strong>
               </div>
 
-              <div className="vpaa-category-thesis-grid">
+              <div className="recent-added-grid">
                 {results.theses.map((result) => (
-                  <Link className="vpaa-category-thesis-card" key={result.id} to={`${routeBase}/theses/${encodeURIComponent(result.id)}`} state={{ thesis: result }}>
+                  <Link className="recent-added-card" key={result.id} to={`${routeBase}/theses/${encodeURIComponent(result.id)}`} state={{ thesis: result }}>
                     <ThesisArchiveCover
-                      className="vpaa-category-thesis-cover"
+                      className="recent-added-card-cover"
+                      compact
                       title={result.title}
                       college={result.college}
                       department={result.department}
@@ -261,18 +283,11 @@ export default function SharedSearchResultsView() {
                     </div>
                   ) : null}
                 </div>
-
-                <button
-                  type="button"
-                  className="vpaa-user-search-modal-message"
-                  onClick={() => void openConversation(selectedUser)}
-                  disabled={startingConversation === selectedUser.id}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <MessageSquare size={16} />
-                    {startingConversation === selectedUser.id ? 'Opening...' : 'Message User'}
-                  </span>
-                </button>
+                <div className="vpaa-user-search-modal-pills">
+                  <span className="vpaa-user-search-modal-pill">{selectedUser.role_label}</span>
+                  {selectedUser.department ? <span className="vpaa-user-search-modal-pill">{selectedUser.department}</span> : null}
+                  {selectedUser.college ? <span className="vpaa-user-search-modal-pill">{selectedUser.college}</span> : null}
+                </div>
               </section>
 
               <section className="vpaa-user-search-modal-contributions">
@@ -310,6 +325,18 @@ export default function SharedSearchResultsView() {
                     </div>
                   ))}
                 </div>
+
+                <button
+                  type="button"
+                  className="vpaa-user-search-modal-message"
+                  onClick={() => void openConversation(selectedUser)}
+                  disabled={startingConversation === selectedUser.id}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <MessageSquare size={16} />
+                    {startingConversation === selectedUser.id ? 'Opening...' : 'Message User'}
+                  </span>
+                </button>
               </section>
             </div>
           </div>

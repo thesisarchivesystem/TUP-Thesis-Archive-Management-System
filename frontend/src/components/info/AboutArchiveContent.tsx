@@ -42,16 +42,19 @@ export default function AboutArchiveContent() {
     <div className="vpaa-about-reference-layout">
       <section className="vpaa-about-reference-hero">
         <article className="vpaa-about-reference-story">
-          <h3>A digital home for every thesis your institution creates</h3>
-          <p>
-            The Thesis Archive is the university&apos;s central repository for student research. Every approved thesis
-            is stored, organized, and made fully searchable from first proposal to final submission. It ensures
-            research is preserved, accessible, and never lost.
-          </p>
-          <div className="vpaa-about-reference-tags" aria-label="Supported user groups">
-            <span className="student">Students</span>
-            <span className="faculty">Faculty &amp; Advisers</span>
-            <span className="library">VPAA</span>
+          <div className="vpaa-about-reference-summary">
+            <span className="vpaa-about-reference-label">About the Archive</span>
+            <h3>A digital home for every thesis your institution creates</h3>
+            <p>
+              The Thesis Archive is the university&apos;s central repository for student research. Every approved thesis
+              is stored, organized, and made fully searchable from first proposal to final submission. It ensures
+              research is preserved, accessible, and never lost.
+            </p>
+            <div className="vpaa-about-reference-tags" aria-label="Supported user groups">
+              <span className="student">Students</span>
+              <span className="faculty">Faculty &amp; Advisers</span>
+              <span className="library">VPAA</span>
+            </div>
           </div>
         </article>
 
