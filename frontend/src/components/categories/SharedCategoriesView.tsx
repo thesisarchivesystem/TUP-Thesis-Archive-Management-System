@@ -68,7 +68,6 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
       const theses = category.theses.filter((thesis) => !isSharedLibraryRecord(thesis));
       return {
         ...category,
-        document_count: theses.length,
         theses,
       };
     }),
@@ -85,6 +84,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
   );
 
   const thesisBasePath = role === 'vpaa' ? '/vpaa/theses' : role === 'faculty' ? '/faculty/theses' : '/student/theses';
+  const categoriesBasePath = role === 'vpaa' ? '/vpaa/categories' : role === 'faculty' ? '/faculty/categories' : '/student/categories';
 
   const thesisHref = (thesis: VpaaCategory['theses'][number]) => `${thesisBasePath}/${encodeURIComponent(thesis.id)}`;
 
@@ -136,14 +136,21 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
               <h2>{visibleCategories[0]?.label}</h2>
               <p>{`Highlighted category - ${formatDocumentCount(visibleCategories[0]?.document_count ?? 0)}`}</p>
             </div>
-            <span>{formatUpdatedAt(visibleCategories[0]?.updated_at)}</span>
+            <div className="flex items-center gap-3">
+              <span>{formatUpdatedAt(visibleCategories[0]?.updated_at)}</span>
+              {visibleCategories[0]?.slug ? (
+                <Link className="vpaa-dashboard-toggle" to={`${categoriesBasePath}/${encodeURIComponent(visibleCategories[0].slug)}`}>
+                  View All
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           {!combinedTheses.length ? (
             <div className="vpaa-card">No thesis has been assigned to this category yet.</div>
           ) : (
             <div className="vpaa-category-thesis-grid">
-              {combinedTheses.map((thesis) => (
+              {combinedTheses.slice(0, 9).map((thesis) => (
                 <Link
                   className="vpaa-category-thesis-card"
                   key={`${thesis.categoryLabel}-${thesis.id}`}

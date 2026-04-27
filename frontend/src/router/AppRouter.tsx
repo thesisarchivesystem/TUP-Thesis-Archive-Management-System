@@ -67,6 +67,9 @@ import FacultyAllThesesPage from '../pages/faculty/FacultyAllThesesPage';
 import VpaaRecentlyAddedPage from '../pages/vpaa/VpaaRecentlyAddedPage';
 import VpaaTopSearchesPage from '../pages/vpaa/VpaaTopSearchesPage';
 import VpaaAllThesesPage from '../pages/vpaa/VpaaAllThesesPage';
+import StudentCategoryDetailPage from '../pages/student/StudentCategoryDetailPage';
+import FacultyCategoryDetailPage from '../pages/faculty/FacultyCategoryDetailPage';
+import VpaaCategoryDetailPage from '../pages/vpaa/VpaaCategoryDetailPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -123,6 +126,7 @@ export default function AppRouter() {
           <Route path="dashboard/top-searches" element={<VpaaTopSearchesPage />} />
           <Route path="dashboard/all" element={<VpaaAllThesesPage />} />
           <Route path="categories" element={<VpaaCategoriesPage />} />
+          <Route path="categories/:slug" element={<VpaaCategoryDetailPage />} />
           <Route path="search" element={<VpaaSearchResultsPage />} />
           <Route path="thesis/:id" element={<VpaaThesisDetailsPage />} />
           <Route path="theses/:id" element={<VpaaThesisDetailsPage />} />
@@ -145,6 +149,7 @@ export default function AppRouter() {
           <Route path="dashboard/top-searches" element={<FacultyTopSearchesPage />} />
           <Route path="dashboard/all" element={<FacultyAllThesesPage />} />
           <Route path="categories" element={<FacultyCategoriesPage />} />
+          <Route path="categories/:slug" element={<FacultyCategoryDetailPage />} />
           <Route path="search" element={<FacultySearchResultsPage />} />
           <Route path="thesis/:id" element={<FacultyThesisDetailsPage />} />
           <Route path="theses/:id" element={<FacultyThesisDetailsPage />} />
@@ -177,6 +182,7 @@ export default function AppRouter() {
           <Route path="dashboard/top-searches" element={<StudentTopSearchesPage />} />
           <Route path="dashboard/all" element={<StudentAllThesesPage />} />
           <Route path="categories" element={<StudentCategoriesPage />} />
+          <Route path="categories/:slug" element={<StudentCategoryDetailPage />} />
           <Route path="search" element={<StudentSearchResultsPage />} />
           <Route path="thesis/:id" element={<StudentThesisDetailsPage />} />
           <Route path="theses/:id" element={<StudentThesisDetailsPage />} />

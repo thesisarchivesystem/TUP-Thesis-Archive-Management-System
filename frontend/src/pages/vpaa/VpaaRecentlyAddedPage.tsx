@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
+import DashboardCollectionPageHeader from '../../components/dashboard/DashboardCollectionPageHeader';
 import SharedDashboardThesisCollectionView from '../../components/dashboard/SharedDashboardThesisCollectionView';
 import { vpaaDashboardService } from '../../services/vpaaDashboardService';
 
@@ -10,7 +11,13 @@ export default function VpaaRecentlyAddedPage() {
     <VpaaLayout
       title="Recently Added"
       description="Browse all archived theses that were added most recently to the public archive."
+      hidePageIntro
     >
+      <DashboardCollectionPageHeader
+        role="vpaa"
+        title="Recently Added"
+        description="Browse all archived theses that were added most recently to the public archive."
+      />
       <SharedDashboardThesisCollectionView
         emptyMessage="No recently added theses are available yet."
         fetchItems={fetchItems}

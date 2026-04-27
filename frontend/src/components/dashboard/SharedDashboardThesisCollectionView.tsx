@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, ArrowLeft, FilePlus2, LibraryBig } from 'lucide-react';
+import { Activity, FilePlus2, LibraryBig } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SectionLoadingScreen from '../SectionLoadingScreen';
 import ThesisArchiveCover from '../thesis/ThesisArchiveCover';
@@ -69,8 +69,6 @@ export default function SharedDashboardThesisCollectionView({
   const heading = section === 'recently-added' ? 'Recently Added' : section === 'top-searches' ? 'Top Searches' : 'All';
   const icon = section === 'recently-added' ? <FilePlus2 size={16} /> : section === 'top-searches' ? <Activity size={16} /> : <LibraryBig size={16} />;
   const thesisBasePath = `/${role}/theses`;
-  const dashboardPath = `/${role}/dashboard`;
-  const dashboardLabel = role === 'student' ? 'Student Dashboard' : role === 'faculty' ? 'Faculty Dashboard' : 'VPAA Dashboard';
 
   const cards = useMemo(() => items.map((item) => {
     const rawAuthor = item.author || item.submitter_name || 'Unknown author';
@@ -111,17 +109,7 @@ export default function SharedDashboardThesisCollectionView({
   if (error) return <div className="vpaa-banner-error">{error}</div>;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Link
-          to={dashboardPath}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--maroon)] no-underline transition hover:translate-x-[-2px]"
-        >
-          <ArrowLeft size={16} />
-          <span>{`Back to ${dashboardLabel}`}</span>
-        </Link>
-      </div>
-      <div className="vpaa-card vpaa-dashboard-panel">
+    <div className="vpaa-card vpaa-dashboard-panel">
       <div className="vpaa-dashboard-head">
         <h3>{icon} {heading}</h3>
         <span
@@ -134,10 +122,9 @@ export default function SharedDashboardThesisCollectionView({
         <div className="recent-added-grid">
           {cards}
         </div>
-        ) : (
-          <div className="vpaa-dashboard-empty">{emptyMessage}</div>
-        )}
-      </div>
+      ) : (
+        <div className="vpaa-dashboard-empty">{emptyMessage}</div>
+      )}
     </div>
   );
 }

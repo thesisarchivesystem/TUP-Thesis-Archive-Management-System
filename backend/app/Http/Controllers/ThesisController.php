@@ -547,53 +547,56 @@ class ThesisController extends Controller
     {
         $categories = Category::query()
             ->whereRaw('is_active = true')
-            ->withCount(['theses as document_count' => function ($query) {
-                $query->where('status', 'approved')->whereRaw('"is_archived" = true');
-            }])
-            ->withMax(['theses as latest_approved_at' => function ($query) {
-                $query->where('status', 'approved')->whereRaw('"is_archived" = true');
-            }], 'approved_at')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        $categoryIds = $categories->pluck('id')->filter()->values();
-        $categoryTheses = $categoryIds->isEmpty()
-            ? collect()
-            : Thesis::query()
-                ->select([
-                    'id',
-                    'title',
-                    'abstract',
-                    'authors',
-                    'department',
-                    'program',
-                    'school_year',
-                    'approved_at',
-                    'created_at',
-                    'submitted_by',
-                    'category_id',
-                ])
-                ->with('submitter:id,name')
-                ->whereIn('category_id', $categoryIds)
-                ->where('status', 'approved')
-                ->whereRaw('"is_archived" = true')
-                ->orderBy('category_id')
-                ->orderByDesc('approved_at')
-                ->get()
-                ->groupBy('category_id')
-                ->map(fn ($theses) => $theses->take(6)->values());
+        $archivedTheses = Thesis::query()
+            ->select([
+                'id',
+                'title',
+                'abstract',
+                'authors',
+                'department',
+                'program',
+                'school_year',
+                'approved_at',
+                'archived_at',
+                'created_at',
+                'updated_at',
+                'submitted_by',
+                'category_id',
+                'category_ids',
+            ])
+            ->with('submitter:id,name')
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->orderByDesc('archived_at')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->get();
 
-        $data = $categories->map(function (Category $category) use ($categoryTheses) {
-            $theses = $categoryTheses->get($category->id, collect());
+        $categoryBuckets = $categories->mapWithKeys(fn (Category $category) => [$category->id => collect()]);
+
+        foreach ($archivedTheses as $thesis) {
+            foreach ($this->resolveCategoryIds($thesis) as $categoryId) {
+                if ($categoryBuckets->has($categoryId)) {
+                    $categoryBuckets[$categoryId]->push($thesis);
+                }
+            }
+        }
+
+        $data = $categories->map(function (Category $category) use ($categoryBuckets) {
+            $theses = $categoryBuckets->get($category->id, collect());
+            $latestThesis = $theses->first();
 
             return [
                 'id' => $category->id,
                 'slug' => $category->slug,
                 'label' => $category->name,
                 'description' => $category->description,
-                'document_count' => (int) $category->document_count,
-                'updated_at' => $this->formatIsoTimestamp($category->latest_approved_at),
+                'document_count' => $theses->count(),
+                'updated_at' => $this->formatIsoTimestamp($latestThesis?->archived_at ?? $latestThesis?->approved_at),
                 'theses' => $theses->map(function (Thesis $thesis) {
                     return [
                         'id' => $thesis->id,
@@ -664,13 +667,7 @@ class ThesisController extends Controller
 
     private function resolveCategorySummaries(Thesis $thesis): array
     {
-        $categoryIds = collect($thesis->category_ids ?? [])
-            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
-            ->values();
-
-        if ($categoryIds->isEmpty() && $thesis->category_id) {
-            $categoryIds = collect([$thesis->category_id]);
-        }
+        $categoryIds = $this->resolveCategoryIds($thesis);
 
         if ($categoryIds->isEmpty()) {
             return [];
@@ -691,6 +688,19 @@ class ThesisController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function resolveCategoryIds(Thesis $thesis): \Illuminate\Support\Collection
+    {
+        $categoryIds = collect($thesis->category_ids ?? [])
+            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
+            ->values();
+
+        if ($categoryIds->isEmpty() && $thesis->category_id) {
+            $categoryIds = collect([$thesis->category_id]);
+        }
+
+        return $categoryIds->unique()->values();
     }
 
     private function normalizeArrayField(mixed $value): array

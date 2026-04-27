@@ -379,45 +379,56 @@ class VpaaController extends Controller
     {
         $categories = Category::query()
             ->whereRaw('is_active = true')
-            ->withCount(['theses as document_count' => function ($query) {
-                $query->where('status', 'approved')->whereRaw('"is_archived" = true');
-            }])
-            ->withMax(['theses as latest_approved_at' => function ($query) {
-                $query->where('status', 'approved')->whereRaw('"is_archived" = true');
-            }], 'approved_at')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        $data = $categories->map(function (Category $category) {
-                $theses = Thesis::query()
-                    ->where('category_id', $category->id)
-                    ->where('status', 'approved')
-                    ->whereRaw('"is_archived" = true')
-                    ->select([
-                        'id',
-                        'title',
-                        'abstract',
-                        'authors',
-                        'department',
-                        'program',
-                        'school_year',
-                        'approved_at',
-                        'created_at',
-                        'submitted_by',
-                    ])
-                    ->with('submitter:id,name')
-                    ->orderByDesc('approved_at')
-                    ->limit(6)
-                    ->get();
+        $archivedTheses = Thesis::query()
+            ->select([
+                'id',
+                'title',
+                'abstract',
+                'authors',
+                'department',
+                'program',
+                'school_year',
+                'approved_at',
+                'archived_at',
+                'created_at',
+                'updated_at',
+                'submitted_by',
+                'category_id',
+                'category_ids',
+            ])
+            ->with('submitter:id,name')
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->orderByDesc('archived_at')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $categoryBuckets = $categories->mapWithKeys(fn (Category $category) => [$category->id => collect()]);
+
+        foreach ($archivedTheses as $thesis) {
+            foreach ($this->resolveCategoryIds($thesis) as $categoryId) {
+                if ($categoryBuckets->has($categoryId)) {
+                    $categoryBuckets[$categoryId]->push($thesis);
+                }
+            }
+        }
+
+        $data = $categories->map(function (Category $category) use ($categoryBuckets) {
+                $theses = $categoryBuckets->get($category->id, collect());
+                $latestThesis = $theses->first();
 
                 return [
                     'id' => $category->id,
                     'slug' => $category->slug,
                     'label' => $category->name,
                     'description' => $category->description,
-                    'document_count' => (int) $category->document_count,
-                    'updated_at' => $this->formatIsoTimestamp($category->latest_approved_at),
+                    'document_count' => $theses->count(),
+                    'updated_at' => $this->formatIsoTimestamp($latestThesis?->archived_at ?? $latestThesis?->approved_at),
                     'theses' => $theses->map(function (Thesis $thesis) {
                         return [
                             'id' => $thesis->id,
@@ -426,9 +437,11 @@ class VpaaController extends Controller
                             'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
                             'abstract' => $thesis->abstract,
                             'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
+                            'college' => $this->resolveCollegeForDepartment($thesis->department),
                             'department' => $thesis->department,
                             'program' => $thesis->program,
                             'school_year' => $thesis->school_year,
+                            'categories' => $this->resolveCategorySummaries($thesis),
                             'keywords' => [],
                             'approved_at' => optional($thesis->approved_at)?->toISOString(),
                         ];
@@ -479,5 +492,18 @@ class VpaaController extends Controller
                 : ($user?->name ? "Faculty account updated: {$user->name}" : 'Faculty account updated'),
             default => str($log->action)->replace('.', ' ')->replace('_', ' ')->title()->toString(),
         };
+    }
+
+    private function resolveCategoryIds(Thesis $thesis): \Illuminate\Support\Collection
+    {
+        $categoryIds = collect($thesis->category_ids ?? [])
+            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
+            ->values();
+
+        if ($categoryIds->isEmpty() && $thesis->category_id) {
+            $categoryIds = collect([$thesis->category_id]);
+        }
+
+        return $categoryIds->unique()->values();
     }
 }

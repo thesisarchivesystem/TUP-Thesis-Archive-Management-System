@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
+import DashboardCollectionPageHeader from '../../components/dashboard/DashboardCollectionPageHeader';
 import SharedDashboardThesisCollectionView from '../../components/dashboard/SharedDashboardThesisCollectionView';
 import { facultyDashboardService } from '../../services/facultyDashboardService';
 
@@ -10,7 +11,13 @@ export default function FacultyTopSearchesPage() {
     <FacultyLayout
       title="Top Searches"
       description="Browse all archived theses most often opened from search results."
+      hidePageIntro
     >
+      <DashboardCollectionPageHeader
+        role="faculty"
+        title="Top Searches"
+        description="Browse all archived theses most often opened from search results."
+      />
       <SharedDashboardThesisCollectionView
         emptyMessage="No top searches are available yet."
         fetchItems={fetchItems}
