@@ -2707,6 +2707,13 @@
   box-shadow: 0 16px 28px rgba(139, 35, 50, 0.08);
 }
 
+.student-submission-list-card-approved {
+  padding: 18px 20px 18px;
+  gap: 16px;
+  border-radius: 20px;
+  box-shadow: 0 14px 28px rgba(124, 68, 54, 0.07);
+}
+
 .student-submission-list-card:hover .student-submission-badge {
   transform: translateY(-1px);
   box-shadow: 0 10px 18px rgba(139, 35, 50, 0.08);
@@ -2726,6 +2733,12 @@
   font-family: 'DM Serif Display', serif;
 }
 
+.student-submission-list-card-approved .student-submission-list-head h3 {
+  font-size: clamp(18px, 1.8vw, 24px);
+  line-height: 1.3;
+  max-width: 46ch;
+}
+
 .student-submission-meta-strip {
   display: flex;
   flex-wrap: wrap;
@@ -2741,11 +2754,26 @@
   font-size: 13px;
 }
 
+.student-submission-list-card-approved .student-submission-meta-strip {
+  gap: 14px 20px;
+  margin-top: 8px;
+}
+
+.student-submission-list-card-approved .student-submission-meta-strip span {
+  font-size: 13px;
+  color: #6d5351;
+}
+
 .student-submission-timeline {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
+}
+
+.student-submission-list-card-approved .student-submission-timeline {
+  gap: 12px;
+  margin-top: 0;
 }
 
 .student-submission-timeline-step {
@@ -2773,6 +2801,12 @@
   flex: 0 0 auto;
 }
 
+.student-submission-list-card-approved .student-submission-timeline-node {
+  width: 32px;
+  height: 32px;
+  border-width: 1.5px;
+}
+
 .student-submission-timeline-node-dot {
   width: 8px;
   height: 8px;
@@ -2788,10 +2822,18 @@
   background: #e6dcd6;
 }
 
+.student-submission-list-card-approved .student-submission-timeline-line {
+  height: 2px;
+}
+
 .student-submission-timeline-label {
   font-size: 12.5px;
   color: var(--text-secondary);
   text-align: left;
+}
+
+.student-submission-list-card-approved .student-submission-timeline-label {
+  font-size: 13px;
 }
 
 .student-submission-timeline-step.done .student-submission-timeline-node {
@@ -2826,11 +2868,22 @@
   color: #b8aaa2;
 }
 
+.student-submission-list-card-approved .student-submission-timeline-step.pending .student-submission-timeline-node {
+  border-color: #ead9d4;
+  color: #c8b7b0;
+  background: rgba(255, 255, 255, 0.92);
+}
+
 .student-submission-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+
+.student-submission-list-card-approved .student-submission-actions {
+  gap: 10px;
+  margin-top: 0;
 }
 
 .student-submission-actions .student-submissions-secondary,
@@ -2845,6 +2898,14 @@
 .student-submission-actions .student-submissions-secondary {
   border-color: rgba(60, 36, 36, 0.18);
   background: #fff;
+}
+
+.student-submission-list-card-approved .student-submission-actions .student-submissions-secondary {
+  min-height: 42px;
+  padding-inline: 16px;
+  border-radius: 16px;
+  font-size: 13px;
+  box-shadow: 0 8px 14px rgba(104, 61, 52, 0.04);
 }
 
 .student-submission-actions .student-submissions-primary {

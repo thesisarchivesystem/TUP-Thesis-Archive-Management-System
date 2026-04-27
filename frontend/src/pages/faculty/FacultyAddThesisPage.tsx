@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import axios from 'axios';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { categoryService, type CategoryOption } from '../../services/categoryService';
 import { facultyAdviseesService } from '../../services/facultyAdviseesService';
@@ -96,6 +96,7 @@ const initialForm = {
 };
 
 export default function FacultyAddThesisPage() {
+  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const draftFromState = (location.state as { draft?: Thesis } | null)?.draft ?? null;
@@ -361,9 +362,19 @@ export default function FacultyAddThesisPage() {
         await facultyThesisService.create(payload);
       }
 
-      setSuccess(mode === 'submit' ? 'Thesis submitted and stored in the database.' : 'Thesis draft stored in the database.');
+      const successMessage = mode === 'submit' ? 'Thesis submitted and stored in the database.' : 'Thesis draft stored in the database.';
+      setSuccess(successMessage);
       setDraftId(null);
       resetForm();
+
+      if (mode === 'submit') {
+        window.setTimeout(() => {
+          navigate('/faculty/my-submissions', {
+            replace: true,
+            state: { successMessage },
+          });
+        }, 900);
+      }
     } catch (err) {
       setError(extractApiErrorMessage(err, 'Unable to save the thesis entry.'));
     } finally {

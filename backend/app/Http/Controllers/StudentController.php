@@ -447,6 +447,17 @@ class StudentController extends Controller
 
         $this->logger->log($request->user(), 'student.updated', 'user', $student->user_id);
 
+        $this->notifications->notify(
+            $request->user(),
+            'student.updated',
+            'Student account edited successfully',
+            $student->user?->name,
+            [
+                'student_user_id' => $student->user_id,
+                'student_profile_id' => $student->id,
+            ],
+        );
+
         return response()->json(['data' => $student->fresh()->load('user')]);
     }
 

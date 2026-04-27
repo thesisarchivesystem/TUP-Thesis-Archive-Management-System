@@ -5,9 +5,13 @@ export type NotificationType =
   | 'thesis.submitted'
   | 'thesis.uploaded'
   | 'extension.requested'
+  | 'extension.approved'
+  | 'extension.rejected'
   | 'new_message'
   | 'faculty.created'
+  | 'faculty.updated'
   | 'student.created'
+  | 'student.updated'
   | 'faculty.role_changed'
   | 'department.file_shared';
 

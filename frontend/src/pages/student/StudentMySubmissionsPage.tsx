@@ -424,7 +424,10 @@ export default function StudentMySubmissionsPage() {
             ) : visibleItems.length ? (
               <div className="student-submissions-list">
                 {visibleItems.map((item) => (
-                  <article key={item.id} className="student-submission-list-card vpaa-card">
+                  <article
+                    key={item.id}
+                    className={`student-submission-list-card vpaa-card${item.status === 'approved' ? ' student-submission-list-card-approved' : ''}`}
+                  >
                     <div className="student-submission-list-head">
                       <div>
                         <h3>{item.title}</h3>
@@ -459,7 +462,22 @@ export default function StudentMySubmissionsPage() {
                         <CirclePlus size={15} />
                         View Details
                       </button>
+                      {item.status === 'approved' ? (
+                        <>
+                          <button
+                            type="button"
+                            className="student-submissions-secondary"
+                            onClick={() => void handleDownloadManuscript(item)}
+                            disabled={downloadingId === item.id}
+                          >
+                            <CirclePlus size={15} />
+                            {downloadingId === item.id ? 'Downloading...' : 'Download PDF'}
+                          </button>
+                        </>
+                      ) : null}
                       {(item.status === 'rejected' ? getSubmissionActions(item) : getSubmissionActions(item).slice(1)).map((action) => {
+                        if (item.status === 'approved') return null;
+
                         if (action === 'Download PDF') {
                           return (
                             <button

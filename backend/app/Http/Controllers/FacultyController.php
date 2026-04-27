@@ -653,6 +653,51 @@ class FacultyController extends Controller
         ], 201);
     }
 
+    public function archiveManagedThesis(Request $request, string $id): JsonResponse
+    {
+        $thesis = Thesis::query()
+            ->where('id', $id)
+            ->where('submitted_by', $request->user()->id)
+            ->firstOrFail();
+
+        if ($thesis->status !== 'approved') {
+            return response()->json([
+                'error' => 'Only approved theses can be archived.',
+            ], 422);
+        }
+
+        if ($thesis->is_archived) {
+            return response()->json([
+                'data' => $thesis->fresh(),
+                'message' => 'Thesis is already archived.',
+            ]);
+        }
+
+        $thesis->update([
+            'is_archived' => DB::raw('true'),
+            'archived_at' => now(),
+            'archived_by' => $request->user()->id,
+            'archived_by_name' => $request->user()->name,
+        ]);
+
+        $this->logger->log($request->user(), 'thesis.archived', 'thesis', $thesis->id, [
+            'title' => $thesis->title,
+        ]);
+
+        $this->notifications->notify(
+            $request->user(),
+            'thesis.archived',
+            'Thesis archived successfully',
+            $thesis->title,
+            ['thesis_id' => $thesis->id],
+        );
+
+        return response()->json([
+            'data' => $thesis->fresh(),
+            'message' => 'Thesis archived successfully.',
+        ]);
+    }
+
     public function dashboard(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -1253,6 +1298,22 @@ class FacultyController extends Controller
         });
 
         $this->logger->log($request->user(), 'faculty.updated', 'faculty', $faculty->id);
+
+        User::query()
+            ->where('role', 'vpaa')
+            ->get()
+            ->each(function (User $vpaaUser) use ($faculty) {
+                $this->notifications->notify(
+                    $vpaaUser,
+                    'faculty.updated',
+                    'Faculty account edited successfully',
+                    $faculty->user?->name,
+                    [
+                        'faculty_profile_id' => $faculty->id,
+                        'faculty_user_id' => $faculty->user_id,
+                    ],
+                );
+            });
 
         if ($previousRole !== $faculty->faculty_role) {
             $this->logger->log($request->user(), 'faculty.role_changed', 'faculty', $faculty->id, [

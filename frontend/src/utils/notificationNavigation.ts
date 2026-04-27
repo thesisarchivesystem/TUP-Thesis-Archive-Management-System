@@ -30,14 +30,19 @@ export function getNotificationNavigationTarget(
     };
   }
 
-  if (role === 'student' && thesisId) {
+  if (
+    role === 'student'
+    && thesisId
+    && ['thesis.uploaded', 'thesis.approved', 'thesis.rejected', 'thesis.archived', 'extension.approved', 'extension.rejected']
+      .includes(notification.type)
+  ) {
     return {
       path: `/student/my-submissions/${encodeURIComponent(thesisId)}`,
     };
   }
 
   if (role === 'faculty') {
-    if (notification.type === 'thesis.submitted' && thesisId) {
+    if ((notification.type === 'thesis.submitted' || notification.type === 'thesis.rejected') && thesisId) {
       return {
         path: `/faculty/manage-thesis/review/${encodeURIComponent(thesisId)}`,
       };
@@ -46,11 +51,10 @@ export function getNotificationNavigationTarget(
     if (notification.type === 'department.file_shared') {
       return {
         path: '/faculty/students',
-        state: { thesisId },
       };
     }
 
-    if (notification.type === 'student.created') {
+    if (notification.type === 'student.created' || notification.type === 'student.updated') {
       return {
         path: '/faculty/my-advisees',
         state: { studentUserId },
@@ -59,14 +63,20 @@ export function getNotificationNavigationTarget(
 
     if (notification.type === 'extension.requested') {
       return {
-        path: '/faculty/manage-thesis/review',
+        path: extensionRequestId
+          ? `/faculty/manage-thesis/extension-requests/${encodeURIComponent(extensionRequestId)}`
+          : '/faculty/manage-thesis/review',
         state: { extensionRequestId, thesisId },
       };
     }
   }
 
   if (role === 'vpaa') {
-    if (notification.type === 'faculty.created' || notification.type === 'faculty.role_changed') {
+    if (
+      notification.type === 'faculty.created'
+      || notification.type === 'faculty.updated'
+      || notification.type === 'faculty.role_changed'
+    ) {
       return {
         path: '/vpaa/my-advisees',
         state: { facultyUserId },

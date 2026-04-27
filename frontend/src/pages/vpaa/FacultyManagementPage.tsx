@@ -58,7 +58,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   const markRead = useNotificationStore((state) => state.markRead);
   const clearNotifications = useNotificationStore((state) => state.clearNotifications);
 
-  useNotificationChannel(user?.id ?? null);
+  useNotificationChannel(user?.id ?? null, user?.role ?? null);
 
   useEffect(() => {
     const tick = () => {

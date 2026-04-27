@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, BookOpenText, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine, ShieldCheck, Sparkles } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { facultyThesisService } from '../../services/facultyThesisService';
 import { thesisService } from '../../services/thesisService';
@@ -105,6 +105,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 ];
 
 export default function FacultyMyThesesPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [items, setItems] = useState<Thesis[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +115,14 @@ export default function FacultyMyThesesPage() {
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const successMessage = (location.state as { successMessage?: string } | null)?.successMessage ?? '';
+
+  useEffect(() => {
+    if (!successMessage) return;
+
+    setSuccess(successMessage);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, navigate, successMessage]);
 
   const handleViewDetails = (item: Thesis) => {
     setError(null);
@@ -208,7 +217,7 @@ export default function FacultyMyThesesPage() {
       const updated = response.data;
 
       setItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, ...updated } : entry)));
-      setSuccess('Thesis archived successfully. It will now appear in dashboard, search, and categories.');
+      setSuccess('Thesis archived successfully! It may take a few moments to appear in the main archive.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to archive this thesis.');
     } finally {

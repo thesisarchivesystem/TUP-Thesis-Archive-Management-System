@@ -345,6 +345,19 @@ class ThesisController extends Controller
         }
 
         // ── Save DB notification ─────────────────────────────────
+        if ($request->status === 'rejected') {
+            $this->notifications->notify(
+                $request->user(),
+                'thesis.rejected',
+                'Thesis rejected successfully',
+                $thesis->title,
+                [
+                    'thesis_id' => $thesis->id,
+                    'student_id' => $thesis->submitted_by,
+                ],
+            );
+        }
+
         if (false) {
             Notification::create([
             'user_id' => $thesis->submitted_by,

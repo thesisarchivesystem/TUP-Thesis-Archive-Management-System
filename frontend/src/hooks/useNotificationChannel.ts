@@ -3,12 +3,14 @@ import type { Types } from 'ably';
 import { getAblyClient } from './useAbly';
 import { useNotificationStore } from '../store/notificationStore';
 import type { NotificationType } from '../types/notification.types';
+import type { UserRole } from '../types/user.types';
+import { isNotificationTypeAllowedForRole } from '../utils/notificationRules';
 
-export function useNotificationChannel(userId: string | null) {
+export function useNotificationChannel(userId: string | null, role: UserRole | null) {
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !role) return;
 
     let channel: Types.RealtimeChannelCallbacks | undefined;
 
@@ -18,10 +20,16 @@ export function useNotificationChannel(userId: string | null) {
 
       channel?.subscribe((msg: Types.Message) => {
         const payload = (msg.data ?? {}) as Record<string, unknown>;
+        const type = ((typeof payload.type === 'string' ? payload.type : msg.name) as NotificationType) || 'new_message';
+
+        if (!isNotificationTypeAllowedForRole(role, type)) {
+          return;
+        }
+
         addNotification({
           id: typeof payload.id === 'string' ? payload.id : `${userId}-${msg.id}`,
           user_id: userId,
-          type: ((typeof payload.type === 'string' ? payload.type : msg.name) as NotificationType) || 'new_message',
+          type,
           title: typeof payload.title === 'string' ? payload.title : 'Notification',
           body: typeof payload.body === 'string' ? payload.body : '',
           data: (payload.data as Record<string, unknown>) || payload,
@@ -34,5 +42,5 @@ export function useNotificationChannel(userId: string | null) {
     return () => {
       channel?.unsubscribe();
     };
-  }, [userId, addNotification]);
+  }, [userId, role, addNotification]);
 }

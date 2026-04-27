@@ -59,13 +59,16 @@ class NotificationController extends Controller
             'faculty' => [
                 'new_message',
                 'thesis.submitted',
+                'thesis.rejected',
                 'extension.requested',
                 'department.file_shared',
                 'student.created',
+                'student.updated',
             ],
             'vpaa' => [
                 'new_message',
                 'faculty.created',
+                'faculty.updated',
                 'faculty.role_changed',
             ],
             default => ['new_message'],

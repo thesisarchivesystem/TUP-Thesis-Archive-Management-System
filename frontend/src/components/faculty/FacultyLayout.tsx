@@ -9,6 +9,7 @@ import { notificationService } from '../../services/notificationService';
 import { aiService } from '../../services/aiService';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
+import { isNotificationTypeAllowedForRole } from '../../utils/notificationRules';
 import '../../styles/vpaa-shell.css';
 import tamsBot from '../../assets/tams-bot.png';
 
@@ -58,7 +59,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   const markRead = useNotificationStore((state) => state.markRead);
   const clearNotifications = useNotificationStore((state) => state.clearNotifications);
 
-  useNotificationChannel(user?.id ?? null);
+  useNotificationChannel(user?.id ?? null, user?.role ?? null);
 
   useEffect(() => {
     const tick = () => {
@@ -118,7 +119,8 @@ export default function FacultyLayout({ title, description, children, hidePageIn
 
     void notificationService.list()
       .then((response) => {
-        setNotifications((response?.data ?? []) as AppNotification[]);
+        setNotifications(((response?.data ?? []) as AppNotification[])
+          .filter((notification) => isNotificationTypeAllowedForRole('faculty', notification.type)));
       })
       .catch(() => {
         setNotifications([]);
