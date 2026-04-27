@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, CheckCircle2, Clock3, List, UserPlus, Users2 } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { facultyAdviseesService, type FacultyAdviseeRecord, type FacultyAdviseesResponse, type StudentAccountPayload } from '../../services/facultyAdviseesService';
 
 const generateTemporaryPassword = () => {
@@ -51,6 +52,7 @@ const formatDate = (value?: string | null) => {
 };
 
 export default function FacultyAdviseesPage() {
+  const { confirm } = useConfirmDialog();
   const [adviseesData, setAdviseesData] = useState<FacultyAdviseesResponse | null>(null);
   const [form, setForm] = useState(initialForm);
   const [editForm, setEditForm] = useState(initialForm);
@@ -61,7 +63,7 @@ export default function FacultyAdviseesPage() {
   const [editShellOpen, setEditShellOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [programFilter, setProgramFilter] = useState('All Programs');
-  const [quickFilter, setQuickFilter] = useState<'All' | 'Assigned to Me'>('All');
+  const [quickFilter, setQuickFilter] = useState<'All' | 'New Accounts'>('All');
   const [error, setError] = useState('');
   const [editError, setEditError] = useState('');
   const [success, setSuccess] = useState('');
@@ -133,7 +135,7 @@ export default function FacultyAdviseesPage() {
 
     const matchesProgram = programFilter === 'All Programs' || advisee.program === programFilter;
     const matchesQuick = quickFilter === 'All'
-      || (quickFilter === 'Assigned to Me' && advisee.adviser_name === adviseesData?.adviser_name);
+      || (quickFilter === 'New Accounts' && advisee.is_recent);
 
     return matchesSearch && matchesProgram && matchesQuick;
   }), [advisees, adviseesData?.adviser_name, programFilter, quickFilter, search]);
@@ -271,9 +273,13 @@ export default function FacultyAdviseesPage() {
   };
 
   const handleRemoveAdvisee = async (advisee: FacultyAdviseeRecord) => {
-    const confirmed = window.confirm(
-      `Delete ${advisee.student_name}'s student account?\n\nTheir account will be removed, and any thesis records already added to the archive will stay stored.`,
-    );
+    const confirmed = await confirm({
+      title: 'Delete Student Account',
+      message: `Delete ${advisee.student_name}'s student account?\n\nTheir account will be removed, and any thesis records already added to the archive will stay stored.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
 
     if (!confirmed) return;
 
@@ -439,7 +445,7 @@ export default function FacultyAdviseesPage() {
                 </div>
 
                 <div className="filter-chips">
-                  {(['All', 'Assigned to Me'] as const).map((filter) => (
+                  {(['All', 'New Accounts'] as const).map((filter) => (
                     <button key={filter} type="button" className={`chip${quickFilter === filter ? ' active' : ''}`} onClick={() => setQuickFilter(filter)}>
                       {filter}
                     </button>

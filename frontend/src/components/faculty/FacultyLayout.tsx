@@ -266,6 +266,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
             >
               <NavLink className={({ isActive }) => `vpaa-nav-subitem${isActive ? ' active' : ''}`} to="/faculty/manage-thesis/add">Add Thesis</NavLink>
               <NavLink className={({ isActive }) => `vpaa-nav-subitem${isActive ? ' active' : ''}`} to="/faculty/manage-thesis/approved">Approved Theses</NavLink>
+              <NavLink className={({ isActive }) => `vpaa-nav-subitem${isActive ? ' active' : ''}`} to="/faculty/manage-thesis/in-archive">In Archive Theses</NavLink>
               <NavLink className={({ isActive }) => `vpaa-nav-subitem${isActive ? ' active' : ''}`} to="/faculty/manage-thesis/review">Review Submissions</NavLink>
             </div>
           </div>

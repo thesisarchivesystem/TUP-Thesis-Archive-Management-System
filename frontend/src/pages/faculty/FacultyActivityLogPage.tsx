@@ -128,17 +128,9 @@ export default function FacultyActivityLogPage() {
     const now = new Date(timeTick);
     const startOfToday = toDateOnly(now);
     const todayKey = formatCalendarDateKey(startOfToday);
-    const dayOfWeek = startOfToday.getDay();
-    const daysSinceMonday = (dayOfWeek + 6) % 7;
-    const startOfWeek = new Date(startOfToday);
-    startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
-    const weekDateKeys = new Set(
-      Array.from({ length: 7 }, (_, index) => {
-        const date = new Date(startOfWeek);
-        date.setDate(startOfWeek.getDate() + index);
-        return formatCalendarDateKey(date);
-      }),
-    );
+    const startOfRollingWeek = new Date(startOfToday);
+    startOfRollingWeek.setDate(startOfRollingWeek.getDate() - 6);
+    startOfRollingWeek.setHours(0, 0, 0, 0);
 
     return logs.filter((item) => {
       const normalizedSearch = search.trim().toLowerCase();
@@ -153,7 +145,7 @@ export default function FacultyActivityLogPage() {
       const hasValidDate = !Number.isNaN(itemDate.getTime());
       const itemDateKey = hasValidDate ? formatCalendarDateKey(itemDate) : null;
       const isToday = itemDateKey === todayKey;
-      const isThisWeek = itemDateKey ? weekDateKeys.has(itemDateKey) : false;
+      const isThisWeek = hasValidDate && itemDate >= startOfRollingWeek && itemDate <= now;
       const matchesQuick = quickFilter === 'all'
         || (quickFilter === 'today' && isToday)
         || (quickFilter === 'week' && isThisWeek)

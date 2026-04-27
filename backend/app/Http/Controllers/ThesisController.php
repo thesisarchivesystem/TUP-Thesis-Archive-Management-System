@@ -12,6 +12,7 @@ use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -409,6 +410,51 @@ class ThesisController extends Controller
         ]);
     }
 
+    public function archiveApproved(Request $request, string $id): JsonResponse
+    {
+        $thesis = Thesis::query()
+            ->where('id', $id)
+            ->where('adviser_id', $request->user()->id)
+            ->firstOrFail();
+
+        if ($thesis->status !== 'approved') {
+            return response()->json([
+                'error' => 'Only approved theses can be archived.',
+            ], 422);
+        }
+
+        if ($thesis->is_archived) {
+            return response()->json([
+                'data' => $this->transformThesisWithArchiveMetadata($thesis->fresh()),
+                'message' => 'Thesis is already archived.',
+            ]);
+        }
+
+        $thesis->update([
+            'is_archived' => DB::raw('true'),
+            'archived_at' => now(),
+            'archived_by' => $request->user()->id,
+            'archived_by_name' => $request->user()->name,
+        ]);
+
+        $this->logger->log($request->user(), 'thesis.archived', 'thesis', $thesis->id, [
+            'title' => $thesis->title,
+        ]);
+
+        $this->notifications->notify(
+            $request->user(),
+            'thesis.archived',
+            'Thesis archived successfully',
+            $thesis->title,
+            ['thesis_id' => $thesis->id],
+        );
+
+        return response()->json([
+            'data' => $this->transformThesisWithArchiveMetadata($thesis->fresh()),
+            'message' => 'Thesis archived successfully.',
+        ]);
+    }
+
     public function approved(Request $request): JsonResponse
     {
         $theses = Thesis::where('status', 'approved')
@@ -418,6 +464,33 @@ class ThesisController extends Controller
             ->paginate(20);
 
         return response()->json($theses);
+    }
+
+    public function destroyApproved(Request $request, string $id): JsonResponse
+    {
+        $thesis = Thesis::query()
+            ->where('id', $id)
+            ->where('adviser_id', $request->user()->id)
+            ->firstOrFail();
+
+        if (!$thesis->is_archived) {
+            return response()->json([
+                'error' => 'Only archived approved theses can be deleted from this page.',
+            ], 422);
+        }
+
+        $title = $thesis->title;
+
+        $this->logger->log($request->user(), 'thesis.deleted', 'thesis', $thesis->id, [
+            'title' => $title,
+            'source' => 'faculty.approved_archive',
+        ]);
+
+        $thesis->delete();
+
+        return response()->json([
+            'message' => 'Archived thesis deleted successfully.',
+        ]);
     }
 
     public function mySubmissions(Request $request): JsonResponse

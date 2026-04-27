@@ -1,9 +1,18 @@
 import { useAuthStore } from '../store/authStore';
+import { useConfirmDialog } from './useConfirmDialog';
 
 export function useAuth() {
   const auth = useAuthStore();
-  const confirmAndLogout = () => {
-    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to log out?')) {
+  const { confirm } = useConfirmDialog();
+  const confirmAndLogout = async () => {
+    const confirmed = await confirm({
+      title: 'Sign Out',
+      message: 'Are you sure you want to log out?',
+      confirmLabel: 'OK',
+      cancelLabel: 'Cancel',
+    });
+
+    if (!confirmed) {
       return;
     }
 

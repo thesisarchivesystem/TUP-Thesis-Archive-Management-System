@@ -28,7 +28,10 @@ const categoryOptions = [
   'Policy & Compliance',
   'Archive Update',
   'General Inquiry',
+  'Others',
 ];
+
+const OTHER_CATEGORY = 'Others';
 
 type Props = {
   role: UserRole;
@@ -43,14 +46,25 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
     full_name: initialName,
     email: initialEmail,
     category: initialCategory,
+    other_category: initialCategory && !categoryOptions.includes(initialCategory) ? initialCategory : '',
     message: initialMessage,
   });
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleChange = (field: 'full_name' | 'email' | 'category' | 'message', value: string) => {
-    setForm((current) => ({ ...current, [field]: value }));
+  const handleChange = (field: 'full_name' | 'email' | 'category' | 'other_category' | 'message', value: string) => {
+    setForm((current) => {
+      if (field === 'category') {
+        return {
+          ...current,
+          category: value,
+          other_category: value === OTHER_CATEGORY ? current.other_category : '',
+        };
+      }
+
+      return { ...current, [field]: value };
+    });
     setSuccessMessage(null);
     setErrorMessage(null);
   };
@@ -63,15 +77,24 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
       return;
     }
 
+    if (form.category === OTHER_CATEGORY && !form.other_category.trim()) {
+      setErrorMessage('Please specify your issue category.');
+      return;
+    }
+
     setSubmitting(true);
     setSuccessMessage(null);
     setErrorMessage(null);
 
     try {
+      const normalizedCategory = form.category === OTHER_CATEGORY
+        ? form.other_category.trim()
+        : form.category;
+
       await supportTicketService.createTicket({
         full_name: form.full_name.trim(),
         email: form.email.trim(),
-        category: form.category,
+        category: normalizedCategory,
         message: form.message.trim(),
       });
 
@@ -79,6 +102,7 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
       setForm((current) => ({
         ...current,
         category: '',
+        other_category: '',
         message: '',
       }));
     } catch (error: unknown) {
@@ -176,6 +200,19 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
                 ))}
               </select>
             </label>
+            {form.category === OTHER_CATEGORY ? (
+              <label>
+                <span>Specify Issue Category</span>
+                <input
+                  className="vpaa-support-input"
+                  type="text"
+                  value={form.other_category}
+                  onChange={(event) => handleChange('other_category', event.target.value)}
+                  placeholder="Enter your issue category..."
+                  required
+                />
+              </label>
+            ) : null}
             <label>
               <span>Describe Your Concern</span>
               <textarea className="vpaa-support-textarea" value={form.message} onChange={(event) => handleChange('message', event.target.value)} placeholder="Briefly describe the issue you're experiencing..." minLength={10} required />

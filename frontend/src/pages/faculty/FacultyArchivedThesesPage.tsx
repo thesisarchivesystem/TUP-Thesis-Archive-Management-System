@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Files, LibraryBig } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Archive, Clock3, Files, LibraryBig } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
@@ -19,18 +18,18 @@ const normalizeProgram = (value?: string | null) => {
 };
 
 const formatRelativeSync = (value?: string) => {
-  if (!value) return 'No sync yet';
+  if (!value) return 'No archive yet';
   const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return 'No sync yet';
+  if (Number.isNaN(timestamp)) return 'No archive yet';
   const diffHours = Math.max(1, Math.round((Date.now() - timestamp) / (1000 * 60 * 60)));
   if (diffHours < 24) return `${diffHours}h`;
   return `${Math.round(diffHours / 24)}d`;
 };
 
-const formatApprovedDate = (value?: string) => {
-  if (!value) return 'Recently approved';
+const formatArchiveDate = (value?: string) => {
+  if (!value) return 'Recently archived';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Recently approved';
+  if (Number.isNaN(date.getTime())) return 'Recently archived';
   return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 };
 
@@ -50,9 +49,7 @@ const getLatestTimestamp = (values: Array<string | undefined>) => {
   return latest === null ? undefined : new Date(latest).toISOString();
 };
 
-export default function FacultyApprovedThesesPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
+export default function FacultyArchivedThesesPage() {
   const [theses, setTheses] = useState<Thesis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -60,15 +57,7 @@ export default function FacultyApprovedThesesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [programFilter, setProgramFilter] = useState('All Programs');
   const [tagFilter, setTagFilter] = useState<'All' | 'This Month'>('All');
-  const [archivingId, setArchivingId] = useState<string | null>(null);
-  const successMessage = (location.state as { successMessage?: string } | null)?.successMessage ?? '';
-
-  useEffect(() => {
-    if (!successMessage) return;
-
-    setSuccess(successMessage);
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [location.pathname, navigate, successMessage]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleOpenManuscript = async (thesis: Thesis) => {
     const previewWindow = window.open('', '_blank');
@@ -100,26 +89,24 @@ export default function FacultyApprovedThesesPage() {
     }
   };
 
-  const handleArchiveThesis = async (thesis: Thesis) => {
-    if (archivingId) return;
+  const handleDeleteThesis = async (thesis: Thesis) => {
+    if (deletingId) return;
 
-    const confirmed = window.confirm(`Archive "${thesis.title}" now? This will make it visible in the dashboard, search, and categories.`);
+    const confirmed = window.confirm(`Delete "${thesis.title}" from archived theses?\n\nThis action cannot be undone.`);
     if (!confirmed) return;
 
-    setArchivingId(thesis.id);
+    setDeletingId(thesis.id);
     setError('');
     setSuccess('');
 
     try {
-      const response = await thesisService.archiveApproved(thesis.id);
-      const updated = response.data;
-
-      setTheses((current) => current.map((item) => (item.id === thesis.id ? { ...item, ...updated } : item)));
-      setSuccess('Thesis archived successfully. It is now visible in the public archive.');
+      await thesisService.deleteApproved(thesis.id);
+      setTheses((current) => current.filter((item) => item.id !== thesis.id));
+      setSuccess('Archived thesis deleted successfully.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to archive this thesis right now.');
+      setError(err instanceof Error ? err.message : 'Unable to delete this archived thesis right now.');
     } finally {
-      setArchivingId(null);
+      setDeletingId(null);
     }
   };
 
@@ -129,11 +116,11 @@ export default function FacultyApprovedThesesPage() {
     void thesisService.approved()
       .then((response) => {
         if (!isMounted) return;
-        setTheses((response.data ?? []).filter((item: Thesis) => !item.is_archived));
+        setTheses((response.data ?? []).filter((item: Thesis) => item.is_archived));
       })
       .catch(() => {
         if (!isMounted) return;
-        setError('Unable to load approved theses right now.');
+        setError('Unable to load archived theses right now.');
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -143,8 +130,6 @@ export default function FacultyApprovedThesesPage() {
       isMounted = false;
     };
   }, []);
-
-  const programs = PROGRAM_OPTIONS;
 
   const filteredTheses = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -163,9 +148,9 @@ export default function FacultyApprovedThesesPage() {
 
       const matchesTag = (() => {
         if (tagFilter === 'All') return true;
-        if (!thesis.approved_at) return false;
-        const approvedDate = new Date(thesis.approved_at);
-        return approvedDate.getMonth() === now.getMonth() && approvedDate.getFullYear() === now.getFullYear();
+        if (!thesis.archived_at) return false;
+        const archivedDate = new Date(thesis.archived_at);
+        return archivedDate.getMonth() === now.getMonth() && archivedDate.getFullYear() === now.getFullYear();
       })();
 
       return matchesSearch && matchesProgram && matchesTag;
@@ -174,25 +159,26 @@ export default function FacultyApprovedThesesPage() {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const approvedThisMonth = theses.filter((thesis) => {
-      if (!thesis.approved_at) return false;
-      const approvedDate = new Date(thesis.approved_at);
-      return approvedDate.getMonth() === now.getMonth() && approvedDate.getFullYear() === now.getFullYear();
+    const archivedThisMonth = theses.filter((thesis) => {
+      if (!thesis.archived_at) return false;
+      const archivedDate = new Date(thesis.archived_at);
+      return archivedDate.getMonth() === now.getMonth() && archivedDate.getFullYear() === now.getFullYear();
     }).length;
-    const latestApproval = getLatestTimestamp(theses.map((thesis) => thesis.approved_at));
+
+    const latestArchive = getLatestTimestamp(theses.map((thesis) => thesis.archived_at));
 
     return [
-      { label: 'Approved This Month', value: String(approvedThisMonth), icon: CheckCircle2, tone: 'sage' },
-      { label: 'Ready to Archive', value: String(theses.length), icon: Files, tone: 'maroon' },
-      { label: 'Recently Approved', value: formatRelativeSync(latestApproval), icon: Clock3, tone: 'gold' },
+      { label: 'Archived This Month', value: String(archivedThisMonth), icon: Archive, tone: 'sage' },
+      { label: 'Total In Archive', value: String(theses.length), icon: Files, tone: 'maroon' },
+      { label: 'Last Archived', value: formatRelativeSync(latestArchive), icon: Clock3, tone: 'gold' },
       { label: 'Departments', value: String(new Set(theses.map((item) => item.department).filter(Boolean)).size), icon: LibraryBig, tone: 'terracotta' },
     ] as const;
   }, [theses]);
 
   return (
     <FacultyLayout
-      title="Approved Theses"
-      description="Recently approved works curated by faculty for the shared archive."
+      title="In Archive Theses"
+      description="Archived theses that are already published into the faculty archive collection."
     >
       <div className="space-y-5">
         {success ? <div className="rounded-xl bg-[rgba(61,139,74,0.10)] px-4 py-3 text-sm font-medium text-[var(--sage)]">{success}</div> : null}
@@ -230,9 +216,9 @@ export default function FacultyApprovedThesesPage() {
           <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(139,35,50,0.08)] text-[var(--maroon)]">
-                <Files size={20} />
+                <Archive size={20} />
               </span>
-              <h2 className="mb-0 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Approved Thesis Library</h2>
+              <h2 className="mb-0 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Archive Thesis Library</h2>
             </div>
           </div>
 
@@ -249,7 +235,7 @@ export default function FacultyApprovedThesesPage() {
                 value={programFilter}
                 onChange={(event) => setProgramFilter(event.target.value)}
               >
-                {programs.map((program) => <option key={program} value={program}>{program}</option>)}
+                {PROGRAM_OPTIONS.map((program) => <option key={program} value={program}>{program}</option>)}
               </select>
             </div>
 
@@ -274,8 +260,8 @@ export default function FacultyApprovedThesesPage() {
                   <th style={{ textAlign: 'center' }}>Thesis Title</th>
                   <th style={{ textAlign: 'center' }}>Author</th>
                   <th style={{ textAlign: 'center' }}>Program</th>
-                  <th style={{ textAlign: 'center' }}>Approved By</th>
-                  <th style={{ textAlign: 'center' }}>Date Approved</th>
+                  <th style={{ textAlign: 'center' }}>Archived By</th>
+                  <th style={{ textAlign: 'center' }}>Date Archived</th>
                   <th style={{ textAlign: 'center' }}>Status</th>
                   <th style={{ textAlign: 'center' }}>Action</th>
                 </tr>
@@ -283,13 +269,13 @@ export default function FacultyApprovedThesesPage() {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="text-center text-text-secondary">Loading approved theses...</td>
+                    <td colSpan={7} className="text-center text-text-secondary">Loading archived theses...</td>
                   </tr>
                 ) : null}
 
                 {!isLoading && !filteredTheses.length ? (
                   <tr>
-                    <td colSpan={7} className="text-center text-text-secondary">No approved theses match the current filters.</td>
+                    <td colSpan={7} className="text-center text-text-secondary">No archived theses match the current filters.</td>
                   </tr>
                 ) : null}
 
@@ -302,32 +288,31 @@ export default function FacultyApprovedThesesPage() {
                         {getProgramBadge(thesis.program)}
                       </span>
                     </td>
-                    <td>{thesis.adviser?.name || 'Faculty Archive'}</td>
-                    <td>{formatApprovedDate(thesis.approved_at)}</td>
+                    <td>{thesis.archived_by_name || thesis.adviser?.name || 'Faculty Archive'}</td>
+                    <td>{formatArchiveDate(thesis.archived_at)}</td>
                     <td>
-                      <span className={`rounded-xl px-3 py-1 text-xs font-semibold ${thesis.is_archived ? 'bg-[rgba(61,139,74,0.10)] text-[var(--sage)]' : 'bg-[rgba(201,150,58,0.10)] text-[var(--gold)]'}`}>
-                        {thesis.is_archived ? 'Archived' : 'Approved'}
+                      <span className="rounded-xl bg-[rgba(61,139,74,0.10)] px-3 py-1 text-xs font-semibold text-[var(--sage)]">
+                        Archived
                       </span>
                     </td>
                     <td className="text-center">
-                      <div className={`mx-auto grid min-w-[220px] max-w-[260px] gap-2 ${thesis.is_archived ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                      <div className="mx-auto grid min-w-[220px] max-w-[260px] gap-2 grid-cols-2">
                         <button
                           type="button"
                           className="inline-flex min-h-[38px] w-full items-center justify-center whitespace-nowrap rounded-xl bg-[var(--maroon)] px-3 py-2 text-xs font-semibold text-white shadow-[0_10px_24px_rgba(139,35,50,0.16)] transition hover:-translate-y-[1px] hover:shadow-[0_14px_28px_rgba(139,35,50,0.2)]"
                           onClick={() => void handleOpenManuscript(thesis)}
+                          disabled={deletingId === thesis.id}
                         >
                           View Manuscript
                         </button>
-                        {!thesis.is_archived ? (
-                          <button
-                            type="button"
-                            className="inline-flex min-h-[38px] w-full items-center justify-center whitespace-nowrap rounded-xl border border-[var(--maroon)] bg-[rgba(139,35,50,0.04)] px-3 py-2 text-xs font-semibold text-[var(--maroon)] transition hover:-translate-y-[1px] hover:bg-[rgba(139,35,50,0.08)]"
-                            onClick={() => void handleArchiveThesis(thesis)}
-                            disabled={archivingId === thesis.id}
-                          >
-                            {archivingId === thesis.id ? 'Archiving...' : 'Archive Thesis'}
-                          </button>
-                        ) : null}
+                        <button
+                          type="button"
+                          className="inline-flex min-h-[38px] w-full items-center justify-center whitespace-nowrap rounded-xl border border-[var(--maroon)] bg-[rgba(139,35,50,0.04)] px-3 py-2 text-xs font-semibold text-[var(--maroon)] transition hover:-translate-y-[1px] hover:bg-[rgba(139,35,50,0.08)]"
+                          onClick={() => void handleDeleteThesis(thesis)}
+                          disabled={deletingId === thesis.id}
+                        >
+                          {deletingId === thesis.id ? 'Deleting...' : 'Delete Thesis'}
+                        </button>
                       </div>
                     </td>
                   </tr>

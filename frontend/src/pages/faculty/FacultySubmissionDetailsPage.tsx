@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, CalendarDays, FileBadge2, FileText, FolderOpen, GraduationCap, UserRound } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
@@ -50,6 +50,10 @@ export default function FacultySubmissionDetailsPage() {
   const [reviewComment, setReviewComment] = useState('');
   const [revisionDueAt, setRevisionDueAt] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewCommentError, setReviewCommentError] = useState('');
+  const [revisionDueAtError, setRevisionDueAtError] = useState('');
+  const reviewCommentRef = useRef<HTMLTextAreaElement | null>(null);
+  const revisionDueAtRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -140,16 +144,30 @@ export default function FacultySubmissionDetailsPage() {
     const trimmedComment = reviewComment.trim();
 
     if (!trimmedComment) {
-      setError(status === 'rejected' ? 'Please add a rejection reason before rejecting this submission.' : 'Please add a review comment before approving this submission.');
+      const message = status === 'rejected'
+        ? 'Please add a rejection reason or feedback before rejecting this submission.'
+        : 'Please add a review comment or feedback before approving this submission.';
+      setReviewCommentError(message);
+      setError(message);
       setSuccess('');
+      reviewCommentRef.current?.focus();
+      reviewCommentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
+    setReviewCommentError('');
+
     if (status === 'rejected' && !revisionDueAt) {
-      setError('Please set a revision due date before marking this submission for revision.');
+      const message = 'Please set a revision due date before marking this submission for revision.';
+      setRevisionDueAtError(message);
+      setError(message);
       setSuccess('');
+      revisionDueAtRef.current?.focus();
+      revisionDueAtRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    setRevisionDueAtError('');
 
     setIsSubmittingReview(true);
     setError('');
@@ -251,15 +269,6 @@ export default function FacultySubmissionDetailsPage() {
                 <p>{submission.abstract || 'No abstract provided for this submission.'}</p>
               </div>
 
-              <div className="faculty-submission-section">
-                <h3>Keywords</h3>
-                <div className="faculty-submission-keywords">
-                  {(submission.keywords?.length ? submission.keywords : ['No keywords provided']).map((keyword) => (
-                    <span key={keyword}>{keyword}</span>
-                  ))}
-                </div>
-              </div>
-
             </section>
 
             <aside className="faculty-submission-side-panel">
@@ -303,21 +312,51 @@ export default function FacultySubmissionDetailsPage() {
                       <h3>Review or Comment</h3>
                     </div>
                   </div>
-                  <textarea
-                    className="faculty-submission-review-textarea"
-                    value={reviewComment}
-                    onChange={(event) => setReviewComment(event.target.value)}
-                    placeholder="Add faculty comments, revision notes, or approval remarks here..."
-                    rows={5}
-                  />
-                  <label className="student-upload-field">
-                    <span><CalendarDays size={14} /> Revision Due Date</span>
-                    <input
-                      type="date"
-                      value={revisionDueAt}
-                      onChange={(event) => setRevisionDueAt(event.target.value)}
+                  <div className="faculty-submission-review-field">
+                    <textarea
+                      ref={reviewCommentRef}
+                      className="faculty-submission-review-textarea"
+                      aria-invalid={reviewCommentError ? 'true' : 'false'}
+                      value={reviewComment}
+                      onChange={(event) => {
+                        setReviewComment(event.target.value);
+                        if (event.target.value.trim()) {
+                          setReviewCommentError('');
+                        }
+                      }}
+                      placeholder="Add faculty comments, revision notes, or approval remarks here..."
+                      rows={5}
                     />
-                  </label>
+                    {reviewCommentError ? (
+                      <div className="faculty-submission-review-warning" role="alert">
+                        <span className="faculty-submission-review-warning-icon">!</span>
+                        <span>{reviewCommentError}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="faculty-submission-review-field">
+                    <label className={`student-upload-field${revisionDueAtError ? ' has-error' : ''}`}>
+                      <span><CalendarDays size={14} /> Revision Due Date</span>
+                      <input
+                        ref={revisionDueAtRef}
+                        type="date"
+                        aria-invalid={revisionDueAtError ? 'true' : 'false'}
+                        value={revisionDueAt}
+                        onChange={(event) => {
+                          setRevisionDueAt(event.target.value);
+                          if (event.target.value) {
+                            setRevisionDueAtError('');
+                          }
+                        }}
+                      />
+                    </label>
+                    {revisionDueAtError ? (
+                      <div className="faculty-submission-review-warning" role="alert">
+                        <span className="faculty-submission-review-warning-icon">!</span>
+                        <span>{revisionDueAtError}</span>
+                      </div>
+                    ) : null}
+                  </div>
                   <div className="faculty-submission-review-actions">
                     <button
                       type="button"

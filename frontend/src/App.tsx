@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useThemeStore } from './store/themeStore';
+import { ConfirmDialogProvider } from './components/confirm/ConfirmDialogProvider';
 import AppRouter from './router/AppRouter';
 
 function App() {
@@ -9,7 +10,11 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  return <AppRouter />;
+  return (
+    <ConfirmDialogProvider>
+      <AppRouter />
+    </ConfirmDialogProvider>
+  );
 }
 
 export default App;

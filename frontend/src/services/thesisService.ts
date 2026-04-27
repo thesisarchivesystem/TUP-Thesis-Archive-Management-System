@@ -153,6 +153,11 @@ export const thesisService = {
     return data;
   },
 
+  async deleteApproved(id: string) {
+    const { data } = await api.delete<{ message?: string }>(`/faculty/approved-thesis/${id}`);
+    return data;
+  },
+
   async mySubmissions() {
     const { data } = await api.get('/student/my-submissions');
     return data;

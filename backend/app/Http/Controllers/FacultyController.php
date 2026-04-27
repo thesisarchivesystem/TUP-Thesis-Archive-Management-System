@@ -698,6 +698,33 @@ class FacultyController extends Controller
         ]);
     }
 
+    public function destroyManagedThesis(Request $request, string $id): JsonResponse
+    {
+        $thesis = Thesis::query()
+            ->where('id', $id)
+            ->where('submitted_by', $request->user()->id)
+            ->firstOrFail();
+
+        if (!$thesis->is_archived) {
+            return response()->json([
+                'error' => 'Only archived theses can be deleted from this page.',
+            ], 422);
+        }
+
+        $title = $thesis->title;
+
+        $this->logger->log($request->user(), 'thesis.deleted', 'thesis', $thesis->id, [
+            'title' => $title,
+            'source' => 'faculty.archive',
+        ]);
+
+        $thesis->delete();
+
+        return response()->json([
+            'message' => 'Archived thesis deleted successfully.',
+        ]);
+    }
+
     public function dashboard(Request $request): JsonResponse
     {
         $user = $request->user();

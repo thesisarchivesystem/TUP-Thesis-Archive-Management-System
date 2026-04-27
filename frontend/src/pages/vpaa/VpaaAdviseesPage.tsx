@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, List, UserCheck, UserRoundCog, UserRoundCheck, Users2 } from 'lucide-react';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { facultyManagementService, type FacultyAccountPayload } from '../../services/facultyManagementService';
 import type { FacultyProfile } from '../../types/user.types';
 import { collegeOptions, departmentOptionsByCollege } from '../../constants/academicUnits';
@@ -73,6 +74,7 @@ const roleShortLabel = (role: string) => {
 };
 
 export default function VpaaAdviseesPage() {
+  const { confirm } = useConfirmDialog();
   const [faculty, setFaculty] = useState<FacultyProfile[]>([]);
   const [form, setForm] = useState(initialForm);
   const [editForm, setEditForm] = useState(initialForm);
@@ -83,7 +85,7 @@ export default function VpaaAdviseesPage() {
   const [editSuccess, setEditSuccess] = useState('');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [quickFilter, setQuickFilter] = useState<'all' | 'changes' | 'new'>('all');
+  const [quickFilter, setQuickFilter] = useState<'all' | 'new'>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -226,7 +228,6 @@ export default function VpaaAdviseesPage() {
 
         const matchesRole = roleFilter === 'all' || member.faculty_role === roleFilter;
         const matchesQuick = quickFilter === 'all'
-          || (quickFilter === 'changes' && false)
           || (quickFilter === 'new' && isNewAccount(member.user.created_at));
 
         return matchesSearch && matchesRole && matchesQuick;
@@ -297,9 +298,13 @@ export default function VpaaAdviseesPage() {
   };
 
   const handleRemoveFaculty = async (member: FacultyProfile) => {
-    const confirmed = window.confirm(
-      `Delete ${member.user.name}'s faculty account?\n\nTheir account will be removed, and any thesis records already added to the archive will stay stored.`,
-    );
+    const confirmed = await confirm({
+      title: 'Delete Faculty Account',
+      message: `Delete ${member.user.name}'s faculty account?\n\nTheir account will be removed, and any thesis records already added to the archive will stay stored.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
 
     if (!confirmed) return;
 
@@ -501,7 +506,6 @@ export default function VpaaAdviseesPage() {
               </div>
               <div className="filter-chips faculty-directory-filter-chips">
                 <button type="button" className={`chip faculty-directory-chip${quickFilter === 'all' ? ' active' : ''}`} onClick={() => setQuickFilter('all')}>All</button>
-                <button type="button" className={`chip faculty-directory-chip${quickFilter === 'changes' ? ' active' : ''}`} onClick={() => setQuickFilter('changes')}>Role Changes</button>
                 <button type="button" className={`chip faculty-directory-chip${quickFilter === 'new' ? ' active' : ''}`} onClick={() => setQuickFilter('new')}>New Accounts</button>
               </div>
             </div>

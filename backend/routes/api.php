@@ -86,6 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/thesis/{id}/review', [ThesisController::class, 'review']);
         Route::get('/approved-thesis', [ThesisController::class, 'approved']);
         Route::patch('/approved-thesis/{id}/archive', [ThesisController::class, 'archiveApproved']);
+        Route::delete('/approved-thesis/{id}', [ThesisController::class, 'destroyApproved']);
         Route::get('/extension-requests', [ExtensionRequestController::class, 'indexForFaculty']);
         Route::get('/extension-requests/{id}', [ExtensionRequestController::class, 'showForFaculty']);
         Route::patch('/extension-requests/{id}', [ExtensionRequestController::class, 'decide']);
