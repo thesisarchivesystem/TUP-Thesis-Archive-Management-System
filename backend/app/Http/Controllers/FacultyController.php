@@ -140,9 +140,8 @@ class FacultyController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        $items = SharedFile::query()
+        $items = $this->visibleSharedFilesForFaculty($request->user(), $facultyProfile)
             ->with(['uploader:id,name,email', 'category:id,name,slug', 'recipients.user:id,name,email'])
-            ->where('uploaded_by', $request->user()->id)
             ->orderByDesc('created_at')
             ->limit(20)
             ->get();
@@ -221,7 +220,9 @@ class FacultyController extends Controller
                         'department' => $file->department,
                         'college' => $file->college,
                         'program' => $file->program,
-                        'category' => $file->category?->name,
+                        'category' => $this->resolveSharedFileCategorySummaries($file)[0]['name'] ?? $file->category?->name,
+                        'categories' => $this->resolveSharedFileCategorySummaries($file),
+                        'category_ids' => collect($file->category_ids ?? [])->filter()->values()->all(),
                         'year' => $file->created_at?->format('Y'),
                         'file_url' => $file->file_url,
                         'file_name' => $file->file_name,
@@ -256,9 +257,8 @@ class FacultyController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        $file = SharedFile::query()
+        $file = $this->visibleSharedFilesForFaculty($request->user(), $facultyProfile)
             ->with(['category:id,name,slug', 'uploader:id,name', 'recipients.user:id,name,email'])
-            ->where('uploaded_by', $request->user()->id)
             ->findOrFail($id);
 
         return response()->json([
@@ -274,7 +274,9 @@ class FacultyController extends Controller
                 'department' => $file->department ?: $facultyProfile->department,
                 'college' => $file->college ?: $facultyProfile->college,
                 'program' => $file->program,
-                'category' => $file->category?->name,
+                'category' => $this->resolveSharedFileCategorySummaries($file)[0]['name'] ?? $file->category?->name,
+                'categories' => $this->resolveSharedFileCategorySummaries($file),
+                'category_ids' => collect($file->category_ids ?? [])->filter()->values()->all(),
                 'school_year' => $file->school_year,
                 'year' => $file->created_at?->format('Y'),
                 'file_url' => $file->file_url,
@@ -321,6 +323,8 @@ class FacultyController extends Controller
             'college' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'category_id' => 'required|uuid|exists:categories,id',
+            'category_ids' => 'nullable|array|min:1|max:5',
+            'category_ids.*' => 'uuid|exists:categories,id|distinct',
             'school_year' => 'required|string|max:255',
             'authors' => 'nullable|array',
             'authors.*' => 'string|max:255',
@@ -335,6 +339,12 @@ class FacultyController extends Controller
         ]);
 
         $isDraft = (bool) ($validated['is_draft'] ?? false);
+        $categoryIds = collect($validated['category_ids'] ?? [$validated['category_id']])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $primaryCategoryId = $categoryIds[0] ?? $validated['category_id'];
         $shareScope = (string) $validated['share_scope'];
         $recipientIds = collect($validated['recipient_ids'] ?? [])
             ->filter()
@@ -345,7 +355,8 @@ class FacultyController extends Controller
 
         DB::transaction(function () use ($file, $validated, $isDraft, $shareScope, $recipientIds, $fileUpload, $facultyProfile) {
             $file->update([
-                'category_id' => $validated['category_id'],
+                'category_id' => $primaryCategoryId,
+                'category_ids' => $categoryIds,
                 'title' => $validated['title'],
                 'resource_type' => $validated['resource_type'],
                 'abstract' => $validated['abstract'] ?? null,
@@ -420,6 +431,8 @@ class FacultyController extends Controller
             'college' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'category_id' => 'required|uuid|exists:categories,id',
+            'category_ids' => 'nullable|array|min:1|max:5',
+            'category_ids.*' => 'uuid|exists:categories,id|distinct',
             'school_year' => 'required|string|max:255',
             'authors' => 'nullable|array',
             'authors.*' => 'string|max:255',
@@ -435,7 +448,13 @@ class FacultyController extends Controller
             'file_size' => 'nullable|integer',
         ]);
 
-        $category = Category::query()->findOrFail($validated['category_id']);
+        $categoryIds = collect($validated['category_ids'] ?? [$validated['category_id']])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $primaryCategoryId = $categoryIds[0] ?? $validated['category_id'];
+        $category = Category::query()->findOrFail($primaryCategoryId);
         $isDraft = (bool) ($validated['is_draft'] ?? false);
         $shareScope = (string) $validated['share_scope'];
         $recipientIds = collect($validated['recipient_ids'] ?? [])
@@ -458,6 +477,7 @@ class FacultyController extends Controller
             $file = SharedFile::create([
                 'uploaded_by' => $request->user()->id,
                 'category_id' => $category->id,
+                'category_ids' => $categoryIds,
                 'title' => $validated['title'],
                 'resource_type' => $validated['resource_type'],
                 'abstract' => $validated['abstract'] ?? null,
@@ -1482,5 +1502,67 @@ class FacultyController extends Controller
         }
 
         return $normalizedCollege !== '' ? $normalizedCollege : null;
+    }
+
+    private function resolveSharedFileCategorySummaries(SharedFile $file): array
+    {
+        $categoryIds = collect($file->category_ids ?? [])
+            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
+            ->values();
+
+        if ($categoryIds->isEmpty() && $file->category_id) {
+            $categoryIds = collect([$file->category_id]);
+        }
+
+        if ($categoryIds->isEmpty()) {
+            return [];
+        }
+
+        $categories = Category::query()
+            ->whereIn('id', $categoryIds)
+            ->get(['id', 'name', 'slug'])
+            ->keyBy('id');
+
+        return $categoryIds
+            ->map(fn (string $id) => $categories->get($id))
+            ->filter()
+            ->map(fn (Category $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function visibleSharedFilesForFaculty(User $user, FacultyProfile $facultyProfile)
+    {
+        return SharedFile::query()
+            ->where(function ($query) use ($user, $facultyProfile) {
+                $query->where('uploaded_by', $user->id)
+                    ->orWhere(function ($sharedQuery) use ($user, $facultyProfile) {
+                        $sharedQuery->whereRaw('"is_draft" = false')
+                            ->where(function ($scopeQuery) use ($user, $facultyProfile) {
+                                $scopeQuery
+                                    ->where('share_scope', 'all_colleges')
+                                    ->orWhere('share_scope', 'all_departments')
+                                    ->orWhere(function ($collegeQuery) use ($facultyProfile) {
+                                        $collegeQuery
+                                            ->where('share_scope', 'specific_college')
+                                            ->where('target_college', $facultyProfile->college);
+                                    })
+                                    ->orWhere(function ($departmentQuery) use ($facultyProfile) {
+                                        $departmentQuery
+                                            ->where('share_scope', 'specific_department')
+                                            ->where('target_department', $facultyProfile->department);
+                                    })
+                                    ->orWhere(function ($recipientQuery) use ($user) {
+                                        $recipientQuery
+                                            ->where('share_scope', 'specific_users')
+                                            ->whereHas('recipients', fn ($recipientBuilder) => $recipientBuilder->where('user_id', $user->id));
+                                    });
+                            });
+                    });
+            });
     }
 }

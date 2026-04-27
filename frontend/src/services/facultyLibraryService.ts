@@ -29,15 +29,16 @@ export interface FacultyLibraryItem {
   college?: string | null;
   program?: string | null;
   category?: string | null;
+  categories?: Array<{ id?: string; name: string; slug?: string }> | null;
   school_year?: string | null;
   year?: string | null;
+  category_ids?: string[] | null;
   file_url?: string | null;
   file_name?: string | null;
   is_draft: boolean;
   share_scope: string;
   share_scope_label: string;
   category_id?: string;
-  category_ids?: string[] | null;
   target_college?: string | null;
   target_department?: string | null;
   shared_with_count?: number | null;

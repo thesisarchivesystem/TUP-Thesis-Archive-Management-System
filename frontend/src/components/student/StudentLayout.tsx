@@ -13,7 +13,6 @@ import {
   MessageSquare,
   MoonStar,
   Search,
-  Settings,
   Shapes,
   SunMedium,
   Upload,
@@ -369,7 +368,6 @@ export default function StudentLayout({ title, description, children, hidePageIn
               <div className={`vpaa-dropdown-panel vpaa-profile-panel ${profileOpen ? 'open' : ''}`}>
                 <div className="vpaa-profile-actions">
                   <Link className="vpaa-profile-action" to="/student/profile"><User size={16} /><span>Profile</span></Link>
-                  <Link className="vpaa-profile-action" to="/student/settings"><Settings size={16} /><span>Settings</span></Link>
                   <button type="button" className="vpaa-profile-action signout" onClick={confirmAndLogout}><LogOut size={16} /><span>Sign Out</span></button>
                 </div>
               </div>

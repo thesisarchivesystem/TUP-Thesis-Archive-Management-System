@@ -127,7 +127,7 @@ class ThesisController extends Controller
             $thesis->increment('view_count');
         }
 
-        return response()->json(['data' => $thesis]);
+        return response()->json(['data' => $this->transformThesisWithArchiveMetadata($thesis->fresh(['submitter:id,name', 'adviser:id,name', 'category:id,name,slug']))]);
     }
 
     public function update(Request $request, string $id): JsonResponse

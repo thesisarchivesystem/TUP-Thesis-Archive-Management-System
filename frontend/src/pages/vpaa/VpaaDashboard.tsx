@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, FilePlus2, LoaderCircle } from 'lucide-react';
+import { Activity, FilePlus2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
 import { vpaaDashboardService, type DailyQuote, type VpaaDashboardThesis } from '../../services/vpaaDashboardService';
@@ -148,10 +149,7 @@ export default function VpaaDashboard() {
       description="Here’s your dashboard overview for thesis approvals, archive activity, faculty oversight, and department updates."
     >
       {loading ? (
-        <div className="vpaa-card" style={{ display: 'grid', placeItems: 'center', minHeight: 280, gap: 12 }}>
-          <LoaderCircle size={28} className="animate-spin" />
-          <p className="vpaa-loading-copy">Loading dashboard...</p>
-        </div>
+        <SectionLoadingScreen label="Loading dashboard..." />
       ) : error ? (
         <div className="vpaa-banner-error">{error}</div>
       ) : (

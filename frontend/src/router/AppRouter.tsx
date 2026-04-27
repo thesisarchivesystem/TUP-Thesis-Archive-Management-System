@@ -22,7 +22,6 @@ import VpaaAboutPage from '../pages/vpaa/VpaaAboutPage';
 import VpaaSupportPage from '../pages/vpaa/VpaaSupportPage';
 import VpaaTermsPage from '../pages/vpaa/VpaaTermsPage';
 import VpaaProfilePage from '../pages/vpaa/VpaaProfilePage';
-import VpaaSettingsPage from '../pages/vpaa/VpaaSettingsPage';
 import VpaaThesisDetailsPage from '../pages/vpaa/VpaaThesisDetailsPage';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import FacultyCategoriesPage from '../pages/faculty/FacultyCategoriesPage';
@@ -43,7 +42,6 @@ import FacultyActivityLogPage from '../pages/faculty/FacultyActivityLogPage';
 import FacultyAdviseesPage from '../pages/faculty/FacultyAdviseesPage';
 import FacultyTermsPage from '../pages/faculty/FacultyTermsPage';
 import FacultyProfilePage from '../pages/faculty/FacultyProfilePage';
-import FacultySettingsPage from '../pages/faculty/FacultySettingsPage';
 import FacultyThesisDetailsPage from '../pages/faculty/FacultyThesisDetailsPage';
 import FacultySharedFileDetailsPage from '../pages/faculty/FacultySharedFileDetailsPage';
 import StudentCategoriesPage from '../pages/student/StudentCategoriesPage';
@@ -58,7 +56,6 @@ import StudentTermsPage from '../pages/student/StudentTermsPage';
 import StudentUploadThesisPage from '../pages/student/StudentUploadThesisPage';
 import StudentExtensionRequestPage from '../pages/student/StudentExtensionRequestPage';
 import StudentProfilePage from '../pages/student/StudentProfilePage';
-import StudentSettingsPage from '../pages/student/StudentSettingsPage';
 import StudentThesisDetailsPage from '../pages/student/StudentThesisDetailsPage';
 import VpaaSearchResultsPage from '../pages/vpaa/VpaaSearchResultsPage';
 
@@ -124,7 +121,6 @@ export default function AppRouter() {
           <Route path="support" element={<VpaaSupportPage />} />
           <Route path="terms" element={<VpaaTermsPage />} />
           <Route path="profile" element={<VpaaProfilePage />} />
-          <Route path="settings" element={<VpaaSettingsPage />} />
           <Route path="faculty" element={<Navigate to="/vpaa/my-advisees" replace />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>
@@ -140,7 +136,6 @@ export default function AppRouter() {
           <Route path="activity-log" element={<FacultyActivityLogPage />} />
           <Route path="messages" element={<FacultyMessagesPage />} />
           <Route path="profile" element={<FacultyProfilePage />} />
-          <Route path="settings" element={<FacultySettingsPage />} />
           <Route path="about" element={<FacultyAboutPage />} />
           <Route path="support" element={<FacultySupportPage />} />
           <Route path="terms" element={<FacultyTermsPage />} />
@@ -173,7 +168,6 @@ export default function AppRouter() {
           <Route path="extension-request" element={<StudentExtensionRequestPage />} />
           <Route path="messages" element={<StudentMessagesPage />} />
           <Route path="profile" element={<StudentProfilePage />} />
-          <Route path="settings" element={<StudentSettingsPage />} />
           <Route path="about" element={<StudentAboutPage />} />
           <Route path="support" element={<StudentSupportPage />} />
           <Route path="terms" element={<StudentTermsPage />} />

@@ -1,5 +1,3 @@
-// frontend/src/pages/public/Homepage.tsx
-
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { MoonStar, SunMedium } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
