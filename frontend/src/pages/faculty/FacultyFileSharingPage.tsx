@@ -164,6 +164,8 @@ export default function FacultyFileSharingPage() {
   };
 
   const scrollToValidationField = (field: ShareValidationField) => {
+    if (!field) return;
+
     const fieldMap: Record<Exclude<ShareValidationField, null>, HTMLElement | null> = {
       title: titleFieldRef.current,
       category: categoryFieldRef.current,

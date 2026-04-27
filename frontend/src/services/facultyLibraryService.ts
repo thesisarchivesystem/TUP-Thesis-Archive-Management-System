@@ -39,7 +39,6 @@ export interface FacultyLibraryItem {
   share_scope: string;
   share_scope_label: string;
   category_id?: string;
-  category_ids?: string[] | null;
   target_college?: string | null;
   target_department?: string | null;
   shared_with_count?: number | null;
