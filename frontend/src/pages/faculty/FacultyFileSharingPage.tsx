@@ -12,8 +12,23 @@ import {
   type ShareUserOption,
 } from '../../services/facultyLibraryService';
 
+const renderShareFieldWarning = (message: string) => (
+  <div className="faculty-submission-review-warning faculty-file-share-warning" role="alert">
+    <span className="faculty-submission-review-warning-icon">!</span>
+    <span>{message}</span>
+  </div>
+);
+
 const truncateTitle = (value: string, maxLength = 24) =>
   value.length > maxLength ? `${value.slice(0, maxLength).trimEnd()}...` : value;
+
+const getInitials = (value: string) =>
+  value
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
 
 const getCurrentSchoolYear = () => {
   const year = new Date().getFullYear();
@@ -36,6 +51,17 @@ const initialForm = {
   notes: '',
   userSearch: '',
 };
+
+type ShareValidationField =
+  | 'title'
+  | 'category'
+  | 'targetCollege'
+  | 'targetDepartment'
+  | 'specificUser'
+  | 'fileName'
+  | 'attachment'
+  | 'notes'
+  | null;
 
 export default function FacultyFileSharingPage() {
   const { user } = useAuth();
@@ -66,7 +92,17 @@ export default function FacultyFileSharingPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submittingAction, setSubmittingAction] = useState<'draft' | 'share' | null>(null);
+  const [shareWarning, setShareWarning] = useState('');
+  const [shareValidationField, setShareValidationField] = useState<ShareValidationField>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const titleFieldRef = useRef<HTMLLabelElement | null>(null);
+  const categoryFieldRef = useRef<HTMLDivElement | null>(null);
+  const targetCollegeFieldRef = useRef<HTMLLabelElement | null>(null);
+  const targetDepartmentFieldRef = useRef<HTMLLabelElement | null>(null);
+  const specificUserFieldRef = useRef<HTMLDivElement | null>(null);
+  const fileNameFieldRef = useRef<HTMLLabelElement | null>(null);
+  const attachmentFieldRef = useRef<HTMLLabelElement | null>(null);
+  const notesFieldRef = useRef<HTMLLabelElement | null>(null);
   const MAX_CATEGORY_SELECTIONS = 5;
   const filteredUserResults = userResults.filter((candidate) => {
     const query = form.userSearch.trim().toLowerCase();
@@ -86,6 +122,61 @@ export default function FacultyFileSharingPage() {
     [departmentsByCollege, form.targetCollege],
   );
   const visibleLibraryItems = useMemo(() => libraryItems.slice(0, 6), [libraryItems]);
+
+  const getMissingShareField = () => {
+    if (!form.title.trim()) {
+      return { field: 'title' as const, message: 'Please fill out the required field: title.' };
+    }
+
+    if (!form.categoryIds.length) {
+      return { field: 'category' as const, message: 'Please fill out the required field: category.' };
+    }
+
+    if (form.shareScope === 'specific_college' && !form.targetCollege.trim()) {
+      return { field: 'targetCollege' as const, message: 'Please fill out the required field: target college.' };
+    }
+
+    if (form.shareScope === 'specific_department' && !form.targetCollege.trim()) {
+      return { field: 'targetCollege' as const, message: 'Please fill out the required field: college.' };
+    }
+
+    if (form.shareScope === 'specific_department' && !form.targetDepartment.trim()) {
+      return { field: 'targetDepartment' as const, message: 'Please fill out the required field: target department.' };
+    }
+
+    if (form.shareScope === 'specific_users' && !selectedUsers.length) {
+      return { field: 'specificUser' as const, message: 'Please fill out the required field: specific user.' };
+    }
+
+    if (!form.fileName.trim()) {
+      return { field: 'fileName' as const, message: 'Please fill out the required field: file name.' };
+    }
+
+    if (!form.file) {
+      return { field: 'attachment' as const, message: 'Please fill out the required field: attachment.' };
+    }
+
+    if (!form.notes.trim()) {
+      return { field: 'notes' as const, message: 'Please fill out the required field: abstract / notes.' };
+    }
+
+    return null;
+  };
+
+  const scrollToValidationField = (field: ShareValidationField) => {
+    const fieldMap: Record<Exclude<ShareValidationField, null>, HTMLElement | null> = {
+      title: titleFieldRef.current,
+      category: categoryFieldRef.current,
+      targetCollege: targetCollegeFieldRef.current,
+      targetDepartment: targetDepartmentFieldRef.current,
+      specificUser: specificUserFieldRef.current,
+      fileName: fileNameFieldRef.current,
+      attachment: attachmentFieldRef.current,
+      notes: notesFieldRef.current,
+    };
+
+    fieldMap[field]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const loadLibrary = async () => {
     const response: FacultyLibraryResponse = await facultyLibraryService.getLibrary();
@@ -209,13 +300,27 @@ export default function FacultyFileSharingPage() {
     setEditingDraftId(null);
     setSelectedUsers([]);
     setUserResults([]);
+    setShareWarning('');
+    setShareValidationField(null);
     if (attachmentInputRef.current) attachmentInputRef.current.value = '';
   };
 
   const handleSave = async (mode: 'draft' | 'share') => {
+    if (mode === 'share') {
+      const missingField = getMissingShareField();
+      if (missingField) {
+        setShareValidationField(missingField.field);
+        setShareWarning(missingField.message);
+        scrollToValidationField(missingField.field);
+        return;
+      }
+    }
+
     setSubmittingAction(mode);
     setError('');
     setSuccess('');
+    setShareWarning('');
+    setShareValidationField(null);
 
     try {
       const payload = {
@@ -351,7 +456,7 @@ export default function FacultyFileSharingPage() {
           <div className="faculty-shared-files-grid">
             {libraryLoading ? (
               <div className="faculty-shared-files-empty rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-10 text-center text-text-secondary">
-                Loading shared files from the backend...
+                Loading shared files...
               </div>
             ) : null}
 
@@ -377,13 +482,15 @@ export default function FacultyFileSharingPage() {
                   author={item.author || item.authors?.filter(Boolean).join(', ') || 'Unknown author'}
                   authors={item.authors ?? undefined}
                   year={item.year || item.school_year || ''}
-                  categories={(item.keywords?.length
-                    ? item.keywords
-                    : [item.category, item.type, item.program]
-                  )
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((tag, index) => ({ id: `${item.id}-tag-${index}`, name: String(tag) }))}
+                  categories={item.categories?.length
+                    ? item.categories
+                    : (item.keywords?.length
+                      ? item.keywords
+                      : [item.category, item.type, item.program]
+                    )
+                      .filter(Boolean)
+                      .slice(0, 5)
+                      .map((tag, index) => ({ id: `${item.id}-tag-${index}`, name: String(tag) }))}
                 />
               </Link>
             ))}
@@ -423,16 +530,21 @@ export default function FacultyFileSharingPage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <label className="block xl:col-span-2">
+                  <label className={`block xl:col-span-2${shareValidationField === 'title' ? ' student-upload-field has-error' : ''}`} ref={titleFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
                       <span className="inline-flex items-center gap-2"><BookOpen size={14} className="text-[var(--maroon)]" /> Title</span>
                     </span>
                     <input
                       className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
                       value={form.title}
-                      onChange={(event) => setForm({ ...form, title: event.target.value })}
+                      onChange={(event) => {
+                        setShareWarning('');
+                        setShareValidationField((current) => (current === 'title' ? null : current));
+                        setForm({ ...form, title: event.target.value });
+                      }}
                       placeholder="Enter file title"
                     />
+                    {shareValidationField === 'title' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
 
                   <label className="block">
@@ -498,7 +610,7 @@ export default function FacultyFileSharingPage() {
                     />
                   </label>
 
-                  <div className="block md:col-span-2 xl:col-span-2">
+                  <div className={`block md:col-span-2 xl:col-span-2${shareValidationField === 'category' ? ' student-upload-field has-error' : ''}`} ref={categoryFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
                       <span className="inline-flex items-center gap-2"><Layers3 size={14} className="text-[var(--maroon)]" /> Category</span>
                     </span>
@@ -523,6 +635,7 @@ export default function FacultyFileSharingPage() {
                               checked={form.categoryIds.includes(category.id)}
                               disabled={categoriesLoading || !categories.length}
                               onChange={() => setForm((current) => {
+                                setShareWarning('');
                                 if (current.categoryIds.includes(category.id)) {
                                   return {
                                     ...current,
@@ -545,6 +658,7 @@ export default function FacultyFileSharingPage() {
                         ))}
                       </div>
                     </details>
+                    {shareValidationField === 'category' ? renderShareFieldWarning(shareWarning) : null}
                   </div>
                 </div>
               </div>
@@ -563,13 +677,16 @@ export default function FacultyFileSharingPage() {
                     <select
                       className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
                       value={form.shareScope}
-                      onChange={(event) => setForm({
-                        ...form,
-                        shareScope: event.target.value as typeof form.shareScope,
-                        targetCollege: event.target.value === 'specific_college' || event.target.value === 'specific_department' ? form.targetCollege : '',
-                        targetDepartment: event.target.value === 'specific_department' ? form.targetDepartment : '',
-                        userSearch: '',
-                      })}
+                      onChange={(event) => {
+                        setShareWarning('');
+                        setForm({
+                          ...form,
+                          shareScope: event.target.value as typeof form.shareScope,
+                          targetCollege: event.target.value === 'specific_college' || event.target.value === 'specific_department' ? form.targetCollege : '',
+                          targetDepartment: event.target.value === 'specific_department' ? form.targetDepartment : '',
+                          userSearch: '',
+                        });
+                      }}
                     >
                       <option value="all_colleges">All Colleges</option>
                       <option value="all_departments">All Departments</option>
@@ -586,36 +703,46 @@ export default function FacultyFileSharingPage() {
                     </span>
                     <select
                       className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
-                      value={form.targetCollege}
-                      onChange={(event) => setForm({ ...form, targetCollege: event.target.value, targetDepartment: '' })}
+                          value={form.targetCollege}
+                          onChange={(event) => {
+                            setShareWarning('');
+                            setShareValidationField((current) => (current === 'targetCollege' ? null : current));
+                            setForm({ ...form, targetCollege: event.target.value, targetDepartment: '' });
+                          }}
                     >
                       <option value="">Select college</option>
                       {availableColleges.map((college) => (
                         <option key={college} value={college}>{college}</option>
                       ))}
                     </select>
+                    {shareValidationField === 'targetCollege' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
                 ) : null}
 
                 {form.shareScope === 'specific_department' ? (
                   <>
-                    <label className="block">
+                    <label className={`block${shareValidationField === 'targetCollege' ? ' student-upload-field has-error' : ''}`} ref={targetCollegeFieldRef}>
                       <span className="mb-2 block text-sm font-medium text-text-secondary">
                         <span className="inline-flex items-center gap-2"><BookOpen size={14} className="text-[var(--maroon)]" /> College</span>
                       </span>
                       <select
                         className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
                         value={form.targetCollege}
-                        onChange={(event) => setForm({ ...form, targetCollege: event.target.value, targetDepartment: '' })}
+                        onChange={(event) => {
+                          setShareWarning('');
+                          setShareValidationField((current) => (current === 'targetCollege' ? null : current));
+                          setForm({ ...form, targetCollege: event.target.value, targetDepartment: '' });
+                        }}
                       >
                         <option value="">Select college</option>
                         {availableColleges.map((college) => (
                           <option key={college} value={college}>{college}</option>
                         ))}
                       </select>
+                      {shareValidationField === 'targetCollege' ? renderShareFieldWarning(shareWarning) : null}
                     </label>
 
-                    <label className="block">
+                    <label className={`block${shareValidationField === 'targetDepartment' ? ' student-upload-field has-error' : ''}`} ref={targetDepartmentFieldRef}>
                       <span className="mb-2 block text-sm font-medium text-text-secondary">
                         <span className="inline-flex items-center gap-2"><BookOpen size={14} className="text-[var(--maroon)]" /> Target Department</span>
                       </span>
@@ -623,7 +750,11 @@ export default function FacultyFileSharingPage() {
                         <select
                           className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
                           value={form.targetDepartment}
-                          onChange={(event) => setForm({ ...form, targetDepartment: event.target.value })}
+                          onChange={(event) => {
+                            setShareWarning('');
+                            setShareValidationField((current) => (current === 'targetDepartment' ? null : current));
+                            setForm({ ...form, targetDepartment: event.target.value });
+                          }}
                         >
                           <option value="">Select department</option>
                           {createDepartmentOptions.map((department) => (
@@ -634,22 +765,31 @@ export default function FacultyFileSharingPage() {
                         <input
                           className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
                           value={form.targetDepartment}
-                          onChange={(event) => setForm({ ...form, targetDepartment: event.target.value })}
+                          onChange={(event) => {
+                            setShareWarning('');
+                            setShareValidationField((current) => (current === 'targetDepartment' ? null : current));
+                            setForm({ ...form, targetDepartment: event.target.value });
+                          }}
                           placeholder="Computer Studies Department"
                         />
                       )}
+                      {shareValidationField === 'targetDepartment' ? renderShareFieldWarning(shareWarning) : null}
                     </label>
                   </>
                 ) : null}
 
                 {form.shareScope === 'specific_users' ? (
-                  <div className="block md:col-span-2 xl:col-span-3">
-                    <label className="student-upload-field full">
+                  <div className="block md:col-span-2 xl:col-span-3" ref={specificUserFieldRef}>
+                    <label className={`student-upload-field full${shareValidationField === 'specificUser' ? ' has-error' : ''}`}>
                       <span><UserRound size={14} /> Specific User</span>
                       <div className="student-upload-searchbox">
                         <input
                           value={form.userSearch}
-                          onChange={(event) => setForm({ ...form, userSearch: event.target.value })}
+                          onChange={(event) => {
+                            setShareWarning('');
+                            setShareValidationField((current) => (current === 'specificUser' ? null : current));
+                            setForm({ ...form, userSearch: event.target.value });
+                          }}
                           placeholder="Search user by name, email, role, or department"
                         />
                         {showUserResults ? (
@@ -661,6 +801,8 @@ export default function FacultyFileSharingPage() {
                                 type="button"
                                 className="student-upload-search-option"
                                 onClick={() => {
+                                  setShareWarning('');
+                                  setShareValidationField((current) => (current === 'specificUser' ? null : current));
                                   setSelectedUsers((current) => [...current, candidate]);
                                   setUserResults((current) => current.filter((entry) => entry.id !== candidate.id));
                                   setForm((current) => ({ ...current, userSearch: '' }));
@@ -676,11 +818,15 @@ export default function FacultyFileSharingPage() {
                         {selectedUsers.length ? (
                           <div className="student-upload-author-tags">
                             {selectedUsers.map((candidate) => (
-                              <span className="student-upload-author-chip" key={candidate.id}>
-                                {candidate.name} - {candidate.role}
+                              <span className="student-upload-adviser-chip" key={candidate.id}>
+                                <span className="student-upload-adviser-avatar">{getInitials(candidate.name) || 'US'}</span>
+                                <span className="student-upload-adviser-name">{candidate.name}</span>
                                 <button
                                   type="button"
+                                  className="student-upload-adviser-remove"
                                   onClick={() => {
+                                    setShareWarning('');
+                                    setShareValidationField((current) => (current === 'specificUser' ? null : current));
                                     setSelectedUsers((current) => current.filter((entry) => entry.id !== candidate.id));
                                   }}
                                   aria-label={`Remove ${candidate.name}`}
@@ -692,6 +838,7 @@ export default function FacultyFileSharingPage() {
                           </div>
                         ) : null}
                       </div>
+                      {shareValidationField === 'specificUser' ? renderShareFieldWarning(shareWarning) : null}
                       <small>Search and choose one or more specific users.</small>
                     </label>
                   </div>
@@ -779,19 +926,24 @@ export default function FacultyFileSharingPage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <label className="block md:col-span-2 xl:col-span-3">
+                  <label className={`block md:col-span-2 xl:col-span-3${shareValidationField === 'fileName' ? ' student-upload-field has-error' : ''}`} ref={fileNameFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
                       <span className="inline-flex items-center gap-2"><Paperclip size={14} className="text-[var(--maroon)]" /> File Name</span>
                     </span>
                     <input
                       className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
                       value={form.fileName}
-                      onChange={(event) => setForm({ ...form, fileName: event.target.value })}
+                      onChange={(event) => {
+                        setShareWarning('');
+                        setShareValidationField((current) => (current === 'fileName' ? null : current));
+                        setForm({ ...form, fileName: event.target.value });
+                      }}
                       placeholder="library-resource.pdf"
                     />
+                    {shareValidationField === 'fileName' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
 
-                  <label className="block md:col-span-2 xl:col-span-3">
+                  <label className={`block md:col-span-2 xl:col-span-3${shareValidationField === 'attachment' ? ' student-upload-field has-error' : ''}`} ref={attachmentFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
                       <span className="inline-flex items-center gap-2"><Upload size={14} className="text-[var(--maroon)]" /> Attachment</span>
                     </span>
@@ -803,7 +955,11 @@ export default function FacultyFileSharingPage() {
                             ref={attachmentInputRef}
                             type="file"
                             hidden
-                            onChange={(event) => setForm({ ...form, file: event.target.files?.[0] ?? null })}
+                            onChange={(event) => {
+                              setShareWarning('');
+                              setShareValidationField((current) => (current === 'attachment' ? null : current));
+                              setForm({ ...form, file: event.target.files?.[0] ?? null });
+                            }}
                           />
                           Choose File
                         </label>
@@ -812,6 +968,8 @@ export default function FacultyFileSharingPage() {
                             type="button"
                             className="student-upload-file-remove"
                             onClick={() => {
+                              setShareWarning('');
+                              setShareValidationField((current) => (current === 'attachment' ? null : current));
                               setForm({ ...form, file: null });
                               if (attachmentInputRef.current) attachmentInputRef.current.value = '';
                             }}
@@ -822,18 +980,24 @@ export default function FacultyFileSharingPage() {
                         ) : null}
                       </div>
                     </div>
+                    {shareValidationField === 'attachment' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
 
-                  <label className="block md:col-span-2 xl:col-span-3">
+                  <label className={`block md:col-span-2 xl:col-span-3${shareValidationField === 'notes' ? ' student-upload-field has-error' : ''}`} ref={notesFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
                       <span className="inline-flex items-center gap-2"><BookOpen size={14} className="text-[var(--maroon)]" /> Abstract / Notes</span>
                     </span>
                     <textarea
                       className="min-h-[132px] w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
                       value={form.notes}
-                      onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                      onChange={(event) => {
+                        setShareWarning('');
+                        setShareValidationField((current) => (current === 'notes' ? null : current));
+                        setForm({ ...form, notes: event.target.value });
+                      }}
                       placeholder="Short description to help users understand the resource."
                     />
+                    {shareValidationField === 'notes' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
                 </div>
               </div>
@@ -862,15 +1026,7 @@ export default function FacultyFileSharingPage() {
                   className="rounded-2xl bg-[var(--maroon)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-sm)]"
                   onClick={() => void handleSave('share')}
                   disabled={
-                    submittingAction !== null
-                    || categoriesLoading
-                    || !form.categoryIds.length
-                    || !form.title
-                    || !form.college
-                    || !form.department
-                    || (form.shareScope === 'specific_department' && !form.targetDepartment)
-                    || (form.shareScope === 'specific_college' && !form.targetCollege)
-                    || (form.shareScope === 'specific_users' && !selectedUsers.length)
+                    submittingAction !== null || categoriesLoading
                   }
                 >
                   {submittingAction === 'share' ? 'Sharing...' : 'Share File'}

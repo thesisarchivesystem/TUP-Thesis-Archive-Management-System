@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Blocks, Brain, ChevronRight, Cpu, Database, Globe, Shield, Smartphone, Users2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SectionLoadingScreen from '../SectionLoadingScreen';
 import ThesisArchiveCover from '../thesis/ThesisArchiveCover';
 import { vpaaCategoriesService, type VpaaCategory } from '../../services/vpaaCategoriesService';
 import type { UserRole } from '../../types/user.types';
@@ -94,7 +95,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
 
   if (error) return <div className="vpaa-banner-error">{error}</div>;
 
-  if (isLoading) return <div className="vpaa-card vpaa-loading-copy">Loading thesis categories from the archive...</div>;
+  if (isLoading) return <SectionLoadingScreen label="Loading thesis categories..." />;
 
   if (!categories.length) return <div className="vpaa-card">No thesis categories are available yet.</div>;
 

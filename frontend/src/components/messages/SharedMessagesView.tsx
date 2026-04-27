@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, Paperclip } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import SectionLoadingScreen from '../SectionLoadingScreen';
 import { useAuth } from '../../hooks/useAuth';
 import { getAblyClient } from '../../hooks/useAbly';
 import { useChatChannel } from '../../hooks/useChatChannel';
@@ -210,6 +211,7 @@ export default function SharedMessagesView() {
   const [activeContactId, setActiveContactId] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(true);
+  const [loadingConversations, setLoadingConversations] = useState(true);
   const [startingConversationId, setStartingConversationId] = useState<string | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [syncingMessages, setSyncingMessages] = useState(false);
@@ -281,6 +283,7 @@ export default function SharedMessagesView() {
   };
 
   const loadConversations = async () => {
+    setLoadingConversations(true);
     setError(null);
 
     try {
@@ -299,6 +302,8 @@ export default function SharedMessagesView() {
       setError(err instanceof Error ? err.message : 'Failed to load conversations.');
       setConversations([]);
       setActiveConversationId(null);
+    } finally {
+      setLoadingConversations(false);
     }
   };
 
@@ -432,6 +437,7 @@ export default function SharedMessagesView() {
 
   const canCompose = Boolean(activeConversationId || activeRecipientId);
   const canSend = Boolean((messageInput.trim() || selectedAttachment) && activeRecipientId && !sending && !startingConversationId);
+  const initialLoading = loadingContacts || loadingConversations;
 
   const activeHeaderName = activeConversationView?.contact?.name || activeRecipient?.name || 'Select a conversation';
   const activeHeaderEmail = activeConversationView?.contact?.email || activeRecipient?.email || 'Choose a user to start chatting';
@@ -707,8 +713,11 @@ export default function SharedMessagesView() {
 
   return (
     <>
-      <section className={`vpaa-messages-shell${detailsOpen ? ' details-open' : ''}`}>
-        <aside className="vpaa-contacts-panel">
+      {initialLoading ? (
+        <SectionLoadingScreen label="Loading messages..." />
+      ) : (
+        <section className={`vpaa-messages-shell${detailsOpen ? ' details-open' : ''}`}>
+          <aside className="vpaa-contacts-panel">
           <input
             className="vpaa-panel-search"
             type="text"
@@ -730,7 +739,6 @@ export default function SharedMessagesView() {
             {filteredContacts.map((contact) => {
               const isActive = contact.conversation_id === activeConversationId;
               const isStarting = startingConversationId === contact.id;
-              const isOnline = onlineUserIds.includes(contact.id);
 
               return (
                 <button
@@ -745,14 +753,13 @@ export default function SharedMessagesView() {
                   <div className="vpaa-contact-main">
                     <div className="vpaa-contact-name-row">
                       <div className="vpaa-contact-name">{contact.name}</div>
-                      {isOnline ? <span className="vpaa-contact-status-dot" /> : null}
                     </div>
                     <div className="vpaa-contact-preview">{contact.email}</div>
                   </div>
 
                   <div className="vpaa-contact-meta">
                     <div className="vpaa-contact-time">{formatRoleLabel(contact.role)}</div>
-                    <div className="vpaa-contact-unread empty">{isStarting ? '...' : contact.conversation_id ? '' : 'Chat'}</div>
+                    {isStarting ? <div className="vpaa-contact-unread empty">...</div> : null}
                   </div>
                 </button>
               );
@@ -977,8 +984,9 @@ export default function SharedMessagesView() {
                 <button type="button" className="vpaa-chat-details-view-all">View All</button>
               ) : null}
             </div>
-        </aside>
-      </section>
+          </aside>
+        </section>
+      )}
 
       {error && !error.includes('status code 500') ? <div className="vpaa-message-error">{error}</div> : null}
     </>

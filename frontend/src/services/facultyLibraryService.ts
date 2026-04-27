@@ -29,8 +29,10 @@ export interface FacultyLibraryItem {
   college?: string | null;
   program?: string | null;
   category?: string | null;
+  categories?: Array<{ id?: string; name: string; slug?: string | null }> | null;
   school_year?: string | null;
   year?: string | null;
+  category_ids?: string[] | null;
   file_url?: string | null;
   file_name?: string | null;
   is_draft: boolean;

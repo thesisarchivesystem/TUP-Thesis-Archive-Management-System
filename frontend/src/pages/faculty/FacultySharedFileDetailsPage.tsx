@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpenText, CalendarDays, FolderOpen, GraduationCap, Shiel
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { facultyLibraryService, type FacultyLibraryItem } from '../../services/facultyLibraryService';
 
 type LocationState = {
@@ -52,6 +53,7 @@ export default function FacultySharedFileDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const { confirm } = useConfirmDialog();
   const locationState = location.state as LocationState | null;
   const [file, setFile] = useState<FacultyLibraryItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,23 +135,20 @@ export default function FacultySharedFileDetailsPage() {
                   author={authorLabel}
                   authors={file.authors ?? undefined}
                   year={file.year || file.school_year || ''}
-                  categories={(file.keywords?.length
-                    ? file.keywords
-                    : [file.category, file.type, file.program]
-                  )
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((tag, index) => ({ id: `${file.id}-tag-${index}`, name: String(tag) }))}
+                  categories={file.categories?.length
+                    ? file.categories
+                    : (file.keywords?.length
+                      ? file.keywords
+                      : [file.category, file.type, file.program]
+                    )
+                      .filter(Boolean)
+                      .slice(0, 5)
+                      .map((tag, index) => ({ id: `${file.id}-tag-${index}`, name: String(tag) }))}
                 />
 
                 <div className="student-submission-hero-copy">
                   <div className="student-submission-hero-title-row">
                     <h2>{file.title}</h2>
-                  </div>
-
-                  <div className="shared-file-author-inline">
-                    <span className="shared-file-author-avatar">{getInitials(authorLabel)}</span>
-                    <p className="student-submission-authors shared-file-author-name">{authorLabel}</p>
                   </div>
 
                   <div className="student-submission-meta-row shared-file-meta-row">
@@ -175,13 +174,21 @@ export default function FacultySharedFileDetailsPage() {
                         className="shared-file-draft-danger"
                         onClick={() => {
                           if (deleting) return;
-                          const confirmed = window.confirm('Delete this draft permanently?');
-                          if (!confirmed) return;
-                          setDeleting(true);
-                          void facultyLibraryService.deleteLibraryItem(file.id)
-                            .then(() => navigate('/faculty/students'))
-                            .catch((err) => setError(err instanceof Error ? err.message : 'Unable to delete this draft right now.'))
-                            .finally(() => setDeleting(false));
+                          void (async () => {
+                            const confirmed = await confirm({
+                              title: 'Delete Draft',
+                              message: 'Delete this draft permanently?',
+                              confirmLabel: 'Delete',
+                              cancelLabel: 'Cancel',
+                              tone: 'danger',
+                            });
+                            if (!confirmed) return;
+                            setDeleting(true);
+                            void facultyLibraryService.deleteLibraryItem(file.id)
+                              .then(() => navigate('/faculty/students'))
+                              .catch((err) => setError(err instanceof Error ? err.message : 'Unable to delete this draft right now.'))
+                              .finally(() => setDeleting(false));
+                          })();
                         }}
                         aria-label="Delete draft"
                       >

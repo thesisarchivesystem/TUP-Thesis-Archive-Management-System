@@ -70,7 +70,7 @@ export default function FacultyAllSharedFilesPage() {
           <div className="faculty-shared-files-grid faculty-shared-files-grid-full">
             {libraryLoading ? (
               <div className="faculty-shared-files-empty rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-10 text-center text-text-secondary">
-                Loading shared files from the backend...
+                Loading shared files...
               </div>
             ) : null}
 
@@ -96,13 +96,15 @@ export default function FacultyAllSharedFilesPage() {
                   author={item.author || item.authors?.filter(Boolean).join(', ') || 'Unknown author'}
                   authors={item.authors ?? undefined}
                   year={item.year || item.school_year || ''}
-                  categories={(item.keywords?.length
-                    ? item.keywords
-                    : [item.category, item.type, item.program]
-                  )
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((tag, index) => ({ id: `${item.id}-tag-${index}`, name: String(tag) }))}
+                  categories={item.categories?.length
+                    ? item.categories
+                    : (item.keywords?.length
+                      ? item.keywords
+                      : [item.category, item.type, item.program]
+                    )
+                      .filter(Boolean)
+                      .slice(0, 5)
+                      .map((tag, index) => ({ id: `${item.id}-tag-${index}`, name: String(tag) }))}
                 />
               </Link>
             ))}

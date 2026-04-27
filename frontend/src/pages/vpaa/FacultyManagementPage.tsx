@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, GraduationCap, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Settings, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
+import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, GraduationCap, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -373,7 +373,6 @@ export default function FacultyLayout({ title, description, children, hidePageIn
               <div className={`vpaa-dropdown-panel vpaa-profile-panel ${profileOpen ? 'open' : ''}`}>
                 <div className="vpaa-profile-actions">
                   <Link className="vpaa-profile-action" to="/faculty/profile"><User size={16} /><span>Profile</span></Link>
-                  <Link className="vpaa-profile-action" to="/faculty/settings"><Settings size={16} /><span>Settings</span></Link>
                   <button type="button" className="vpaa-profile-action signout" onClick={confirmAndLogout}><LogOut size={16} /><span>Sign Out</span></button>
                 </div>
               </div>
