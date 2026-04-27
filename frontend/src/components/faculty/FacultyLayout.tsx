@@ -1,7 +1,7 @@
 // frontend/src/components/faculty/FacultyLayout.tsx
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, GraduationCap, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
+import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -10,6 +10,7 @@ import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
 import { aiService } from '../../services/aiService';
 import ChatMessageContent from '../chats/ChatMessageContent';
+import BrandMarkIcon from '../BrandMarkIcon';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
@@ -238,7 +239,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
 
       <aside className="vpaa-sidebar" onClick={(event) => event.stopPropagation()}>
         <Link className="vpaa-sidebar-brand" to="/faculty/dashboard">
-          <span className="vpaa-sidebar-logo"><GraduationCap size={24} /></span>
+          <span className="vpaa-sidebar-logo"><BrandMarkIcon /></span>
           <span className="vpaa-sidebar-brand-text">Thesis <span>Archive</span></span>
         </Link>
 

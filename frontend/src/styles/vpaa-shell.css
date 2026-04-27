@@ -123,6 +123,11 @@
   flex-shrink: 0;
 }
 
+.vpaa-sidebar-logo svg {
+  width: 28px;
+  height: 28px;
+}
+
 .vpaa-sidebar-brand-text {
   font-family: 'DM Serif Display', serif;
   font-size: 14px;
@@ -4190,6 +4195,13 @@
   font-family: 'DM Serif Display', serif;
   font-size: 24px;
   line-height: 1.22;
+}
+
+.thesis-details-download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .shared-file-hero-card {

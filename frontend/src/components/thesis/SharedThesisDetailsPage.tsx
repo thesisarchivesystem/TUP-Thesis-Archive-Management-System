@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpenText, CalendarDays, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, BookOpenText, CalendarDays, Download, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
@@ -54,6 +54,7 @@ const truncateCoverTitle = (title: string, maxWords = 5) => {
 };
 
 export default function SharedThesisDetailsPage({
+  role,
   title,
   description,
   backTo,
@@ -66,6 +67,7 @@ export default function SharedThesisDetailsPage({
   const [thesis, setThesis] = useState<Thesis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [downloadingManuscript, setDownloadingManuscript] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -114,6 +116,44 @@ export default function SharedThesisDetailsPage({
   const thesisCategories = thesis?.categories?.length
     ? thesis.categories.slice(0, 5)
     : (thesis?.category ? [thesis.category] : []);
+  const canDownloadManuscript = role === 'vpaa' && Boolean(thesis?.file_url);
+
+  const handleDownloadManuscript = async () => {
+    if (!thesis?.id || !thesis.file_url || !canDownloadManuscript) {
+      setError('No manuscript is available for download yet.');
+      return;
+    }
+
+    setError('');
+    setDownloadingManuscript(true);
+
+    try {
+      const signedUrl = await thesisService.getManuscriptAccessUrl(thesis.id);
+
+      if (!signedUrl) {
+        throw new Error('Unable to download the manuscript right now.');
+      }
+
+      const response = await fetch(signedUrl);
+      if (!response.ok) {
+        throw new Error('Unable to download the manuscript right now.');
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = thesis.file_name || `${thesis.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to download the manuscript right now.');
+    } finally {
+      setDownloadingManuscript(false);
+    }
+  };
 
   return (
     <Layout title={title} description={description} hidePageIntro>
@@ -154,6 +194,17 @@ export default function SharedThesisDetailsPage({
                 <div className="student-submission-hero-copy">
                   <div className="student-submission-hero-title-row">
                     <h2>{thesis.title}</h2>
+                    {canDownloadManuscript ? (
+                      <button
+                        type="button"
+                        className="student-submissions-secondary thesis-details-download-button"
+                        onClick={() => void handleDownloadManuscript()}
+                        disabled={downloadingManuscript}
+                      >
+                        <Download size={16} />
+                        <span>{downloadingManuscript ? 'Downloading...' : 'Download Manuscript'}</span>
+                      </button>
+                    ) : null}
                   </div>
 
                   <div className="student-submission-meta-row">

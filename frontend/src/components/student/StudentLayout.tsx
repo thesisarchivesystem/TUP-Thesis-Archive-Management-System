@@ -6,7 +6,6 @@ import {
   CalendarDays,
   ChevronRight,
   Clock3,
-  GraduationCap,
   Home,
   LogOut,
   Menu,
@@ -27,6 +26,7 @@ import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
 import { aiService } from '../../services/aiService';
 import ChatMessageContent from '../chats/ChatMessageContent';
+import BrandMarkIcon from '../BrandMarkIcon';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
@@ -250,7 +250,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
 
       <aside className="vpaa-sidebar" onClick={(event) => event.stopPropagation()}>
         <Link className="vpaa-sidebar-brand" to="/student/dashboard">
-          <span className="vpaa-sidebar-logo"><GraduationCap size={24} /></span>
+          <span className="vpaa-sidebar-logo"><BrandMarkIcon /></span>
           <span className="vpaa-sidebar-brand-text">Thesis <span>Archive</span></span>
         </Link>
 
