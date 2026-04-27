@@ -29,7 +29,7 @@ export interface FacultyLibraryItem {
   college?: string | null;
   program?: string | null;
   category?: string | null;
-  categories?: Array<{ id?: string; name: string; slug?: string | null }> | null;
+  categories?: Array<{ id?: string; name: string; slug?: string }> | null;
   school_year?: string | null;
   year?: string | null;
   category_ids?: string[] | null;
