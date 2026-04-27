@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import SectionLoadingScreen from '../SectionLoadingScreen';
 import ThesisArchiveCover from '../thesis/ThesisArchiveCover';
 import { vpaaCategoriesService } from '../../services/vpaaCategoriesService';
 import type { UserRole } from '../../types/user.types';
+import DashboardCollectionPageHeader from '../dashboard/DashboardCollectionPageHeader';
 
 type Props = {
   role: UserRole;
@@ -43,8 +43,6 @@ export default function SharedCategoryDetailView({ role }: Props) {
   }, [role, slug]);
 
   const thesisBasePath = role === 'vpaa' ? '/vpaa/theses' : role === 'faculty' ? '/faculty/theses' : '/student/theses';
-  const categoriesBasePath = role === 'vpaa' ? '/vpaa/categories' : role === 'faculty' ? '/faculty/categories' : '/student/categories';
-
   const theses = useMemo(() => (category?.theses ?? []).slice().sort((left, right) =>
     left.title.localeCompare(right.title, undefined, { sensitivity: 'base' })), [category]);
 
@@ -54,21 +52,15 @@ export default function SharedCategoryDetailView({ role }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="vpaa-page-intro">
-        <Link
-          to={categoriesBasePath}
-          className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--maroon)] no-underline transition hover:translate-x-[-2px]"
-        >
-          <ArrowLeft size={16} />
-          <span>Back to Categories</span>
-        </Link>
-        <h1>{category.label}</h1>
-        <p>{category.description || `Browse all theses under ${category.label}.`}</p>
-      </div>
+      <DashboardCollectionPageHeader
+        role={role}
+        title={category.label}
+        description={category.description || `Browse all archived theses under ${category.label}.`}
+      />
 
       <div className="vpaa-card vpaa-dashboard-panel">
         <div className="vpaa-dashboard-head">
-          <h3>{category.label}</h3>
+          <span />
           <span
             className="inline-flex items-center rounded-full border border-[rgba(139,35,50,0.12)] bg-[rgba(139,35,50,0.06)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--maroon)]"
           >
@@ -76,7 +68,7 @@ export default function SharedCategoryDetailView({ role }: Props) {
           </span>
         </div>
         {theses.length ? (
-          <div className="vpaa-category-thesis-grid">
+          <div className="recent-added-grid">
             {theses.map((thesis) => (
               <Link
                 className="vpaa-category-thesis-card"
