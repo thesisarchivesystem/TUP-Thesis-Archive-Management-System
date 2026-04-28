@@ -117,6 +117,7 @@ export default function SharedThesisDetailsPage({
     ? thesis.categories.slice(0, 5)
     : (thesis?.category ? [thesis.category] : []);
   const canDownloadManuscript = (role === 'vpaa' || role === 'faculty') && Boolean(thesis?.file_url);
+  const manuscriptActionLabel = downloadingManuscript ? 'Opening...' : 'View Manuscript';
 
   const handleDownloadManuscript = async () => {
     if (!thesis?.id || !thesis.file_url || !canDownloadManuscript) {
@@ -134,22 +135,22 @@ export default function SharedThesisDetailsPage({
         throw new Error('Unable to download the manuscript right now.');
       }
 
-      const response = await fetch(signedUrl);
-      if (!response.ok) {
-        throw new Error('Unable to download the manuscript right now.');
+      if (role === 'faculty' || role === 'vpaa') {
+        const previewWindow = window.open('', '_blank');
+
+        if (!previewWindow) {
+          throw new Error('Popup blocked while opening the manuscript. Please allow popups and try again.');
+        }
+
+        previewWindow.document.title = thesis.file_name || thesis.title || 'Opening manuscript...';
+        previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening manuscript...</p>';
+        previewWindow.location.replace(signedUrl);
+        return;
       }
 
-      const blob = await response.blob();
-      const objectUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = thesis.file_name || `${thesis.title}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(objectUrl);
+      throw new Error('Unable to open the manuscript right now.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to download the manuscript right now.');
+      setError(err instanceof Error ? err.message : 'Unable to open the manuscript right now.');
     } finally {
       setDownloadingManuscript(false);
     }
@@ -202,7 +203,7 @@ export default function SharedThesisDetailsPage({
                         disabled={downloadingManuscript}
                       >
                         <Download size={16} />
-                        <span>{downloadingManuscript ? 'Downloading...' : 'Download Manuscript'}</span>
+                        <span>{manuscriptActionLabel}</span>
                       </button>
                     ) : null}
                   </div>

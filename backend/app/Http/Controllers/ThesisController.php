@@ -276,8 +276,9 @@ class ThesisController extends Controller
         $isOwner = $user->id === $thesis->submitted_by;
         $isAdviser = $thesis->adviser_id && $user->id === $thesis->adviser_id;
         $isVpaa = $user->role === 'vpaa';
+        $isFaculty = $user->role === 'faculty' && $thesis->status === 'approved' && $thesis->is_archived;
 
-        if (!$isOwner && !$isAdviser && !$isVpaa) {
+        if (!$isOwner && !$isAdviser && !$isVpaa && !$isFaculty) {
             return response()->json(['error' => 'You are not allowed to access this manuscript.'], 403);
         }
 
