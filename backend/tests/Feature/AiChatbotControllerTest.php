@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\AiChatbotController;
+use Mockery;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -44,7 +46,7 @@ class AiChatbotControllerTest extends TestCase
         [$request] = $recorded[0];
         $payload = json_decode($request->body(), true) ?: [];
 
-        $this->assertSame('openrouter/free', $payload['model'] ?? null);
+        $this->assertSame(config('services.openrouter.model', 'openrouter/free'), $payload['model'] ?? null);
 
         $systemMessages = collect($payload['messages'] ?? [])
             ->where('role', 'system')
@@ -82,6 +84,37 @@ class AiChatbotControllerTest extends TestCase
 
         $response->assertOk()->assertJson([
             'reply' => 'Sorry, this chatbot is designed only for the Thesis Archive Management System. I can help you with tasks like searching, uploading, or managing theses.',
+        ]);
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_it_still_calls_the_ai_provider_when_category_context_lookup_fails(): void
+    {
+        config(['services.openrouter.key' => 'test-key']);
+
+        Http::fake([
+            '*' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => 'You can browse the available categories from the archive page.',
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $mock = Mockery::mock(AiChatbotController::class)->makePartial()->shouldAllowMockingProtectedMethods();
+        $mock->shouldReceive('resolveArchiveCategories')->andThrow(new \RuntimeException('Category lookup failed.'));
+        $this->app->instance(AiChatbotController::class, $mock);
+
+        $response = $this->postJson('/api/ai/chat', [
+            'message' => 'Show me the thesis categories.',
+        ]);
+
+        $response->assertOk()->assertJson([
+            'reply' => 'You can browse the available categories from the archive page.',
         ]);
 
         Http::assertSentCount(1);

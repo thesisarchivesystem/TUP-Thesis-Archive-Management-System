@@ -103,7 +103,7 @@ const departments = [
 const categories = [
   {
     title: 'Web & Mobile Development',
-    count: '85+ documents',
+    count: '90+ documents',
     iconClass: 'di-maroon',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -115,7 +115,7 @@ const categories = [
   },
   {
     title: 'Artificial Intelligence & ML',
-    count: '62+ documents',
+    count: '50+ documents',
     iconClass: 'di-sky',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -128,7 +128,7 @@ const categories = [
   },
   {
     title: 'Cybersecurity & Networking',
-    count: '48+ documents',
+    count: '45+ documents',
     iconClass: 'di-sage',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -138,7 +138,7 @@ const categories = [
   },
   {
     title: 'IoT & Embedded Systems',
-    count: '35+ documents',
+    count: '30+ documents',
     iconClass: 'di-terracotta',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -151,7 +151,7 @@ const categories = [
   },
   {
     title: 'Data Science & Analytics',
-    count: '54+ documents',
+    count: '60+ documents',
     iconClass: 'di-sky',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -163,7 +163,7 @@ const categories = [
   },
   {
     title: 'Human-Computer Interaction',
-    count: '28+ documents',
+    count: '60+ documents',
     iconClass: 'di-sage',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -176,7 +176,7 @@ const categories = [
   },
   {
     title: 'Game Development',
-    count: '22+ documents',
+    count: '15+ documents',
     iconClass: 'di-maroon',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -187,7 +187,7 @@ const categories = [
   },
   {
     title: 'Automation & Robotics',
-    count: '18+ documents',
+    count: '40+ documents',
     iconClass: 'di-terracotta',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -208,7 +208,8 @@ type ChatMessage = {
   text: string;
 };
 
-const CHATBOT_GREETING = 'Hello! I am Archie, your Archive Assistant. Pleasure to answer your questions';
+const CHATBOT_GREETING = 'Hello! I am Archie, your Archive Assistant. How can I assist you today with the Thesis Archive Management System?';
+const CHATBOT_TYPING_SPEED = 55;
 const CHAT_FAB_RIGHT = 28;
 const CHAT_FAB_BOTTOM = 28;
 const CHAT_FAB_SIZE = 74;
@@ -296,7 +297,8 @@ function HomePageStyles() {
       .homepage-shell .vpaa-chat-bubble.self{max-width:78%;padding:10px 16px;border-radius:999px;align-self:flex-end}
       .homepage-shell .vpaa-chat-bubble.other{max-width:88%}
       .ai-chatbot-fab{position:fixed;right:28px;bottom:28px;width:74px;height:74px;border:0;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;z-index:1301;transition:transform .25s ease,box-shadow .25s ease}.ai-chatbot-fab:active{cursor:grabbing}.ai-chatbot-fab:hover{transform:translateY(-2px) scale(1.02)}.ai-chatbot-fab img{width:84%;height:84%;object-fit:contain;display:block;pointer-events:none}
-      .ai-chatbot-panel{position:fixed;right:28px;bottom:118px;width:320px;max-width:calc(100vw - 32px);border-radius:26px;overflow:hidden;border:1px solid var(--border);background:var(--bg-card);box-shadow:var(--shadow-xl);transform:translateY(16px);opacity:0;pointer-events:none;z-index:1300;transition:opacity .3s ease,transform .3s ease}.ai-chatbot-panel.open{transform:translateY(0);opacity:1;pointer-events:auto}.ai-chatbot-header,.ai-chatbot-title,.ai-chatbot-form{display:flex;align-items:center}.ai-chatbot-header{justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 14px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--bg-tertiary),var(--bg-card))}.homepage-ai-chatbot-drag-handle{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.homepage-ai-chatbot-drag-handle:active{cursor:grabbing}.ai-chatbot-title{gap:10px}.ai-chatbot-avatar{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.ai-chatbot-avatar img{width:100%;height:100%;object-fit:contain;display:block}.ai-chatbot-title h3{margin:0 0 2px;font-size:14px;color:var(--text-primary)}.ai-chatbot-title p{margin:0;font-size:11px;color:var(--text-tertiary)}.ai-chatbot-close{width:32px;height:32px;border:0;background:transparent;color:var(--text-tertiary);border-radius:12px;cursor:pointer;font-size:22px;line-height:1;transition:all .25s ease}.ai-chatbot-close:hover{background:rgba(139,35,50,.06);color:var(--maroon)}.ai-chatbot-body{padding:14px;display:flex;flex-direction:column}.ai-chatbot-messages{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}.chat-bubble{max-width:90%;border-radius:18px;padding:9px 11px;font-size:12px;line-height:1.45}.chat-bubble.bot{background:var(--bg-secondary);color:var(--text-secondary);border-top-left-radius:6px}.chat-bubble.user{margin-left:auto;background:var(--maroon);color:#fff;border-top-right-radius:6px}.ai-chatbot-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.chat-suggestion{border-radius:999px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);padding:7px 10px;font-size:11px !important;line-height:1.2 !important;font-weight:500;cursor:pointer;transition:all .25s ease;font-family:'Plus Jakarta Sans',sans-serif}.chat-suggestion:hover{border-color:var(--maroon);color:var(--maroon)}.ai-chatbot-form{margin-top:10px;gap:6px;border-radius:16px;border:1px solid var(--border);background:var(--bg-card);padding:6px}.ai-chatbot-input{flex:1;border:0;outline:none;background:transparent;color:var(--text-primary);padding:7px 9px;font-size:11px}.ai-chatbot-input::placeholder{color:var(--text-tertiary)}.ai-chatbot-send{width:34px;height:34px;border:0;border-radius:12px;background:var(--maroon);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s ease}.ai-chatbot-send:hover{background:var(--maroon-dark)}.ai-chatbot-send svg{width:14px;height:14px;fill:currentColor}
+      .ai-chatbot-panel{position:fixed;right:28px;bottom:118px;width:320px;max-width:calc(100vw - 32px);border-radius:26px;overflow:hidden;border:1px solid var(--border);background:var(--bg-card);box-shadow:var(--shadow-xl);transform:translateY(16px);opacity:0;pointer-events:none;z-index:1300;transition:opacity .3s ease,transform .3s ease}.ai-chatbot-panel.open{transform:translateY(0);opacity:1;pointer-events:auto}.ai-chatbot-header,.ai-chatbot-title,.ai-chatbot-form{display:flex;align-items:center}.ai-chatbot-header{justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 14px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--bg-tertiary),var(--bg-card))}.homepage-ai-chatbot-drag-handle{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.homepage-ai-chatbot-drag-handle:active{cursor:grabbing}.ai-chatbot-title{gap:10px}.ai-chatbot-avatar{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.ai-chatbot-avatar img{width:100%;height:100%;object-fit:contain;display:block}.ai-chatbot-title h3{margin:0 0 2px;font-size:14px;color:var(--text-primary)}.ai-chatbot-title p{margin:0;font-size:11px;color:var(--text-tertiary)}.ai-chatbot-close{width:32px;height:32px;border:0;background:transparent;color:var(--text-tertiary);border-radius:12px;cursor:pointer;font-size:22px;line-height:1;transition:all .25s ease}.ai-chatbot-close:hover{background:rgba(139,35,50,.06);color:var(--maroon)}.ai-chatbot-body{padding:14px;display:flex;flex-direction:column}.ai-chatbot-messages{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}.chat-bubble{max-width:90%;border-radius:18px;padding:9px 11px;font-size:12px;line-height:1.45}.chat-bubble.bot{background:var(--bg-secondary);color:var(--text-secondary);border-top-left-radius:6px}.chat-bubble.user{margin-left:auto;background:var(--maroon);color:#fff;border-top-right-radius:6px}.ai-chatbot-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.chat-suggestion{border-radius:999px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);padding:7px 10px;font-size:11px !important;line-height:1.2 !important;font-weight:500;cursor:pointer;transition:all .25s ease;font-family:'Plus Jakarta Sans',sans-serif}.chat-suggestion:hover{border-color:var(--maroon);color:var(--maroon)}.ai-chatbot-form{margin-top:10px;gap:6px;border-radius:16px;border:1px solid var(--border);background:var(--bg-card);padding:6px}.ai-chatbot-input{flex:1;border:0;outline:none;background:transparent;color:var(--text-primary);padding:7px 9px;font-size:11px}.ai-chatbot-input::placeholder{color:var(--text-tertiary)}.ai-chatbot-send{width:34px;height:34px;border:0;border-radius:12px;background:var(--maroon);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s ease}.ai-chatbot-send:hover{background:var(--maroon-dark)}.ai-chatbot-send svg{width:14px;height:14px;fill:currentColor}.homepage-chat-preview{position:fixed;z-index:1299;min-width:210px;max-width:min(360px,calc(100vw - 112px));padding:14px 18px;border-radius:24px;border:1px solid var(--border);background:rgba(251,248,244,.98);color:var(--text-primary);box-shadow:var(--shadow-lg);font-size:13px;font-weight:500;line-height:1.55;pointer-events:none;white-space:normal;word-break:break-word;transform:translateY(0);animation:homepagePreviewFloat .45s ease}.homepage-shell[data-theme='dark'] .homepage-chat-preview{background:rgba(38,28,34,.98);color:var(--text-primary)}.homepage-chat-preview::after{content:'';position:absolute;right:22px;bottom:-8px;width:16px;height:16px;background:inherit;border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:rotate(45deg);border-bottom-right-radius:4px}.homepage-chat-preview p{margin:0;display:block}.homepage-chat-preview-text{display:inline}.homepage-chat-preview-caret{display:inline-block;width:2px;height:1em;margin-left:2px;background:currentColor;vertical-align:-2px;animation:homepagePreviewBlink 1s steps(1,end) infinite}.homepage-chat-preview-dots{display:inline-flex;gap:6px;align-items:center}.homepage-chat-preview-dots span{width:7px;height:7px;border-radius:999px;background:rgba(92,68,68,.35);animation:homepageTypingDot 1.2s infinite ease-in-out}.homepage-chat-preview-dots span:nth-child(2){animation-delay:.15s}.homepage-chat-preview-dots span:nth-child(3){animation-delay:.3s}
+      @keyframes homepagePreviewFloat{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes homepagePreviewBlink{50%{opacity:0}}@keyframes homepageTypingDot{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-2px);opacity:1}}
       @keyframes homepagePulse{0%,100%{opacity:1}50%{opacity:.3}}@keyframes homepageFadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}@keyframes homepageFadeInDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
       @media (max-width:1024px){.homepage-shell nav{padding:0 24px}.features-grid,.dept-grid{grid-template-columns:1fr}.cat-grid{grid-template-columns:1fr}.footer-main{flex-direction:column;align-items:flex-start}.footer-uni{text-align:left}}
       @media (max-width:768px){.nav-links{display:none}.features,.departments,.categories,.cta{padding:68px 24px}.hero-content{padding:0 20px}.hero-stats{gap:18px;flex-wrap:wrap}.hero-actions,.cta-buttons{flex-direction:column;align-items:center}footer{padding:30px 24px 18px}.ai-chatbot-panel{right:16px;left:16px;bottom:102px;width:auto;max-width:none}.ai-chatbot-fab{right:16px;bottom:16px;width:68px;height:68px}.ai-chatbot-fab svg{width:32px;height:32px}}
@@ -315,6 +317,8 @@ export default function Homepage() {
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatIntroText, setChatIntroText] = useState('');
+  const [showChatPreview, setShowChatPreview] = useState(false);
   const [chatPosition, setChatPosition] = useState<ChatPosition>({ right: CHAT_FAB_RIGHT, bottom: CHAT_FAB_BOTTOM });
   const chatPanelRef = useRef<HTMLDivElement | null>(null);
   const chatFabRef = useRef<HTMLButtonElement | null>(null);
@@ -495,7 +499,30 @@ export default function Homepage() {
     if (chatMessagesRef.current) {
       chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
-  }, [messages, isChatOpen]);
+  }, [messages, isChatOpen, chatIntroText]);
+
+  useEffect(() => {
+    setShowChatPreview(true);
+    setChatIntroText('');
+
+    let index = 0;
+    const typingTimer = window.setInterval(() => {
+      index += 1;
+      setChatIntroText(CHATBOT_GREETING.slice(0, index));
+
+      if (index >= CHATBOT_GREETING.length) {
+        window.clearInterval(typingTimer);
+        setMessages((current) => current.length ? current : [{ type: 'bot', text: CHATBOT_GREETING }]);
+      }
+    }, CHATBOT_TYPING_SPEED);
+
+    return () => window.clearInterval(typingTimer);
+  }, []);
+
+  useEffect(() => {
+    if (!isChatOpen) return;
+    setShowChatPreview(false);
+  }, [isChatOpen]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -818,6 +845,29 @@ export default function Homepage() {
         </div>
       </div>
 
+      {showChatPreview && !isChatOpen ? (
+        <div
+          className="homepage-chat-preview"
+          aria-live="polite"
+          style={isDesktop ? { right: `${chatPosition.right + CHAT_FAB_SIZE + 14}px`, bottom: `${chatPosition.bottom + 10}px` } : { right: '92px', bottom: '28px' }}
+        >
+          <p>
+            {chatIntroText.length === 0 ? (
+              <span className="homepage-chat-preview-dots" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            ) : (
+              <>
+                <span className="homepage-chat-preview-text">{chatIntroText}</span>
+                {chatIntroText.length < CHATBOT_GREETING.length ? <span className="homepage-chat-preview-caret" /> : null}
+              </>
+            )}
+          </p>
+        </div>
+      ) : null}
+
       <button
         ref={chatFabRef}
         type="button"
@@ -833,6 +883,8 @@ export default function Homepage() {
           }
           if (!isChatOpen) {
             setChatPosition((current) => clampChatPosition(current));
+            setShowChatPreview(false);
+            setChatIntroText(CHATBOT_GREETING);
             setMessages((current) => current.length ? current : [{ type: 'bot', text: CHATBOT_GREETING }]);
           }
           setIsChatOpen((current) => !current);
