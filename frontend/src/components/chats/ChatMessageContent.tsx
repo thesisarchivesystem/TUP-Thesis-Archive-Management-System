@@ -8,7 +8,6 @@ type ChatMessageContentProps = {
 type TextBlock =
   | { type: 'heading'; text: string }
   | { type: 'paragraph'; text: string }
-  | { type: 'section'; index: number; title: string; body: string }
   | { type: 'list'; ordered: boolean; items: string[] };
 
 const STRUCTURE_LABELS = new Set([
@@ -43,9 +42,6 @@ function parseBlocks(text: string): TextBlock[] {
   const blocks: TextBlock[] = [];
   let paragraphBuffer: string[] = [];
   let listBuffer: { ordered: boolean; items: string[] } | null = null;
-  let currentSection: { index: number; title: string; bodyLines: string[] } | null = null;
-  let sectionCounter = 0;
-
   const flushParagraph = () => {
     if (!paragraphBuffer.length) return;
     blocks.push({ type: 'paragraph', text: paragraphBuffer.join(' ').trim() });
@@ -58,51 +54,16 @@ function parseBlocks(text: string): TextBlock[] {
     listBuffer = null;
   };
 
-  const flushSection = () => {
-    if (!currentSection) return;
-    blocks.push({
-      type: 'section',
-      index: currentSection.index,
-      title: currentSection.title,
-      body: currentSection.bodyLines.join(' ').trim(),
-    });
-    currentSection = null;
-  };
-
   for (const rawLine of lines) {
     const line = rawLine.trim().replace(/^#{1,6}\s*/, '');
 
     if (!line) {
-      if (currentSection) {
-        currentSection.bodyLines.push('');
-      } else {
-        flushParagraph();
-        flushList();
-      }
+      flushParagraph();
+      flushList();
       continue;
     }
 
     if (/^[-*_]{3,}$/.test(line)) {
-      continue;
-    }
-
-    const sectionMatch = line.match(/^(\d+)[.)]\s+(.+)$/);
-    if (sectionMatch) {
-      flushParagraph();
-      flushList();
-      flushSection();
-
-      sectionCounter += 1;
-      currentSection = {
-        index: sectionCounter,
-        title: sectionMatch[2].trim(),
-        bodyLines: [],
-      };
-      continue;
-    }
-
-    if (currentSection) {
-      currentSection.bodyLines.push(line);
       continue;
     }
 
@@ -133,7 +94,6 @@ function parseBlocks(text: string): TextBlock[] {
 
   flushParagraph();
   flushList();
-  flushSection();
 
   return blocks;
 }
@@ -187,24 +147,6 @@ export default function ChatMessageContent({ text, variant = 'bot' }: ChatMessag
           return (
             <div className="vpaa-chat-message-heading" key={`${block.type}-${index}`}>
               {renderInlineMarkup(block.text)}
-            </div>
-          );
-        }
-
-        if (block.type === 'section') {
-          return (
-            <div className="vpaa-chat-message-section" key={`${block.type}-${index}`}>
-              <div className="vpaa-chat-message-section-index">{block.index}.</div>
-              <div className="vpaa-chat-message-section-content">
-                <div className="vpaa-chat-message-section-title">
-                  {renderInlineMarkup(block.title)}
-                </div>
-                {block.body ? (
-                  <p className="vpaa-chat-message-section-body">
-                    {renderInlineMarkup(block.body)}
-                  </p>
-                ) : null}
-              </div>
             </div>
           );
         }

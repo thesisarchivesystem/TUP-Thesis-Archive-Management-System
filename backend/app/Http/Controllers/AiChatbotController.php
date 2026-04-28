@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AiChatbotController extends Controller
 {
@@ -42,7 +43,7 @@ class AiChatbotController extends Controller
             ['role' => 'user', 'content' => $request->message],
         ];
 
-        $apiKey = config('services.openrouter.key');
+        $apiKey = (string) (config('services.openrouter.key') ?: env('OPENROUTER_API_KEY', ''));
         $baseUrl = rtrim((string) config('services.openrouter.base_url', 'https://openrouter.ai/api/v1'), '/');
         $model = (string) config('services.openrouter.model', self::DEFAULT_FREE_MODEL);
         $siteUrl = (string) config('services.openrouter.site_url', config('app.url'));
@@ -74,7 +75,7 @@ class AiChatbotController extends Controller
         }
 
         return response()->json([
-            'reply' => $response->json('choices.0.message.content') ?: 'No reply was returned by the AI provider.',
+            'reply' => $this->extractReply($response->json()) ?: 'No reply was returned by the AI provider.',
         ]);
     }
 
@@ -145,7 +146,11 @@ EOT);
 
     private function buildCategoryKnowledge(): string
     {
-        $categories = $this->resolveArchiveCategories();
+        try {
+            $categories = $this->resolveArchiveCategories();
+        } catch (Throwable) {
+            return 'Browse by Category section: Web & Mobile Development, Artificial Intelligence & ML, Cybersecurity & Networking, IoT & Embedded Systems, Data Science & Analytics, Human-Computer Interaction, Game Development, and Automation & Robotics.';
+        }
 
         if ($categories->isEmpty()) {
             return 'Browse by Category section: Web & Mobile Development, Artificial Intelligence & ML, Cybersecurity & Networking, IoT & Embedded Systems, Data Science & Analytics, Human-Computer Interaction, Game Development, and Automation & Robotics.';
@@ -158,7 +163,11 @@ EOT);
 
     private function buildRelevantThesisKnowledge(string $message, array $context = []): string
     {
-        $theses = $this->resolveRelevantTheses($message, $context);
+        try {
+            $theses = $this->resolveRelevantTheses($message, $context);
+        } catch (Throwable) {
+            return 'Relevant thesis records: no specific thesis records matched the current question.';
+        }
 
         if ($theses->isEmpty()) {
             return 'Relevant thesis records: no specific thesis records matched the current question.';
@@ -180,24 +189,24 @@ EOT);
         return "Relevant thesis records:\n" . $lines->implode("\n");
     }
 
-    private function resolveArchiveCategories(): Collection
+    protected function resolveArchiveCategories(): Collection
     {
         if (!Schema::hasTable('categories')) {
             return collect();
         }
 
         return Category::query()
-            ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['name', 'description'])
+            ->filter(fn (Category $category) => $this->isActiveCategory($category))
             ->map(fn (Category $category) => [
                 'name' => $category->name,
                 'description' => $category->description ? trim((string) $category->description) : null,
             ]);
     }
 
-    private function resolveRelevantTheses(string $message, array $context = []): Collection
+    protected function resolveRelevantTheses(string $message, array $context = []): Collection
     {
         if (!Schema::hasTable('theses')) {
             return collect();
@@ -254,5 +263,48 @@ EOT);
                     'category' => $thesis->category?->name,
                 ];
             });
+    }
+
+    private function isActiveCategory(Category $category): bool
+    {
+        $value = $category->getAttribute('is_active');
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if ($value === null) {
+            return true;
+        }
+
+        return in_array(Str::lower(trim((string) $value)), ['1', 'true', 't', 'yes'], true);
+    }
+
+    private function extractReply(array $payload): ?string
+    {
+        $content = data_get($payload, 'choices.0.message.content');
+
+        if (is_string($content)) {
+            return trim($content);
+        }
+
+        if (!is_array($content)) {
+            return null;
+        }
+
+        return collect($content)
+            ->map(function ($part) {
+                if (is_string($part)) {
+                    return $part;
+                }
+
+                if (is_array($part) && ($part['type'] ?? null) === 'text') {
+                    return $part['text'] ?? null;
+                }
+
+                return null;
+            })
+            ->filter(fn ($part) => is_string($part) && trim($part) !== '')
+            ->implode("\n");
     }
 }

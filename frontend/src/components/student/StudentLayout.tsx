@@ -38,7 +38,7 @@ type ChatMessage = {
   text: string;
 };
 
-const CHATBOT_GREETING = 'Hello! I am Archie, your Archive Assistant. Pleasure to answer your questions';
+const CHATBOT_GREETING = 'Hello! I am Archie, your Archive Assistant. How can I assist you today with the Thesis Archive Management System?';
 
 type Props = {
   title: React.ReactNode;
