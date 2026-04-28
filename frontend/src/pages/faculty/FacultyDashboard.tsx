@@ -246,7 +246,7 @@ export default function FacultyDashboard() {
 
           <div className="vpaa-card vpaa-dashboard-panel">
             <div className="vpaa-dashboard-head">
-              <h3><FilePlus2 size={16} /> All</h3>
+              <h3><FilePlus2 size={16} /> All Theses</h3>
               {recentTheses.length > DISPLAY_LIMIT ? (
                 <button
                   type="button"
