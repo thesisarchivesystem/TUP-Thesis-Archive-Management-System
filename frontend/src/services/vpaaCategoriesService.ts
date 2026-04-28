@@ -30,6 +30,13 @@ export interface VpaaCategory {
   theses: VpaaCategoryThesis[];
 }
 
+interface CategoryListOptions {
+  slug?: string;
+  allTheses?: boolean;
+  thesisLimit?: number;
+  includeTheses?: boolean;
+}
+
 interface RawCategoryThesis {
   id?: string;
   title?: string;
@@ -121,16 +128,22 @@ const mapCategoriesResponse = (response: CategoriesResponseShape): VpaaCategory[
 };
 
 export const vpaaCategoriesService = {
-  async list(role?: UserRole | null): Promise<VpaaCategory[]> {
+  async list(role?: UserRole | null, options: CategoryListOptions = {}): Promise<VpaaCategory[]> {
     const endpoints = role === 'vpaa'
       ? ['/vpaa/categories', '/categories']
       : ['/categories'];
+    const params = {
+      ...(options.slug ? { slug: options.slug } : {}),
+      ...(typeof options.includeTheses === 'boolean' ? { include_theses: options.includeTheses ? 1 : 0 } : {}),
+      ...(options.allTheses ? { all_theses: 1 } : {}),
+      ...(!options.allTheses ? { thesis_limit: options.thesisLimit ?? 9 } : {}),
+    };
 
     let lastError: unknown;
 
     for (const endpoint of endpoints) {
       try {
-        const response = await api.get(endpoint);
+        const response = await api.get(endpoint, { params });
         return mapCategoriesResponse(response);
       } catch (error) {
         lastError = error;

@@ -544,51 +544,82 @@ class ThesisController extends Controller
         return response()->json($theses);
     }
 
-    public function categories(): JsonResponse
+    public function categories(Request $request): JsonResponse
     {
+        $slug = trim((string) $request->query('slug', ''));
+        $includeTheses = $request->boolean('include_theses', $slug !== '');
+        $thesisLimit = $request->boolean('all_theses')
+            ? null
+            : max(1, min((int) $request->integer('thesis_limit', 9), 50));
+
+        if (!$includeTheses) {
+            $categories = Category::query()
+                ->select(['id', 'slug', 'name', 'description'])
+                ->whereRaw('is_active = true')
+                ->when($slug !== '', fn ($query) => $query->where('slug', $slug))
+                ->withCount([
+                    'theses as document_count' => fn ($query) => $query
+                        ->where('status', 'approved')
+                        ->whereRaw('"is_archived" = true'),
+                ])
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get();
+
+            $data = $categories->map(fn (Category $category) => [
+                'id' => $category->id,
+                'slug' => $category->slug,
+                'label' => $category->name,
+                'description' => $category->description,
+                'document_count' => (int) ($category->document_count ?? 0),
+                'updated_at' => null,
+                'theses' => [],
+            ])->values();
+
+            return response()->json([
+                'data' => [
+                    'categories' => $data,
+                ],
+            ]);
+        }
+
         $categories = Category::query()
+            ->select(['id', 'slug', 'name', 'description'])
             ->whereRaw('is_active = true')
+            ->when($slug !== '', fn ($query) => $query->where('slug', $slug))
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        $archivedTheses = Thesis::query()
-            ->select([
-                'id',
-                'title',
-                'abstract',
-                'authors',
-                'department',
-                'program',
-                'school_year',
-                'approved_at',
-                'archived_at',
-                'created_at',
-                'updated_at',
-                'submitted_by',
-                'category_id',
-                'category_ids',
-            ])
-            ->with('submitter:id,name')
-            ->where('status', 'approved')
-            ->whereRaw('"is_archived" = true')
-            ->orderByDesc('archived_at')
-            ->orderByDesc('updated_at')
-            ->orderByDesc('created_at')
-            ->get();
+        $categoriesById = $categories->keyBy('id');
+        $data = $categories->map(function (Category $category) use ($categoriesById, $thesisLimit) {
+            $theses = Thesis::query()
+                ->select([
+                    'id',
+                    'title',
+                    'abstract',
+                    'authors',
+                    'department',
+                    'program',
+                    'school_year',
+                    'approved_at',
+                    'archived_at',
+                    'created_at',
+                    'updated_at',
+                    'submitted_by',
+                    'category_id',
+                    'category_ids',
+                ])
+                ->with('submitter:id,name')
+                ->where('status', 'approved')
+                ->whereRaw('"is_archived" = true')
+                ->where('category_id', $category->id)
+                ->orderByDesc('archived_at')
+                ->orderByDesc('updated_at')
+                ->orderByDesc('created_at')
+                ->when($thesisLimit, fn ($query) => $query->limit($thesisLimit))
+                ->get();
 
-        $categoryBuckets = $categories->mapWithKeys(fn (Category $category) => [$category->id => collect()]);
-
-        foreach ($archivedTheses as $thesis) {
-            foreach ($this->resolveCategoryIds($thesis) as $categoryId) {
-                if ($categoryBuckets->has($categoryId)) {
-                    $categoryBuckets[$categoryId]->push($thesis);
-                }
-            }
-        }
-
-        $data = $categories->map(function (Category $category) use ($categoryBuckets) {
-            $theses = $categoryBuckets->get($category->id, collect());
             $latestThesis = $theses->first();
 
             return [
@@ -598,7 +629,7 @@ class ThesisController extends Controller
                 'description' => $category->description,
                 'document_count' => $theses->count(),
                 'updated_at' => $this->formatIsoTimestamp($latestThesis?->archived_at ?? $latestThesis?->approved_at),
-                'theses' => $theses->map(function (Thesis $thesis) {
+                'theses' => $theses->map(function (Thesis $thesis) use ($categoriesById) {
                     return [
                         'id' => $thesis->id,
                         'title' => $thesis->title,
@@ -610,7 +641,7 @@ class ThesisController extends Controller
                         'department' => $thesis->department,
                         'program' => $thesis->program,
                         'school_year' => $thesis->school_year,
-                        'categories' => $this->resolveCategorySummaries($thesis),
+                        'categories' => $this->resolveCategorySummaries($thesis, $categoriesById),
                         'keywords' => [],
                         'approved_at' => optional($thesis->approved_at)?->toISOString(),
                     ];
@@ -666,7 +697,7 @@ class ThesisController extends Controller
             : null;
     }
 
-    private function resolveCategorySummaries(Thesis $thesis): array
+    private function resolveCategorySummaries(Thesis $thesis, ?\Illuminate\Support\Collection $categoriesById = null): array
     {
         $categoryIds = $this->resolveCategoryIds($thesis);
 
@@ -674,7 +705,7 @@ class ThesisController extends Controller
             return [];
         }
 
-        $categories = Category::query()
+        $categories = $categoriesById ?? Category::query()
             ->whereIn('id', $categoryIds)
             ->get(['id', 'name', 'slug'])
             ->keyBy('id');
@@ -693,15 +724,12 @@ class ThesisController extends Controller
 
     private function resolveCategoryIds(Thesis $thesis): \Illuminate\Support\Collection
     {
-        $categoryIds = collect($thesis->category_ids ?? [])
-            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
-            ->values();
+        $primaryCategoryId = is_string($thesis->category_id) && trim($thesis->category_id) !== ''
+            ? trim($thesis->category_id)
+            : collect($thesis->category_ids ?? [])
+                ->first(fn ($id) => is_string($id) && trim($id) !== '');
 
-        if ($categoryIds->isEmpty() && $thesis->category_id) {
-            $categoryIds = collect([$thesis->category_id]);
-        }
-
-        return $categoryIds->unique()->values();
+        return $primaryCategoryId ? collect([$primaryCategoryId]) : collect();
     }
 
     private function normalizeArrayField(mixed $value): array

@@ -24,7 +24,7 @@ export default function SharedCategoryDetailView({ role }: Props) {
     setIsLoading(true);
     setError('');
 
-    void vpaaCategoriesService.list(role)
+    void vpaaCategoriesService.list(role, { slug, allTheses: true })
       .then((response) => {
         if (!isMounted) return;
         setCategory(response.find((item) => item.slug === slug) ?? null);

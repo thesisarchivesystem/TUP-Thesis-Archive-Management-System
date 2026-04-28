@@ -29,6 +29,7 @@ interface SharedCategoriesViewProps {
 
 export default function SharedCategoriesView({ role = null }: SharedCategoriesViewProps) {
   const [categories, setCategories] = useState<VpaaCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<VpaaCategory | null>(null);
   const [selectedSlug, setSelectedSlug] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,7 +44,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
   useEffect(() => {
     let isMounted = true;
 
-    void vpaaCategoriesService.list(role)
+    void vpaaCategoriesService.list(role, { includeTheses: false })
       .then((response) => {
         if (!isMounted) return;
         setCategories(response);
@@ -63,6 +64,31 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
     };
   }, [role]);
 
+  useEffect(() => {
+    if (!selectedSlug) {
+      setSelectedCategory(null);
+      return;
+    }
+
+    let isMounted = true;
+    setError('');
+
+    void vpaaCategoriesService.list(role, { slug: selectedSlug, thesisLimit: 9, includeTheses: true })
+      .then((response) => {
+        if (!isMounted) return;
+        setSelectedCategory(response[0] ?? null);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setError('Unable to load categories right now.');
+        setSelectedCategory(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [role, selectedSlug]);
+
   const filteredCategories = useMemo(
     () => categories.map((category) => {
       const theses = category.theses.filter((thesis) => !isSharedLibraryRecord(thesis));
@@ -73,11 +99,19 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
     }),
     [categories],
   );
-  const selectedCategory = useMemo(
-    () => filteredCategories.find((category) => category.slug === selectedSlug) ?? filteredCategories[0] ?? null,
-    [filteredCategories, selectedSlug],
-  );
-  const visibleCategories = selectedCategory ? [selectedCategory] : filteredCategories.slice(0, 1);
+  const visibleCategory = useMemo(() => {
+    if (selectedCategory) {
+      return {
+        ...selectedCategory,
+        theses: selectedCategory.theses.filter((thesis) => !isSharedLibraryRecord(thesis)),
+      };
+    }
+
+    const fallback = filteredCategories.find((category) => category.slug === selectedSlug) ?? filteredCategories[0] ?? null;
+    return fallback;
+  }, [filteredCategories, selectedCategory, selectedSlug]);
+
+  const visibleCategories = visibleCategory ? [visibleCategory] : filteredCategories.slice(0, 1);
   const combinedTheses = useMemo(
     () => visibleCategories.flatMap((category) => category.theses.map((thesis) => ({ ...thesis, categoryLabel: category.label }))),
     [visibleCategories],
