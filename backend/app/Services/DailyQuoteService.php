@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\DailyQuote;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -22,6 +24,24 @@ class DailyQuoteService
 
     private function fetchTodayQuote(string $today): ?array
     {
+        $localQuote = DailyQuote::query()
+            ->whereDate('quote_date', $today)
+            ->where('is_active', DB::raw('true'))
+            ->first();
+
+        if ($localQuote) {
+            return $this->formatDatabaseQuote($localQuote);
+        }
+
+        $fallbackQuote = DailyQuote::query()
+            ->where('is_active', DB::raw('true'))
+            ->orderByDesc('quote_date')
+            ->first();
+
+        if ($fallbackQuote) {
+            return $this->formatDatabaseQuote($fallbackQuote);
+        }
+
         $baseUrl = rtrim((string) config('services.zenquotes.base_url', 'https://zenquotes.io/api'), '/');
         $apiKey = trim((string) config('services.zenquotes.key', ''));
         $endpoint = $apiKey === ''
@@ -30,7 +50,7 @@ class DailyQuoteService
 
         try {
             $response = Http::acceptJson()
-                ->timeout(8)
+                ->timeout(2)
                 ->get($endpoint)
                 ->throw();
         } catch (\Throwable $exception) {
@@ -70,6 +90,18 @@ class DailyQuoteService
             'attribution_text' => 'Inspirational quotes provided by ZenQuotes API',
             'attribution_url' => 'https://zenquotes.io/',
             'fetched_at' => Carbon::now()->toISOString(),
+        ];
+    }
+
+    private function formatDatabaseQuote(DailyQuote $quote): array
+    {
+        return [
+            'id' => $quote->id,
+            'body' => $quote->body,
+            'author' => $quote->author,
+            'quote_date' => optional($quote->quote_date)->toDateString(),
+            'is_active' => (bool) $quote->is_active,
+            'source' => 'local',
         ];
     }
 }
