@@ -112,9 +112,7 @@ export default function SharedDashboardThesisCollectionView({
     <div className="vpaa-card vpaa-dashboard-panel">
       <div className="vpaa-dashboard-head">
         <h3>{icon} {heading}</h3>
-        <span
-          className="inline-flex items-center rounded-full border border-[rgba(139,35,50,0.12)] bg-[rgba(139,35,50,0.06)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--maroon)]"
-        >
+        <span className="vpaa-theme-count-pill">
           {items.length} THESES
         </span>
       </div>
