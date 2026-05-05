@@ -44,6 +44,11 @@ class ThesisController extends Controller
             })
             ->paginate($perPage);
 
+        $categoriesById = $this->preloadCategorySummaries($theses->getCollection());
+        $theses->getCollection()->transform(
+            fn (Thesis $thesis) => $this->transformThesisWithArchiveMetadata($thesis, $categoriesById)
+        );
+
         return response()->json($theses);
     }
 
@@ -673,13 +678,35 @@ class ThesisController extends Controller
         }
     }
 
-    private function transformThesisWithArchiveMetadata(Thesis $thesis): array
+    private function transformThesisWithArchiveMetadata(Thesis $thesis, ?\Illuminate\Support\Collection $categoriesById = null): array
     {
+        $categories = $this->resolveCategorySummaries($thesis, $categoriesById);
         $data = $thesis->toArray();
+        $data['author'] = collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? $thesis->submitter_name ?? 'Unknown author');
+        $data['authors'] = collect($thesis->authors ?? [])->filter()->values()->all();
+        $data['submitter_name'] = $thesis->submitter?->name ?? $thesis->submitter_name;
+        $data['year'] = $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null);
         $data['college'] = $this->resolveCollegeForDepartment($thesis->department);
-        $data['categories'] = $this->resolveCategorySummaries($thesis);
+        $data['categories'] = $categories;
 
         return $data;
+    }
+
+    private function preloadCategorySummaries(\Illuminate\Support\Collection $theses): \Illuminate\Support\Collection
+    {
+        $categoryIds = $theses
+            ->flatMap(fn (Thesis $thesis) => $this->resolveCategoryIds($thesis))
+            ->unique()
+            ->values();
+
+        if ($categoryIds->isEmpty()) {
+            return collect();
+        }
+
+        return Category::query()
+            ->whereIn('id', $categoryIds)
+            ->get(['id', 'name', 'slug'])
+            ->keyBy('id');
     }
 
     private function resolveCollegeForDepartment(?string $department): ?string
@@ -724,12 +751,12 @@ class ThesisController extends Controller
 
     private function resolveCategoryIds(Thesis $thesis): \Illuminate\Support\Collection
     {
-        $primaryCategoryId = is_string($thesis->category_id) && trim($thesis->category_id) !== ''
-            ? trim($thesis->category_id)
-            : collect($thesis->category_ids ?? [])
-                ->first(fn ($id) => is_string($id) && trim($id) !== '');
-
-        return $primaryCategoryId ? collect([$primaryCategoryId]) : collect();
+        return collect([$thesis->category_id])
+            ->merge($thesis->category_ids ?? [])
+            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
+            ->map(fn (string $id) => trim($id))
+            ->unique()
+            ->values();
     }
 
     private function normalizeArrayField(mixed $value): array
