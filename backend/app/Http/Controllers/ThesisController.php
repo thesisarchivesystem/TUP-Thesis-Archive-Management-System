@@ -281,13 +281,16 @@ class ThesisController extends Controller
         $isOwner = $user->id === $thesis->submitted_by;
         $isAdviser = $thesis->adviser_id && $user->id === $thesis->adviser_id;
         $isVpaa = $user->role === 'vpaa';
-        $isFaculty = $user->role === 'faculty' && $thesis->status === 'approved' && $thesis->is_archived;
+        $isArchivedApproved = $thesis->status === 'approved' && $thesis->is_archived;
+        $isFaculty = $user->role === 'faculty' && $isArchivedApproved;
+        $isStudent = $user->role === 'student' && $isArchivedApproved;
 
-        if (!$isOwner && !$isAdviser && !$isVpaa && !$isFaculty) {
+        if (!$isOwner && !$isAdviser && !$isVpaa && !$isFaculty && !$isStudent) {
             return response()->json(['error' => 'You are not allowed to access this manuscript.'], 403);
         }
 
-        $signedUrl = $this->createSignedSupabaseUrl($thesis->file_url);
+        $shouldStreamFile = $request->boolean('stream');
+        $signedUrl = $shouldStreamFile ? null : $this->createSignedSupabaseUrl($thesis->file_url);
 
         if ($signedUrl && $request->expectsJson()) {
             return response()->json(['data' => ['url' => $signedUrl]]);
