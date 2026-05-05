@@ -5,6 +5,7 @@ import StudentLayout from '../../components/student/StudentLayout';
 import { messageService } from '../../services/messageService';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis, ThesisStatus } from '../../types/thesis.types';
+import { createThesisCertificatePdfBlob, getCertificatePdfFileName } from '../../utils/thesisCertificate';
 
 const formatSubmissionDate = (value?: string) => {
   if (!value) return 'Recently saved';
@@ -131,6 +132,7 @@ export default function StudentMySubmissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [certificateBusyId, setCertificateBusyId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleViewDetails = (item: Thesis) => {
@@ -211,6 +213,67 @@ export default function StudentMySubmissionsPage() {
       setError(err instanceof Error ? err.message : 'Unable to download the manuscript right now.');
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleViewCertificate = async (item: Thesis) => {
+    if (item.status !== 'approved') {
+      setError('Certificates are available after faculty approval.');
+      return;
+    }
+
+    const previewWindow = window.open('', '_blank');
+    if (!previewWindow) {
+      setError('Popup blocked while opening the certificate. Please allow popups and try again.');
+      return;
+    }
+
+    previewWindow.document.title = 'Opening certificate...';
+    previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening certificate...</p>';
+
+    setError(null);
+    setCertificateBusyId(item.id);
+
+    try {
+      const certificateBlob = await createThesisCertificatePdfBlob(item);
+      const certificateUrl = URL.createObjectURL(certificateBlob);
+      previewWindow.location.replace(certificateUrl);
+      window.setTimeout(() => URL.revokeObjectURL(certificateUrl), 30_000);
+    } catch (err) {
+      previewWindow.document.title = 'Unable to open certificate';
+      previewWindow.document.body.innerHTML = `<p style="font-family: Arial, sans-serif; padding: 24px;">${
+        err instanceof Error ? err.message : 'Unable to open the certificate right now.'
+      }</p>`;
+      setError(err instanceof Error ? err.message : 'Unable to open the certificate right now.');
+    } finally {
+      setCertificateBusyId(null);
+    }
+  };
+
+  const handleDownloadCertificate = async (item: Thesis) => {
+    if (item.status !== 'approved') {
+      setError('Certificates are available after faculty approval.');
+      return;
+    }
+
+    setError(null);
+    setCertificateBusyId(item.id);
+
+    try {
+      const certificateBlob = await createThesisCertificatePdfBlob(item);
+      const certificateUrl = URL.createObjectURL(certificateBlob);
+      const link = document.createElement('a');
+
+      link.href = certificateUrl;
+      link.download = getCertificatePdfFileName(item);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(certificateUrl), 30_000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to download the certificate right now.');
+    } finally {
+      setCertificateBusyId(null);
     }
   };
 
@@ -464,6 +527,24 @@ export default function StudentMySubmissionsPage() {
                       </button>
                       {item.status === 'approved' ? (
                         <>
+                          <button
+                            type="button"
+                            className="student-submissions-secondary"
+                            onClick={() => void handleViewCertificate(item)}
+                            disabled={certificateBusyId === item.id}
+                          >
+                            <FileText size={15} />
+                            {certificateBusyId === item.id ? 'Preparing...' : 'View Certificate'}
+                          </button>
+                          <button
+                            type="button"
+                            className="student-submissions-secondary"
+                            onClick={() => void handleDownloadCertificate(item)}
+                            disabled={certificateBusyId === item.id}
+                          >
+                            <FileText size={15} />
+                            {certificateBusyId === item.id ? 'Preparing...' : 'Download Certificate'}
+                          </button>
                           <button
                             type="button"
                             className="student-submissions-secondary"
