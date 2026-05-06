@@ -28,7 +28,14 @@ type RgbColor = {
   b: number;
 };
 
+type HslColor = {
+  h: number;
+  s: number;
+  l: number;
+};
+
 const DEFAULT_CUSTOM_COLOR = '#8b2332';
+const CHATBOT_BASE_ACCENT = '#8b2332';
 const BOOK_THEME_STORAGE_KEY = 'tams-book-color-theme';
 const BOOK_CUSTOM_COLOR_STORAGE_KEY = 'tams-book-custom-color';
 
@@ -173,6 +180,39 @@ const hexToRgb = (color: string): RgbColor => {
   };
 };
 
+const rgbToHsl = ({ r, g, b }: RgbColor): HslColor => {
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+
+  if (max === min) {
+    return { h: 0, s: 0, l: lightness };
+  }
+
+  const delta = max - min;
+  const saturation = lightness > 0.5
+    ? delta / (2 - max - min)
+    : delta / (max + min);
+  let hue = 0;
+
+  if (max === red) {
+    hue = ((green - blue) / delta) + (green < blue ? 6 : 0);
+  } else if (max === green) {
+    hue = ((blue - red) / delta) + 2;
+  } else {
+    hue = ((red - green) / delta) + 4;
+  }
+
+  return {
+    h: hue * 60,
+    s: saturation,
+    l: lightness,
+  };
+};
+
 const rgbToHex = ({ r, g, b }: RgbColor) =>
   `#${[r, g, b]
     .map((channel) => clamp(Math.round(channel), 0, 255).toString(16).padStart(2, '0'))
@@ -279,12 +319,20 @@ export const getBookScreenThemeVariables = (bookTheme: BookColorTheme, mode: Boo
   const accentDark = mixHex(accent, '#000000', mode === 'dark' ? 0.12 : 0.22);
   const accentLight = mixHex(accent, '#ffffff', 0.18);
   const accentRgb = hexToRgb(accent);
+  const accentHsl = rgbToHsl(accentRgb);
+  const chatbotBaseHsl = rgbToHsl(hexToRgb(CHATBOT_BASE_ACCENT));
+  const chatbotHueRotate = ((accentHsl.h - chatbotBaseHsl.h + 540) % 360) - 180;
+  const chatbotSaturate = clamp(accentHsl.s / Math.max(chatbotBaseHsl.s, 0.01), 0.75, 1.65);
+  const chatbotBrightness = clamp(0.94 + ((accentHsl.l - chatbotBaseHsl.l) * 0.35), 0.88, 1.12);
 
   return {
     '--book-theme-accent-rgb': `${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}`,
     '--maroon': accent,
     '--maroon-dark': accentDark,
     '--maroon-light': accentLight,
+    '--book-theme-hue-rotate': `${Math.round(chatbotHueRotate)}deg`,
+    '--book-theme-saturate': chatbotSaturate.toFixed(2),
+    '--book-theme-brightness': chatbotBrightness.toFixed(2),
     '--border': rgba(accent, mode === 'dark' ? 0.12 : 0.08),
     '--border-strong': rgba(accent, mode === 'dark' ? 0.18 : 0.14),
     '--input-border': rgba(accent, mode === 'dark' ? 0.16 : 0.12),
