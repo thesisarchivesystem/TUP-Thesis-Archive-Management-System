@@ -21,12 +21,14 @@ import {
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { useBookThemeCssVariables } from '../../hooks/useBookThemeCssVariables';
 import { useNotificationChannel } from '../../hooks/useNotificationChannel';
 import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
 import { aiService } from '../../services/aiService';
 import ChatMessageContent from '../chats/ChatMessageContent';
 import BrandMarkIcon from '../BrandMarkIcon';
+import BookColorThemePicker from '../BookColorThemePicker';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
@@ -56,6 +58,7 @@ const formatDate = (date: Date) =>
 export default function StudentLayout({ title, description, children, hidePageIntro = false }: Props) {
   const { user, confirmAndLogout } = useAuth();
   const { theme, toggle } = useTheme();
+  const bookThemeStyle = useBookThemeCssVariables(theme);
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -241,6 +244,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
         sidebarCollapsed ? 'sidebar-collapsed' : '',
         sidebarOpen ? 'sidebar-open' : '',
       ].filter(Boolean).join(' ')}
+      style={bookThemeStyle}
       onClick={() => {
         setNotifOpen(false);
         setProfileOpen(false);
@@ -376,12 +380,15 @@ export default function StudentLayout({ title, description, children, hidePageIn
         </header>
 
         <section className={`vpaa-content${hidePageIntro ? ' vpaa-content-workspace' : ''}`}>
-          {!hidePageIntro ? (
-            <div className="vpaa-page-intro">
-              <h1>{title}</h1>
-              <p>{description}</p>
-            </div>
-          ) : null}
+          <div className={`vpaa-page-toolbar${hidePageIntro ? ' vpaa-page-toolbar-only' : ''}`}>
+            {!hidePageIntro ? (
+              <div className="vpaa-page-intro">
+                <h1>{title}</h1>
+                <p>{description}</p>
+              </div>
+            ) : null}
+            <BookColorThemePicker />
+          </div>
           {children}
         </section>
       </main>
