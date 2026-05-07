@@ -66,12 +66,14 @@ export type SearchFilters = {
   year?: string;
   category?: string;
   program?: string;
+  department?: string;
 };
 
-export type SearchFilterField = 'year' | 'category' | 'program';
-
-export type SearchSuggestionsResponse = {
-  suggestions: string[];
+export type SearchFilterOptionsResponse = {
+  years: string[];
+  categories: string[];
+  programs: string[];
+  departments: string[];
 };
 
 export const searchService = {
@@ -89,12 +91,14 @@ export const searchService = {
     return data;
   },
 
-  async getFilterSuggestions(field: SearchFilterField, query: string) {
-    const { data } = await api.get<SearchSuggestionsResponse>('/search/suggestions', {
-      params: { field, q: query },
-    });
-
-    return data.suggestions ?? [];
+  async getFilterOptions() {
+    const { data } = await api.get<SearchFilterOptionsResponse>('/search/filter-options');
+    return {
+      years: data.years ?? [],
+      categories: data.categories ?? [],
+      programs: data.programs ?? [],
+      departments: data.departments ?? [],
+    };
   },
 
   async trackClick(thesisId: string, query: string) {

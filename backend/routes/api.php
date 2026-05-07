@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Shared
     Route::get('/search', [SearchController::class, 'search']);
+    Route::get('/search/filter-options', [SearchController::class, 'filterOptions']);
     Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
     Route::post('/search/click', [SearchController::class, 'click']);
     Route::get('/notifications', [NotificationController::class, 'index']);

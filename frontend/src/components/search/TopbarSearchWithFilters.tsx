@@ -1,7 +1,7 @@
-import { Filter, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState, type HTMLAttributes } from 'react';
+import { ChevronDown, Filter, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { searchService, type SearchFilterField } from '../../services/searchService';
+import { searchService, type SearchFilterOptionsResponse } from '../../services/searchService';
 
 type TopbarSearchWithFiltersProps = {
   basePath: '/student' | '/faculty' | '/vpaa';
@@ -11,27 +11,31 @@ type SearchFilters = {
   year: string;
   category: string;
   program: string;
+  department: string;
 };
 
 const emptyFilters: SearchFilters = {
   year: '',
   category: '',
   program: '',
+  department: '',
 };
 
 const getFiltersFromParams = (searchParams: URLSearchParams): SearchFilters => ({
   year: searchParams.get('year') ?? '',
   category: searchParams.get('category') ?? '',
   program: searchParams.get('program') ?? '',
+  department: searchParams.get('department') ?? '',
 });
 
 const countActiveFilters = (filters: SearchFilters) =>
   Object.values(filters).filter((value) => value.trim() !== '').length;
 
-const filterLabels: Record<SearchFilterField, string> = {
+const filterLabels: Record<keyof SearchFilters, string> = {
   year: 'Year',
   category: 'Category',
   program: 'Program',
+  department: 'Department',
 };
 
 export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFiltersProps) {
@@ -40,9 +44,13 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
   const [filters, setFilters] = useState<SearchFilters>(() => getFiltersFromParams(searchParams));
-  const [focusedFilter, setFocusedFilter] = useState<SearchFilterField | null>(null);
-  const [filterSuggestions, setFilterSuggestions] = useState<string[]>([]);
-  const [isSuggestionLoading, setIsSuggestionLoading] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<SearchFilterOptionsResponse>({
+    years: [],
+    categories: [],
+    programs: [],
+    departments: [],
+  });
+  const [isOptionsLoading, setIsOptionsLoading] = useState(false);
 
   useEffect(() => {
     setSearchQuery(searchParams.get('q') ?? '');
@@ -50,43 +58,35 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
   }, [searchParams]);
 
   useEffect(() => {
-    if (!isFilterOpen || !focusedFilter) {
-      setFilterSuggestions([]);
-      setIsSuggestionLoading(false);
+    if (!isFilterOpen || filterOptions.years.length || filterOptions.categories.length || filterOptions.programs.length || filterOptions.departments.length) {
       return;
     }
 
     let isCurrent = true;
-    const searchValue = filters[focusedFilter].trim();
+    setIsOptionsLoading(true);
 
-    const timeout = window.setTimeout(() => {
-      setIsSuggestionLoading(true);
-
-      void searchService.getFilterSuggestions(focusedFilter, searchValue)
-        .then((suggestions) => {
-          if (!isCurrent) return;
-
-          const normalizedValue = searchValue.toLowerCase();
-          setFilterSuggestions(
-            suggestions
-              .filter((suggestion) => suggestion.trim() !== '')
-              .filter((suggestion) => suggestion.toLowerCase() !== normalizedValue)
-              .slice(0, 8),
-          );
-        })
-        .catch(() => {
-          if (isCurrent) setFilterSuggestions([]);
-        })
-        .finally(() => {
-          if (isCurrent) setIsSuggestionLoading(false);
+    void searchService.getFilterOptions()
+      .then((options) => {
+        if (!isCurrent) return;
+        setFilterOptions(options);
+      })
+      .catch(() => {
+        if (!isCurrent) return;
+        setFilterOptions({
+          years: [],
+          categories: [],
+          programs: [],
+          departments: [],
         });
-    }, 180);
+      })
+      .finally(() => {
+        if (isCurrent) setIsOptionsLoading(false);
+      });
 
     return () => {
       isCurrent = false;
-      window.clearTimeout(timeout);
     };
-  }, [filters.category, filters.program, filters.year, focusedFilter, isFilterOpen]);
+  }, [filterOptions.categories.length, filterOptions.departments.length, filterOptions.programs.length, filterOptions.years.length, isFilterOpen]);
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
@@ -96,6 +96,7 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
       year: nextFilters.year.trim(),
       category: nextFilters.category.trim(),
       program: nextFilters.program.trim(),
+      department: nextFilters.department.trim(),
     };
     const hasFilters = countActiveFilters(trimmedFilters) > 0;
 
@@ -106,6 +107,7 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
     if (trimmedFilters.year) params.set('year', trimmedFilters.year);
     if (trimmedFilters.category) params.set('category', trimmedFilters.category);
     if (trimmedFilters.program) params.set('program', trimmedFilters.program);
+    if (trimmedFilters.department) params.set('department', trimmedFilters.department);
 
     navigate(`${basePath}/search?${params.toString()}`);
   };
@@ -123,7 +125,6 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
   const handleClearFilters = () => {
     setFilters(emptyFilters);
     setIsFilterOpen(false);
-    setFocusedFilter(null);
 
     if (searchQuery.trim().length >= 2) {
       navigateToSearch(searchQuery, emptyFilters);
@@ -133,55 +134,26 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
     navigate(`${basePath}/search`);
   };
 
-  const handleSuggestionSelect = (field: SearchFilterField, value: string) => {
-    setFilters((current) => ({ ...current, [field]: value }));
-    setFilterSuggestions([]);
-    setFocusedFilter(field);
-  };
-
-  const renderFilterField = (
-    field: SearchFilterField,
-    placeholder: string,
-    inputMode?: HTMLAttributes<HTMLInputElement>['inputMode'],
-  ) => {
-    const fieldValue = filters[field];
-    const showSuggestions = focusedFilter === field
-      && (isSuggestionLoading || filterSuggestions.length > 0 || fieldValue.trim().length > 0);
-
+  const renderFilterField = (field: keyof SearchFilters, options: string[]) => {
     return (
       <label className="vpaa-search-filter-field">
         <span>{filterLabels[field]}</span>
-        <div className="vpaa-search-filter-input-wrap">
-          <input
-            type="text"
-            inputMode={inputMode}
-            placeholder={placeholder}
-            value={fieldValue}
-            autoComplete="off"
-            onFocus={() => setFocusedFilter(field)}
+        <div className="vpaa-search-filter-select-wrap">
+          <select
+            value={filters[field]}
             onChange={(event) => setFilters((current) => ({ ...current, [field]: event.target.value }))}
-          />
-          {showSuggestions ? (
-            <div className="vpaa-search-filter-suggestions" role="listbox" aria-label={`${filterLabels[field]} suggestions`}>
-              {isSuggestionLoading ? (
-                <div className="vpaa-search-filter-suggestion-empty">Loading choices...</div>
-              ) : filterSuggestions.length ? (
-                filterSuggestions.map((suggestion) => (
-                  <button
-                    type="button"
-                    key={suggestion}
-                    role="option"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => handleSuggestionSelect(field, suggestion)}
-                  >
-                    {suggestion}
-                  </button>
-                ))
-              ) : (
-                <div className="vpaa-search-filter-suggestion-empty">No matching choices</div>
-              )}
-            </div>
-          ) : null}
+            disabled={isOptionsLoading}
+          >
+            <option value="">{isOptionsLoading ? 'Loading choices...' : `All ${filterLabels[field]}`}</option>
+            {options.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <span className="vpaa-search-filter-select-icon" aria-hidden="true">
+            <ChevronDown size={15} />
+          </span>
         </div>
       </label>
     );
@@ -219,9 +191,10 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
             </button>
           </div>
 
-          {renderFilterField('year', 'e.g. 2026', 'numeric')}
-          {renderFilterField('category', 'e.g. Artificial Intelligence')}
-          {renderFilterField('program', 'e.g. BSCS')}
+          {renderFilterField('year', filterOptions.years)}
+          {renderFilterField('category', filterOptions.categories)}
+          {renderFilterField('program', filterOptions.programs)}
+          {renderFilterField('department', filterOptions.departments)}
 
           <div className="vpaa-search-filter-actions">
             <button type="button" className="vpaa-search-filter-clear" onClick={handleClearFilters}>

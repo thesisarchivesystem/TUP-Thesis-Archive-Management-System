@@ -39,14 +39,16 @@ export default function SharedSearchResultsView() {
     year: searchParams.get('year')?.trim() ?? '',
     category: searchParams.get('category')?.trim() ?? '',
     program: searchParams.get('program')?.trim() ?? '',
+    department: searchParams.get('department')?.trim() ?? '',
   }), [searchParams]);
   const activeFilters = useMemo(
     () => [
       filters.year ? { label: 'Year', value: filters.year } : null,
       filters.category ? { label: 'Category', value: filters.category } : null,
       filters.program ? { label: 'Program', value: filters.program } : null,
+      filters.department ? { label: 'Department', value: filters.department } : null,
     ].filter((item): item is { label: string; value: string } => Boolean(item)),
-    [filters.category, filters.program, filters.year],
+    [filters.category, filters.department, filters.program, filters.year],
   );
   const hasSearchCriteria = query.length >= 2 || activeFilters.length > 0;
   const searchLogLabel = [
@@ -136,7 +138,7 @@ export default function SharedSearchResultsView() {
         <SearchX size={20} />
         <div>
           <strong>Enter a keyword or choose filters</strong>
-          <p>Use the search bar or filter button to find theses by year, category, program, or a combination.</p>
+          <p>Use the search bar or filter button to find theses by year, category, program, department, or a combination.</p>
         </div>
       </div>
     );

@@ -22,6 +22,7 @@ class SearchController extends Controller
             'year' => trim((string) $request->input('year', '')),
             'category' => trim((string) $request->input('category', '')),
             'program' => trim((string) $request->input('program', '')),
+            'department' => trim((string) $request->input('department', '')),
         ];
         $hasKeyword = mb_strlen($q) >= 2;
         $hasFilters = collect($filters)->contains(fn (string $value) => $value !== '');
@@ -76,6 +77,16 @@ class SearchController extends Controller
                 'theses' => $theses->map(fn (Thesis $thesis) => $this->transformSearchThesis($thesis))->values(),
                 'users' => $users,
             ],
+        ]);
+    }
+
+    public function filterOptions(): JsonResponse
+    {
+        return response()->json([
+            'years' => $this->suggestYears(''),
+            'categories' => $this->suggestCategories(''),
+            'programs' => $this->suggestPrograms(''),
+            'departments' => $this->suggestDepartments(''),
         ]);
     }
 
@@ -301,6 +312,23 @@ class SearchController extends Controller
             ->all();
     }
 
+    private function suggestDepartments(string $query): array
+    {
+        return Thesis::query()
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->whereNotNull('department')
+            ->when($query !== '', fn ($thesisQuery) => $thesisQuery->whereRaw('LOWER(department) LIKE ?', ["%{$query}%"]))
+            ->distinct()
+            ->orderBy('department')
+            ->limit(20)
+            ->pluck('department')
+            ->map(fn ($department) => trim((string) $department))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     private function applyThesisFilters($queryBuilder, array $filters): void
     {
         if ($filters['year'] !== '') {
@@ -322,6 +350,12 @@ class SearchController extends Controller
             $programLike = '%' . mb_strtolower($filters['program']) . '%';
 
             $queryBuilder->whereRaw('LOWER(COALESCE(program, \'\')) LIKE ?', [$programLike]);
+        }
+
+        if ($filters['department'] !== '') {
+            $departmentLike = '%' . mb_strtolower($filters['department']) . '%';
+
+            $queryBuilder->whereRaw('LOWER(COALESCE(department, \'\')) LIKE ?', [$departmentLike]);
         }
 
         if ($filters['category'] !== '') {
@@ -359,7 +393,7 @@ class SearchController extends Controller
             $parts[] = $query;
         }
 
-        foreach (['year' => 'Year', 'category' => 'Category', 'program' => 'Program'] as $key => $label) {
+        foreach (['year' => 'Year', 'category' => 'Category', 'program' => 'Program', 'department' => 'Department'] as $key => $label) {
             if (($filters[$key] ?? '') !== '') {
                 $parts[] = "{$label}: {$filters[$key]}";
             }
