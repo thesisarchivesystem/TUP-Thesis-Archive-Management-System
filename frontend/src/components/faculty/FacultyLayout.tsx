@@ -1,8 +1,8 @@
 // frontend/src/components/faculty/FacultyLayout.tsx
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, Home, LogOut, Menu, MessageSquare, MoonStar, Search, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
-import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, Home, LogOut, Menu, MessageSquare, MoonStar, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useBookThemeCssVariables } from '../../hooks/useBookThemeCssVariables';
@@ -13,6 +13,7 @@ import { aiService } from '../../services/aiService';
 import ChatMessageContent from '../chats/ChatMessageContent';
 import BrandMarkIcon from '../BrandMarkIcon';
 import BookColorThemePicker from '../BookColorThemePicker';
+import TopbarSearchWithFilters from '../search/TopbarSearchWithFilters';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
@@ -45,7 +46,6 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   const bookThemeStyle = useBookThemeCssVariables(theme);
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -54,7 +54,6 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
@@ -106,10 +105,6 @@ export default function FacultyLayout({ title, description, children, hidePageIn
     setProfileOpen(false);
     setSidebarOpen(false);
   }, [location.pathname]);
-
-  useEffect(() => {
-    setSearchQuery(searchParams.get('q') ?? '');
-  }, [searchParams]);
 
   useEffect(() => {
     setManageThesisOpen(location.pathname.startsWith('/faculty/manage-thesis'));
@@ -216,15 +211,6 @@ export default function FacultyLayout({ title, description, children, hidePageIn
     }
   };
 
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const trimmed = searchQuery.trim();
-    if (trimmed.length < 2) return;
-
-    navigate(`/faculty/search?q=${encodeURIComponent(trimmed)}`);
-  };
-
   return (
     <div
       className={[
@@ -295,15 +281,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
             <button type="button" className="vpaa-hamburger-btn" onClick={toggleSidebar} aria-label="Toggle navigation menu">
               <Menu size={18} />
             </button>
-            <form className="vpaa-search-bar" onSubmit={handleSearchSubmit}>
-              <Search size={18} />
-              <input
-                type="text"
-                placeholder="Search the thesis archive, categories, or records..."
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-              />
-            </form>
+            <TopbarSearchWithFilters basePath="/faculty" />
           </div>
 
           <div className="vpaa-topbar-right">

@@ -5,6 +5,7 @@ import ThesisArchiveCover from '../thesis/ThesisArchiveCover';
 import { messageService } from '../../services/messageService';
 import {
   searchService,
+  type SearchFilters,
   type SearchResponse,
   type SearchUserContributionItem,
   type SearchUserItem,
@@ -34,6 +35,24 @@ export default function SharedSearchResultsView() {
   const location = useLocation();
   const navigate = useNavigate();
   const query = searchParams.get('q')?.trim() ?? '';
+  const filters = useMemo<SearchFilters>(() => ({
+    year: searchParams.get('year')?.trim() ?? '',
+    category: searchParams.get('category')?.trim() ?? '',
+    program: searchParams.get('program')?.trim() ?? '',
+  }), [searchParams]);
+  const activeFilters = useMemo(
+    () => [
+      filters.year ? { label: 'Year', value: filters.year } : null,
+      filters.category ? { label: 'Category', value: filters.category } : null,
+      filters.program ? { label: 'Program', value: filters.program } : null,
+    ].filter((item): item is { label: string; value: string } => Boolean(item)),
+    [filters.category, filters.program, filters.year],
+  );
+  const hasSearchCriteria = query.length >= 2 || activeFilters.length > 0;
+  const searchLogLabel = [
+    query.length >= 2 ? query : '',
+    ...activeFilters.map((filter) => `${filter.label}: ${filter.value}`),
+  ].filter(Boolean).join(' | ');
   const [results, setResults] = useState<SearchResponse['results']>({ theses: [], users: [] });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,7 +62,7 @@ export default function SharedSearchResultsView() {
   useEffect(() => {
     let isMounted = true;
 
-    if (query.length < 2) {
+    if (!hasSearchCriteria) {
       setResults({ theses: [], users: [] });
       setSelectedUser(null);
       setError('');
@@ -56,7 +75,7 @@ export default function SharedSearchResultsView() {
     setIsLoading(true);
     setError('');
 
-    void searchService.search(query)
+    void searchService.search(query, filters)
       .then((response) => {
         if (!isMounted) return;
         setResults(response.results ?? { theses: [], users: [] });
@@ -78,7 +97,7 @@ export default function SharedSearchResultsView() {
     return () => {
       isMounted = false;
     };
-  }, [query]);
+  }, [filters, hasSearchCriteria, query]);
 
   const totalResults = (results.theses?.length ?? 0) + (results.users?.length ?? 0);
   const routeBase = `/${location.pathname.split('/').filter(Boolean)[0] ?? 'faculty'}`;
@@ -104,25 +123,27 @@ export default function SharedSearchResultsView() {
   };
 
   const handleThesisClick = (thesisId: string) => {
-    void searchService.trackClick(thesisId, query).catch(() => {
+    if (searchLogLabel.length < 2) return;
+
+    void searchService.trackClick(thesisId, searchLogLabel).catch(() => {
       // Keep navigation responsive even if analytics logging fails.
     });
   };
 
-  if (query.length < 2) {
+  if (!hasSearchCriteria) {
     return (
       <div className="vpaa-card vpaa-search-results-empty">
         <SearchX size={20} />
         <div>
-          <strong>Enter at least 2 characters</strong>
-          <p>Use the search bar to find theses and user profiles across the archive.</p>
+          <strong>Enter a keyword or choose filters</strong>
+          <p>Use the search bar or filter button to find theses by year, category, program, or a combination.</p>
         </div>
       </div>
     );
   }
 
   if (isLoading) {
-    return <div className="vpaa-card">Searching the archive for "{query}"...</div>;
+    return <div className="vpaa-card">Searching the archive...</div>;
   }
 
   return (
@@ -131,8 +152,17 @@ export default function SharedSearchResultsView() {
 
       <div className="vpaa-search-results-summary">
         <span className="vpaa-search-results-count">{`${totalResults} result${totalResults === 1 ? '' : 's'} for`}</span>
-        <strong className="vpaa-search-results-query">"{query}"</strong>
+        <strong className="vpaa-search-results-query">{query.length >= 2 ? `"${query}"` : 'selected filters'}</strong>
       </div>
+      {activeFilters.length ? (
+        <div className="vpaa-search-active-filters">
+          {activeFilters.map((filter) => (
+            <span key={filter.label}>
+              {filter.label}: {filter.value}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {!totalResults ? (
         <div className="vpaa-card vpaa-search-results-empty vpaa-search-results-empty-hero">

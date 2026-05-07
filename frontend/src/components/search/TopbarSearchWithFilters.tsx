@@ -1,6 +1,7 @@
 import { Filter, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type HTMLAttributes } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { searchService, type SearchFilterField } from '../../services/searchService';
 
 type TopbarSearchWithFiltersProps = {
   basePath: '/student' | '/faculty' | '/vpaa';
@@ -27,17 +28,65 @@ const getFiltersFromParams = (searchParams: URLSearchParams): SearchFilters => (
 const countActiveFilters = (filters: SearchFilters) =>
   Object.values(filters).filter((value) => value.trim() !== '').length;
 
+const filterLabels: Record<SearchFilterField, string> = {
+  year: 'Year',
+  category: 'Category',
+  program: 'Program',
+};
+
 export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFiltersProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
   const [filters, setFilters] = useState<SearchFilters>(() => getFiltersFromParams(searchParams));
+  const [focusedFilter, setFocusedFilter] = useState<SearchFilterField | null>(null);
+  const [filterSuggestions, setFilterSuggestions] = useState<string[]>([]);
+  const [isSuggestionLoading, setIsSuggestionLoading] = useState(false);
 
   useEffect(() => {
     setSearchQuery(searchParams.get('q') ?? '');
     setFilters(getFiltersFromParams(searchParams));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!isFilterOpen || !focusedFilter) {
+      setFilterSuggestions([]);
+      setIsSuggestionLoading(false);
+      return;
+    }
+
+    let isCurrent = true;
+    const searchValue = filters[focusedFilter].trim();
+
+    const timeout = window.setTimeout(() => {
+      setIsSuggestionLoading(true);
+
+      void searchService.getFilterSuggestions(focusedFilter, searchValue)
+        .then((suggestions) => {
+          if (!isCurrent) return;
+
+          const normalizedValue = searchValue.toLowerCase();
+          setFilterSuggestions(
+            suggestions
+              .filter((suggestion) => suggestion.trim() !== '')
+              .filter((suggestion) => suggestion.toLowerCase() !== normalizedValue)
+              .slice(0, 8),
+          );
+        })
+        .catch(() => {
+          if (isCurrent) setFilterSuggestions([]);
+        })
+        .finally(() => {
+          if (isCurrent) setIsSuggestionLoading(false);
+        });
+    }, 180);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timeout);
+    };
+  }, [filters.category, filters.program, filters.year, focusedFilter, isFilterOpen]);
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
@@ -74,7 +123,68 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
   const handleClearFilters = () => {
     setFilters(emptyFilters);
     setIsFilterOpen(false);
-    navigateToSearch(searchQuery, emptyFilters);
+    setFocusedFilter(null);
+
+    if (searchQuery.trim().length >= 2) {
+      navigateToSearch(searchQuery, emptyFilters);
+      return;
+    }
+
+    navigate(`${basePath}/search`);
+  };
+
+  const handleSuggestionSelect = (field: SearchFilterField, value: string) => {
+    setFilters((current) => ({ ...current, [field]: value }));
+    setFilterSuggestions([]);
+    setFocusedFilter(field);
+  };
+
+  const renderFilterField = (
+    field: SearchFilterField,
+    placeholder: string,
+    inputMode?: HTMLAttributes<HTMLInputElement>['inputMode'],
+  ) => {
+    const fieldValue = filters[field];
+    const showSuggestions = focusedFilter === field
+      && (isSuggestionLoading || filterSuggestions.length > 0 || fieldValue.trim().length > 0);
+
+    return (
+      <label className="vpaa-search-filter-field">
+        <span>{filterLabels[field]}</span>
+        <div className="vpaa-search-filter-input-wrap">
+          <input
+            type="text"
+            inputMode={inputMode}
+            placeholder={placeholder}
+            value={fieldValue}
+            autoComplete="off"
+            onFocus={() => setFocusedFilter(field)}
+            onChange={(event) => setFilters((current) => ({ ...current, [field]: event.target.value }))}
+          />
+          {showSuggestions ? (
+            <div className="vpaa-search-filter-suggestions" role="listbox" aria-label={`${filterLabels[field]} suggestions`}>
+              {isSuggestionLoading ? (
+                <div className="vpaa-search-filter-suggestion-empty">Loading choices...</div>
+              ) : filterSuggestions.length ? (
+                filterSuggestions.map((suggestion) => (
+                  <button
+                    type="button"
+                    key={suggestion}
+                    role="option"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSuggestionSelect(field, suggestion)}
+                  >
+                    {suggestion}
+                  </button>
+                ))
+              ) : (
+                <div className="vpaa-search-filter-suggestion-empty">No matching choices</div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </label>
+    );
   };
 
   return (
@@ -109,36 +219,9 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
             </button>
           </div>
 
-          <label className="vpaa-search-filter-field">
-            <span>Year</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="e.g. 2026"
-              value={filters.year}
-              onChange={(event) => setFilters((current) => ({ ...current, year: event.target.value }))}
-            />
-          </label>
-
-          <label className="vpaa-search-filter-field">
-            <span>Category</span>
-            <input
-              type="text"
-              placeholder="e.g. Artificial Intelligence"
-              value={filters.category}
-              onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))}
-            />
-          </label>
-
-          <label className="vpaa-search-filter-field">
-            <span>Program</span>
-            <input
-              type="text"
-              placeholder="e.g. BSCS"
-              value={filters.program}
-              onChange={(event) => setFilters((current) => ({ ...current, program: event.target.value }))}
-            />
-          </label>
+          {renderFilterField('year', 'e.g. 2026', 'numeric')}
+          {renderFilterField('category', 'e.g. Artificial Intelligence')}
+          {renderFilterField('program', 'e.g. BSCS')}
 
           <div className="vpaa-search-filter-actions">
             <button type="button" className="vpaa-search-filter-clear" onClick={handleClearFilters}>
