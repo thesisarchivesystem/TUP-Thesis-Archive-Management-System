@@ -122,7 +122,7 @@ export default function SharedThesisDetailsPage({
   const canViewManuscript = hasManuscript;
   const canDownloadWatermarkedManuscript = role === 'student' && hasManuscript;
   const manuscriptActionLabel = openingManuscript ? 'Opening...' : 'View Thesis';
-  const watermarkedDownloadLabel = downloadingWatermarkedManuscript ? 'Preparing...' : 'Download Watermarked PDF';
+  const watermarkedDownloadLabel = downloadingWatermarkedManuscript ? 'Preparing...' : 'Download PDF';
 
   const createStudentWatermarkedManuscript = async () => {
     if (!thesis?.id) {
@@ -243,31 +243,32 @@ export default function SharedThesisDetailsPage({
                 <div className="student-submission-hero-copy">
                   <div className="student-submission-hero-title-row">
                     <h2>{thesis.title}</h2>
-                    {canViewManuscript ? (
-                      <div className="thesis-details-manuscript-actions">
+                  </div>
+
+                  {canViewManuscript ? (
+                    <div className="thesis-details-manuscript-actions">
+                      <button
+                        type="button"
+                        className="student-submissions-secondary thesis-details-download-button"
+                        onClick={() => void handleViewManuscript()}
+                        disabled={openingManuscript || downloadingWatermarkedManuscript}
+                      >
+                        <Eye size={16} />
+                        <span>{manuscriptActionLabel}</span>
+                      </button>
+                      {canDownloadWatermarkedManuscript ? (
                         <button
                           type="button"
                           className="student-submissions-secondary thesis-details-download-button"
-                          onClick={() => void handleViewManuscript()}
+                          onClick={() => void handleDownloadWatermarkedManuscript()}
                           disabled={openingManuscript || downloadingWatermarkedManuscript}
                         >
-                          <Eye size={16} />
-                          <span>{manuscriptActionLabel}</span>
+                          <Download size={16} />
+                          <span>{watermarkedDownloadLabel}</span>
                         </button>
-                        {canDownloadWatermarkedManuscript ? (
-                          <button
-                            type="button"
-                            className="student-submissions-secondary thesis-details-download-button"
-                            onClick={() => void handleDownloadWatermarkedManuscript()}
-                            disabled={openingManuscript || downloadingWatermarkedManuscript}
-                          >
-                            <Download size={16} />
-                            <span>{watermarkedDownloadLabel}</span>
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div className="student-submission-meta-row">
                     {metadata.map((item) => (
