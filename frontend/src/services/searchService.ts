@@ -62,10 +62,39 @@ export type SearchResponse = {
   };
 };
 
+export type SearchFilters = {
+  year?: string;
+  category?: string;
+  program?: string;
+};
+
+export type SearchFilterField = 'year' | 'category' | 'program';
+
+export type SearchSuggestionsResponse = {
+  suggestions: string[];
+};
+
 export const searchService = {
-  async search(query: string) {
-    const { data } = await api.get<SearchResponse>('/search', { params: { q: query } });
+  async search(query: string, filters: SearchFilters = {}) {
+    const params = {
+      q: query,
+      ...Object.fromEntries(
+        Object.entries(filters)
+          .map(([key, value]) => [key, value?.trim() ?? ''])
+          .filter(([, value]) => value !== ''),
+      ),
+    };
+
+    const { data } = await api.get<SearchResponse>('/search', { params });
     return data;
+  },
+
+  async getFilterSuggestions(field: SearchFilterField, query: string) {
+    const { data } = await api.get<SearchSuggestionsResponse>('/search/suggestions', {
+      params: { field, q: query },
+    });
+
+    return data.suggestions ?? [];
   },
 
   async trackClick(thesisId: string, query: string) {
