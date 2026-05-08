@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Building2, CalendarDays, Clock3, FolderTree, HelpCircle, LayoutDashboard, LogOut, Menu, MessageSquareMore, MoonStar, Search, SunMedium, Users } from 'lucide-react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Bell, Building2, CalendarDays, Clock3, FolderTree, LayoutDashboard, LogOut, Menu, MoonStar, Search, SunMedium, Users } from 'lucide-react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { adminService, type AdminDashboardResponse } from '../../services/adminService';
 import BrandMarkIcon from '../BrandMarkIcon';
 import '../../styles/vpaa-shell.css';
 
@@ -22,12 +23,16 @@ const formatDate = (date: Date) =>
 export default function AdminLayout() {
   const { user, confirmAndLogout } = useAuth();
   const { theme, toggle } = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
+  const [notificationItems, setNotificationItems] = useState<AdminDashboardResponse['recent_activity']>([]);
 
   useEffect(() => {
     const tick = () => {
@@ -49,6 +54,7 @@ export default function AdminLayout() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setProfileOpen(false);
+        setNotificationsOpen(false);
         if (window.innerWidth <= 1024) setSidebarOpen(false);
       }
     };
@@ -80,6 +86,31 @@ export default function AdminLayout() {
     setSidebarCollapsed((current) => !current);
   };
 
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    let active = true;
+
+    void adminService.getDashboard({ recent_activity_limit: 4 })
+      .then((data) => {
+        if (!active) return;
+        setNotificationItems(data.recent_activity);
+      })
+      .catch(() => {
+        if (!active) return;
+        setNotificationItems([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [notificationsOpen]);
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search).get('search') ?? '';
+    setSearchValue(query);
+  }, [location.search]);
+
   return (
     <div
       className={[
@@ -89,7 +120,10 @@ export default function AdminLayout() {
         sidebarCollapsed ? 'sidebar-collapsed' : '',
         sidebarOpen ? 'sidebar-open' : '',
       ].filter(Boolean).join(' ')}
-      onClick={() => setProfileOpen(false)}
+      onClick={() => {
+        setProfileOpen(false);
+        setNotificationsOpen(false);
+      }}
     >
       <div className="vpaa-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
 
@@ -123,7 +157,26 @@ export default function AdminLayout() {
             <button type="button" className="vpaa-hamburger-btn" onClick={toggleSidebar} aria-label="Toggle navigation menu">
               <Menu size={18} />
             </button>
-            <form className="vpaa-search-bar admin-topbar-search" onSubmit={(event) => event.preventDefault()}>
+            <form
+              className="vpaa-search-bar admin-topbar-search"
+              onSubmit={(event) => {
+                event.preventDefault();
+
+                const query = searchValue.trim();
+                const params = new URLSearchParams(location.search);
+
+                if (query) {
+                  params.set('search', query);
+                } else {
+                  params.delete('search');
+                }
+
+                navigate({
+                  pathname: '/admin/dashboard',
+                  search: params.toString() ? `?${params.toString()}` : '',
+                });
+              }}
+            >
               <Search size={18} />
               <input
                 type="text"
@@ -140,13 +193,55 @@ export default function AdminLayout() {
               <span className="vpaa-topbar-info-item"><CalendarDays size={15} /><span>{currentDate}</span></span>
             </div>
 
-            <button type="button" className="vpaa-topbar-icon-btn" aria-label="Messages">
-              <MessageSquareMore size={18} />
-            </button>
-            <button type="button" className="vpaa-topbar-icon-btn admin-topbar-alert" aria-label="Notifications">
-              <Bell size={18} />
-              <span className="vpaa-notif-dot" />
-            </button>
+            <div className="vpaa-topbar-dropdown">
+              <button
+                type="button"
+                className="vpaa-topbar-icon-btn admin-topbar-alert"
+                aria-label="Notifications"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setProfileOpen(false);
+                  setNotificationsOpen((current) => !current);
+                }}
+              >
+                <Bell size={18} />
+                <span className="vpaa-notif-dot" />
+              </button>
+
+              <div className={`vpaa-dropdown-panel admin-notification-panel ${notificationsOpen ? 'open' : ''}`}>
+                <div className="admin-notification-head">
+                  <strong>Recent activity</strong>
+                  <button
+                    type="button"
+                    className="admin-view-all"
+                    onClick={() => {
+                      setNotificationsOpen(false);
+                      navigate('/admin/activity');
+                    }}
+                  >
+                    View all
+                  </button>
+                </div>
+                <div className="admin-notification-list">
+                  {notificationItems.length > 0 ? notificationItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="admin-notification-item"
+                      onClick={() => {
+                        setNotificationsOpen(false);
+                        navigate('/admin/activity');
+                      }}
+                    >
+                      <strong>{item.title}</strong>
+                      <span>{item.actor} · {item.relative_time || 'Recently'}</span>
+                    </button>
+                  )) : (
+                    <p className="admin-notification-empty">No recent admin activity yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
             <button type="button" className="vpaa-topbar-icon-btn theme-toggle" onClick={toggle} aria-label="Toggle theme">
               <SunMedium className="sun-icon" size={18} />
               <MoonStar className="moon-icon" size={18} />
@@ -170,7 +265,6 @@ export default function AdminLayout() {
 
               <div className={`vpaa-dropdown-panel vpaa-profile-panel ${profileOpen ? 'open' : ''}`}>
                 <div className="vpaa-profile-actions">
-                  <button type="button" className="vpaa-profile-action"><HelpCircle size={16} /><span>Help Center</span></button>
                   <button type="button" className="vpaa-profile-action signout" onClick={confirmAndLogout}><LogOut size={16} /><span>Sign Out</span></button>
                 </div>
               </div>

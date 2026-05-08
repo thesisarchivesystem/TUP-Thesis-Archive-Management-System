@@ -1,19 +1,103 @@
-import { Check, Clock3, FileText, MoreVertical, NotebookPen, UserPlus2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Check, ChevronDown, Clock3, Copy, FileText, MoreVertical, NotebookPen, UserPlus2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import { adminService, type AdminDashboardResponse } from '../../services/adminService';
 
+type ThesisActionMenuState = {
+  id: string;
+  anchorTop: number;
+  anchorLeft: number;
+} | null;
+
 export default function AdminDashboardPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialYear = Number(searchParams.get('year')) || new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(initialYear);
+  const [openYearMenu, setOpenYearMenu] = useState<'submissions' | 'departments' | null>(null);
+  const [openActionMenu, setOpenActionMenu] = useState<ThesisActionMenuState>(null);
+  const [activeSubmission, setActiveSubmission] = useState<AdminDashboardResponse['recent_uploads'][number] | null>(null);
+  const [copiedSubmissionId, setCopiedSubmissionId] = useState<string | null>(null);
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void adminService.getDashboard()
-      .then(setData)
-      .catch((err) => setError(err.response?.data?.message || 'Failed to load admin dashboard.'));
-  }, []);
+    const queryYear = Number(searchParams.get('year')) || new Date().getFullYear();
+    setSelectedYear(queryYear);
+  }, [searchParams]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    void adminService.getDashboard({
+      year: selectedYear,
+      recent_uploads_limit: 5,
+      recent_activity_limit: 9,
+    })
+      .then((response) => {
+        if (!active) return;
+        setData(response);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err.response?.data?.message || 'Failed to load admin dashboard.');
+      })
+      .finally(() => {
+        if (!active) return;
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedYear]);
+
+  useEffect(() => {
+    if (!openActionMenu) return;
+
+    const handleClose = () => setOpenActionMenu(null);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, [openActionMenu]);
+
+  useEffect(() => {
+    if (!copiedSubmissionId) return;
+
+    const timeout = window.setTimeout(() => setCopiedSubmissionId(null), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [copiedSubmissionId]);
+
+  const searchTerm = searchParams.get('search')?.trim().toLowerCase() ?? '';
+
+  const filteredUploads = useMemo(() => {
+    if (!data) return [];
+    if (!searchTerm) return data.recent_uploads;
+
+    return data.recent_uploads.filter((item) => {
+      const haystack = [item.title, item.author, item.department, item.program, item.category, item.status]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(searchTerm);
+    });
+  }, [data, searchTerm]);
+
+  const filteredActivity = useMemo(() => {
+    if (!data) return [];
+    if (!searchTerm) return data.recent_activity;
+
+    return data.recent_activity.filter((item) => (
+      `${item.title} ${item.actor} ${item.action}`.toLowerCase().includes(searchTerm)
+    ));
+  }, [data, searchTerm]);
 
   if (error) return <div className="admin-alert">{error}</div>;
-  if (!data) return <div className="admin-panel">Loading admin dashboard...</div>;
+  if (loading || !data) return <SectionLoadingScreen label="Loading dashboard..." />;
 
   const totalTheses = data.dashboard_metrics.total_theses;
   const approved = data.dashboard_metrics.approved;
@@ -32,7 +116,7 @@ export default function AdminDashboardPage() {
   const linePoints = data.monthly_submissions.map((item, index) => {
     const x = 10 + (index * 594) / Math.max(data.monthly_submissions.length - 1, 1);
     const y = 194 - ((item.value / maxMonthlyValue) * 160);
-    return { x, y, month: item.month };
+    return { x, y, month: item.month, value: item.value };
   });
   const linePath = linePoints.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x} ${point.y}`).join(' ');
   const fillPath = `${linePath} L604 210 L10 210 Z`;
@@ -43,8 +127,22 @@ export default function AdminDashboardPage() {
     rose: FileText,
   } as const;
 
+  const setYearAndCloseMenu = (year: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('year', String(year));
+    setSearchParams(params);
+    setSelectedYear(year);
+    setOpenYearMenu(null);
+  };
+
   return (
-    <div className="admin-page">
+    <div
+      className="admin-page"
+      onClick={() => {
+        setOpenYearMenu(null);
+        setOpenActionMenu(null);
+      }}
+    >
       <div className="admin-page-intro">
         <div>
           <h1>Welcome back, <em>Admin!</em></h1>
@@ -71,7 +169,34 @@ export default function AdminDashboardPage() {
         <section className="admin-panel admin-chart-panel">
           <div className="admin-panel-head">
             <h3>Monthly Thesis Submissions</h3>
-            <button type="button" className="admin-filter-pill">This Year</button>
+            <div className="admin-menu-wrap">
+              <button
+                type="button"
+                className="admin-filter-pill"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setOpenYearMenu((current) => current === 'submissions' ? null : 'submissions');
+                }}
+              >
+                <span>{selectedYear}</span>
+                <ChevronDown size={14} />
+              </button>
+              <div className={`admin-year-menu ${openYearMenu === 'submissions' ? 'open' : ''}`}>
+                {data.available_years.map((year) => (
+                  <button
+                    key={year}
+                    type="button"
+                    className={year === selectedYear ? 'active' : ''}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setYearAndCloseMenu(year);
+                    }}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="admin-line-chart">
             <div className="admin-line-grid">
@@ -88,7 +213,9 @@ export default function AdminDashboardPage() {
                 <path d={fillPath} fill="url(#adminLineFill)" />
                 <path d={linePath} fill="none" stroke="#c42121" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
                 {linePoints.map((point) => (
-                  <circle key={`${point.month}-${point.x}`} cx={point.x} cy={point.y} r="3.8" fill="#c42121" />
+                  <circle key={`${point.month}-${point.x}`} cx={point.x} cy={point.y} r="3.8" fill="#c42121">
+                    <title>{`${point.month}: ${point.value}`}</title>
+                  </circle>
                 ))}
               </svg>
               <div className="admin-chart-months">
@@ -101,17 +228,44 @@ export default function AdminDashboardPage() {
         <section className="admin-panel admin-chart-panel">
           <div className="admin-panel-head">
             <h3>Department-wise Uploads</h3>
-            <button type="button" className="admin-filter-pill">This Year</button>
+            <div className="admin-menu-wrap">
+              <button
+                type="button"
+                className="admin-filter-pill"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setOpenYearMenu((current) => current === 'departments' ? null : 'departments');
+                }}
+              >
+                <span>{selectedYear}</span>
+                <ChevronDown size={14} />
+              </button>
+              <div className={`admin-year-menu ${openYearMenu === 'departments' ? 'open' : ''}`}>
+                {data.available_years.map((year) => (
+                  <button
+                    key={year}
+                    type="button"
+                    className={year === selectedYear ? 'active' : ''}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setYearAndCloseMenu(year);
+                    }}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="admin-bar-chart">
             {data.department_uploads.map((item) => (
-              <div key={`${item.label}-${item.name}`} className="admin-bar-column" title={item.name}>
+              <button key={`${item.label}-${item.name}`} type="button" className="admin-bar-column" title={item.name}>
                 <strong>{item.value}</strong>
                 <div className="admin-bar-rail">
                   <div className="admin-bar-fill" style={{ height: `${Math.max((item.value / maxDepartmentValue) * 100, 18)}%` }} />
                 </div>
                 <span>{item.label}</span>
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -120,7 +274,9 @@ export default function AdminDashboardPage() {
       <section className="admin-panel">
         <div className="admin-panel-head">
           <h3>Recent Submissions</h3>
-          <button type="button" className="admin-view-all">View All</button>
+          <button type="button" className="admin-view-all" onClick={() => navigate('/admin/submissions')}>
+            View All
+          </button>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table admin-table-polished">
@@ -135,7 +291,7 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {data.recent_uploads.map((item) => (
+              {filteredUploads.length > 0 ? filteredUploads.map((item) => (
                 <tr key={item.id}>
                   <td className="admin-title-cell">{item.title}</td>
                   <td>{item.author}</td>
@@ -146,9 +302,31 @@ export default function AdminDashboardPage() {
                     </span>
                   </td>
                   <td>{item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
-                  <td><button type="button" className="admin-kebab"><MoreVertical size={16} /></button></td>
+                  <td className="admin-table-action-cell">
+                    <button
+                      type="button"
+                      className="admin-kebab"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        setOpenActionMenu({
+                          id: item.id,
+                          anchorTop: rect.bottom + window.scrollY + 6,
+                          anchorLeft: rect.left + window.scrollX - 120,
+                        });
+                      }}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                  </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan={6} className="admin-table-empty">
+                    No submissions matched your current search.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -157,10 +335,12 @@ export default function AdminDashboardPage() {
       <section className="admin-panel">
         <div className="admin-panel-head">
           <h3>Recent Activity</h3>
-          <button type="button" className="admin-view-all">View All</button>
+          <button type="button" className="admin-view-all" onClick={() => navigate('/admin/activity')}>
+            View All
+          </button>
         </div>
         <div className="admin-activity-grid">
-          {data.recent_activity.map((item) => {
+          {filteredActivity.length > 0 ? filteredActivity.map((item) => {
             const Icon = activityIconMap[item.tone] ?? FileText;
 
             return (
@@ -174,9 +354,90 @@ export default function AdminDashboardPage() {
                 </div>
               </article>
             );
-          })}
+          }) : (
+            <div className="admin-empty-state">No activity matched your current search.</div>
+          )}
         </div>
       </section>
+
+      {openActionMenu ? (
+        <div
+          className="admin-context-menu"
+          style={{ top: openActionMenu.anchorTop, left: openActionMenu.anchorLeft }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {(() => {
+            const currentSubmission = data.recent_uploads.find((item) => item.id === openActionMenu.id);
+            if (!currentSubmission) return null;
+
+            return (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSubmission(currentSubmission);
+                    setOpenActionMenu(null);
+                  }}
+                >
+                  View details
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(currentSubmission.title);
+                    setCopiedSubmissionId(currentSubmission.id);
+                    setOpenActionMenu(null);
+                  }}
+                >
+                  <Copy size={14} />
+                  <span>{copiedSubmissionId === currentSubmission.id ? 'Copied title' : 'Copy title'}</span>
+                </button>
+              </>
+            );
+          })()}
+        </div>
+      ) : null}
+
+      {activeSubmission ? (
+        <div className="admin-modal-backdrop" onClick={() => setActiveSubmission(null)}>
+          <div className="admin-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="admin-panel-head">
+              <h3>Submission Details</h3>
+              <button type="button" className="admin-view-all" onClick={() => setActiveSubmission(null)}>Close</button>
+            </div>
+            <div className="admin-detail-grid">
+              <div>
+                <span>Title</span>
+                <strong>{activeSubmission.title}</strong>
+              </div>
+              <div>
+                <span>Author</span>
+                <strong>{activeSubmission.author}</strong>
+              </div>
+              <div>
+                <span>Department</span>
+                <strong>{activeSubmission.department || 'Unassigned Department'}</strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <strong>{activeSubmission.status.replace(/_/g, ' ')}</strong>
+              </div>
+              <div>
+                <span>Category</span>
+                <strong>{activeSubmission.category || 'Unassigned Category'}</strong>
+              </div>
+              <div>
+                <span>Program</span>
+                <strong>{activeSubmission.program || 'Unassigned Program'}</strong>
+              </div>
+              <div>
+                <span>Date Submitted</span>
+                <strong>{activeSubmission.created_at ? new Date(activeSubmission.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

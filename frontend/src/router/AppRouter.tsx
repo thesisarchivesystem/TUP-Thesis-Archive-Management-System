@@ -76,6 +76,8 @@ import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import AdminStructurePage from '../pages/admin/AdminStructurePage';
 import AdminCategoriesPage from '../pages/admin/AdminCategoriesPage';
+import AdminRecentSubmissionsPage from '../pages/admin/AdminRecentSubmissionsPage';
+import AdminRecentActivityPage from '../pages/admin/AdminRecentActivityPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -215,6 +217,8 @@ export default function AppRouter() {
           <Route element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="submissions" element={<AdminRecentSubmissionsPage />} />
+            <Route path="activity" element={<AdminRecentActivityPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="structure" element={<AdminStructurePage />} />
             <Route path="categories" element={<AdminCategoriesPage />} />

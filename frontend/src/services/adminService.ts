@@ -9,6 +9,8 @@ export type AdminDashboardResponse = {
     revisions_needed: number;
     monthly_growth_percentage: number;
   };
+  available_years: number[];
+  selected_year: number;
   monthly_submissions: Array<{
     month: string;
     value: number;
@@ -100,8 +102,12 @@ export type AdminCategory = {
 };
 
 export const adminService = {
-  async getDashboard(): Promise<AdminDashboardResponse> {
-    const { data } = await api.get('/admin/dashboard');
+  async getDashboard(params?: {
+    year?: number;
+    recent_uploads_limit?: number;
+    recent_activity_limit?: number;
+  }): Promise<AdminDashboardResponse> {
+    const { data } = await api.get('/admin/dashboard', { params });
     return data.data;
   },
 

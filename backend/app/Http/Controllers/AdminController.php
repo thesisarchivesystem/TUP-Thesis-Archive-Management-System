@@ -25,18 +25,23 @@ class AdminController extends Controller
 {
     public function __construct(private ActivityLogService $logger) {}
 
-    public function dashboard(): JsonResponse
+    public function dashboard(Request $request): JsonResponse
     {
         $now = now();
+        $selectedYear = (int) $request->integer('year', $now->year);
+        $minYear = max($now->year - 5, 2000);
+        $selectedYear = min(max($selectedYear, $minYear), $now->year);
+        $recentUploadsLimit = min(max((int) $request->integer('recent_uploads_limit', 8), 1), 50);
+        $recentActivityLimit = min(max((int) $request->integer('recent_activity_limit', 6), 1), 50);
         $monthlySubmissions = collect(range(1, 12))
-            ->map(function (int $month) use ($now) {
+            ->map(function (int $month) use ($selectedYear) {
                 $count = Thesis::query()
-                    ->whereYear('created_at', $now->year)
+                    ->whereYear('created_at', $selectedYear)
                     ->whereMonth('created_at', $month)
                     ->count();
 
                 return [
-                    'month' => Carbon::create($now->year, $month, 1)->format('M'),
+                    'month' => Carbon::create($selectedYear, $month, 1)->format('M'),
                     'value' => $count,
                 ];
             })
@@ -45,6 +50,7 @@ class AdminController extends Controller
         $departmentUploads = Thesis::query()
             ->select('department')
             ->selectRaw('COUNT(*) as total')
+            ->whereYear('created_at', $selectedYear)
             ->whereNotNull('department')
             ->where('department', '!=', '')
             ->groupBy('department')
@@ -61,7 +67,7 @@ class AdminController extends Controller
         $recentUploads = Thesis::query()
             ->with(['submitter:id,name', 'category:id,name'])
             ->orderByDesc('created_at')
-            ->limit(8)
+            ->limit($recentUploadsLimit)
             ->get()
             ->map(fn (Thesis $thesis) => [
                 'id' => $thesis->id,
@@ -74,10 +80,29 @@ class AdminController extends Controller
                 'created_at' => optional($thesis->created_at)?->toISOString(),
             ]);
 
+        $recentActivityActions = [
+            'student.created',
+            'student.updated',
+            'student.deleted',
+            'faculty.created',
+            'faculty.updated',
+            'faculty.role_changed',
+            'faculty.status_changed',
+            'admin.user_created',
+            'admin.user_updated',
+            'admin.user_status_updated',
+            'thesis.submitted',
+            'thesis.approved',
+            'thesis.rejected',
+            'thesis.archived',
+            'thesis.uploaded',
+        ];
+
         $recentActivity = ActivityLog::query()
             ->with('user:id,name')
+            ->whereIn('action', $recentActivityActions)
             ->orderByDesc('created_at')
-            ->limit(6)
+            ->limit($recentActivityLimit)
             ->get()
             ->map(fn (ActivityLog $log) => [
                 'id' => $log->id,
@@ -126,6 +151,8 @@ class AdminController extends Controller
                     'revisions_needed' => $revisionsNeeded,
                     'monthly_growth_percentage' => $monthlyGrowth,
                 ],
+                'available_years' => collect(range($now->year, $minYear, -1))->values(),
+                'selected_year' => $selectedYear,
                 'monthly_submissions' => $monthlySubmissions,
                 'department_uploads' => $departmentUploads,
                 'recent_uploads' => $recentUploads,
@@ -161,11 +188,13 @@ class AdminController extends Controller
         $meta = is_array($log->meta) ? $log->meta : [];
 
         return match ($log->action) {
-            'auth.login' => 'User logged into the archive system',
             'student.created' => 'New student account created',
             'student.updated' => 'Student account updated',
+            'student.deleted' => 'Student account removed',
             'faculty.created' => 'New faculty account created',
             'faculty.updated' => 'Faculty account updated',
+            'faculty.role_changed' => 'Faculty role assignment updated',
+            'faculty.status_changed' => 'Faculty account status changed',
             'admin.user_created' => 'Admin created a user account',
             'admin.user_updated' => 'Admin updated a user account',
             'admin.user_status_updated' => 'Admin changed an account status',
@@ -173,6 +202,7 @@ class AdminController extends Controller
             'thesis.approved' => 'A thesis submission was approved',
             'thesis.rejected' => 'A thesis submission needs revision',
             'thesis.archived' => 'A thesis was archived',
+            'thesis.uploaded' => 'A thesis record was uploaded',
             default => filled($meta['identifier'] ?? null)
                 ? sprintf('Activity recorded for %s', (string) $meta['identifier'])
                 : str($log->action)->replace('.', ' ')->replace('_', ' ')->title()->toString(),
@@ -183,7 +213,7 @@ class AdminController extends Controller
     {
         return match ($action) {
             'thesis.approved', 'student.created', 'faculty.created', 'admin.user_created' => 'green',
-            'thesis.submitted', 'auth.login', 'student.updated', 'faculty.updated', 'admin.user_updated' => 'blue',
+            'thesis.submitted', 'thesis.uploaded', 'student.updated', 'faculty.updated', 'faculty.role_changed', 'admin.user_updated' => 'blue',
             'thesis.rejected', 'admin.user_status_updated' => 'orange',
             default => 'rose',
         };
@@ -203,7 +233,11 @@ class AdminController extends Controller
                 'student.programModel:id,name',
                 'student.sectionModel:id,name',
             ])
-            ->when(in_array($role, ['faculty', 'student'], true), fn ($query) => $query->where('role', $role))
+            ->when(
+                in_array($role, ['faculty', 'student'], true),
+                fn ($query) => $query->where('role', $role),
+                fn ($query) => $query->whereIn('role', ['faculty', 'student'])
+            )
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($searchQuery) use ($search) {
                     $searchQuery
@@ -222,19 +256,20 @@ class AdminController extends Controller
     public function storeUser(Request $request): JsonResponse
     {
         $validated = $request->validate($this->userValidationRules());
+        $isActive = $this->normalizeBooleanInput($validated['is_active'] ?? null, true);
 
-        $user = DB::transaction(function () use ($validated, $request) {
-            $user = User::create([
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'suffix' => $validated['suffix'] ?? null,
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['temporary_password']),
-                'role' => $validated['role'],
-                'is_active' => $validated['is_active'] ?? true,
-            ]);
+        $user = DB::transaction(function () use ($validated, $request, $isActive) {
+            $user = new User();
+            $user->first_name = $validated['first_name'];
+            $user->last_name = $validated['last_name'];
+            $user->suffix = $validated['suffix'] ?? null;
+            $user->email = $validated['email'];
+            $user->password = Hash::make($validated['temporary_password']);
+            $user->role = $validated['role'];
+            $user->save();
 
-            $this->upsertRoleProfile($user, $validated, $request->user()?->id);
+            $this->syncUserActiveState($user, $isActive);
+            $this->upsertRoleProfile($user, $validated, $request->user()?->id, $isActive);
 
             return $user->fresh()->load([
                 'faculty.college:id,name',
@@ -255,22 +290,19 @@ class AdminController extends Controller
     {
         $user = User::query()->with(['faculty', 'student'])->findOrFail($id);
         $validated = $request->validate($this->userValidationRules($user->id, false));
+        $isActive = $this->normalizeBooleanInput($validated['is_active'] ?? null, (bool) $user->is_active);
 
-        DB::transaction(function () use ($user, $validated, $request) {
-            $payload = [
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'suffix' => $validated['suffix'] ?? null,
-                'email' => $validated['email'],
-                'is_active' => $validated['is_active'] ?? $user->is_active,
-            ];
-
+        DB::transaction(function () use ($user, $validated, $request, $isActive) {
+            $user->first_name = $validated['first_name'];
+            $user->last_name = $validated['last_name'];
+            $user->suffix = $validated['suffix'] ?? null;
+            $user->email = $validated['email'];
             if (!empty($validated['temporary_password'])) {
-                $payload['password'] = Hash::make($validated['temporary_password']);
+                $user->password = Hash::make($validated['temporary_password']);
             }
-
-            $user->update($payload);
-            $this->upsertRoleProfile($user, $validated, $request->user()?->id);
+            $user->save();
+            $this->syncUserActiveState($user, $isActive);
+            $this->upsertRoleProfile($user, $validated, $request->user()?->id, $isActive);
         });
 
         $freshUser = $user->fresh()->load([
@@ -294,7 +326,7 @@ class AdminController extends Controller
         ]);
 
         $user = User::query()->findOrFail($id);
-        $user->update(['is_active' => $validated['is_active']]);
+        $this->syncUserActiveState($user, $this->normalizeBooleanInput($validated['is_active']));
 
         $this->logger->log($request->user(), 'admin.user_status_updated', 'user', $user->id, ['is_active' => $user->is_active]);
 
@@ -505,7 +537,7 @@ class AdminController extends Controller
         ];
     }
 
-    private function upsertRoleProfile(User $user, array $validated, ?string $actorId): void
+    private function upsertRoleProfile(User $user, array $validated, ?string $actorId, bool $isActive): void
     {
         if ($user->role === 'faculty') {
             $department = $this->resolveDepartmentName($validated['department_id'] ?? null, $validated['department'] ?? null);
@@ -521,7 +553,7 @@ class AdminController extends Controller
                     'department_id' => $validated['department_id'] ?? null,
                     'rank' => $validated['rank'] ?? null,
                     'faculty_role' => $validated['faculty_role'] ?? 'Faculty',
-                    'status' => ($validated['is_active'] ?? true) ? 'active' : 'inactive',
+                    'status' => $isActive ? 'active' : 'inactive',
                     'created_by' => $actorId,
                 ]
             );
@@ -594,6 +626,27 @@ class AdminController extends Controller
     private function generateStudentId(): string
     {
         return 'STU-' . now()->format('Y') . '-' . str_pad((string) (StudentProfile::query()->count() + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    private function normalizeBooleanInput(mixed $value, bool $default = false): bool
+    {
+        if ($value === null) {
+            return $default;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default;
+    }
+
+    private function syncUserActiveState(User $user, bool $isActive): void
+    {
+        User::query()
+            ->whereKey($user->id)
+            ->update([
+                'is_active' => DB::raw($isActive ? 'true' : 'false'),
+                'updated_at' => now(),
+            ]);
+
+        $user->forceFill(['is_active' => $isActive]);
     }
 
     private function resolveCollegeName(?string $collegeId, ?string $fallback, ?string $departmentId = null): ?string
