@@ -63,9 +63,7 @@ export default function SharedCategoryDetailView({ role }: Props) {
       <div className="vpaa-card vpaa-dashboard-panel">
         <div className="vpaa-dashboard-head">
           <span />
-          <span
-            className="inline-flex items-center rounded-full border border-[rgba(139,35,50,0.12)] bg-[rgba(139,35,50,0.06)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--maroon)]"
-          >
+          <span className="vpaa-theme-count-pill">
             {formatDocumentCount(theses.length)}
           </span>
         </div>

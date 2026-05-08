@@ -13,36 +13,64 @@ use Illuminate\Support\Collection;
 
 class SearchController extends Controller
 {
+    private const SUGGESTION_FIELDS = ['year', 'category', 'program'];
+
     public function search(Request $request): JsonResponse
     {
-        $q = $request->input('q', '');
+        $q = trim((string) $request->input('q', ''));
+        $filters = [
+            'year' => trim((string) $request->input('year', '')),
+            'category' => trim((string) $request->input('category', '')),
+            'program' => trim((string) $request->input('program', '')),
+            'department' => trim((string) $request->input('department', '')),
+        ];
+        $hasKeyword = mb_strlen($q) >= 2;
+        $hasFilters = collect($filters)->contains(fn (string $value) => $value !== '');
 
-        if (strlen(trim($q)) < 2) {
-            return response()->json(['results' => []]);
+        if (!$hasKeyword && !$hasFilters) {
+            return response()->json([
+                'results' => [
+                    'theses' => [],
+                    'users' => [],
+                ],
+            ]);
         }
 
         $searchDocument = "title || ' ' || COALESCE(abstract, '')";
 
-        $theses = Thesis::whereRaw(
-            "to_tsvector('english', {$searchDocument}) @@ plainto_tsquery('english', ?)",
-            [$q]
-        )
-        ->where('status', 'approved')
-        ->whereRaw('"is_archived" = true')
-        ->orderByRaw(
-            "ts_rank(
-               to_tsvector('english', {$searchDocument}),
-               plainto_tsquery('english', ?)
-             ) DESC",
-            [$q]
-        )
-        ->limit(20)
-        ->with(['submitter:id,name', 'category:id,name'])
-        ->get();
+        $thesisQuery = Thesis::query()
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true');
 
-        $users = $this->searchUsers($request->user(), $q);
+        if ($hasKeyword) {
+            $thesisQuery
+                ->whereRaw(
+                    "to_tsvector('english', {$searchDocument}) @@ plainto_tsquery('english', ?)",
+                    [$q]
+                )
+                ->orderByRaw(
+                    "ts_rank(
+                       to_tsvector('english', {$searchDocument}),
+                       plainto_tsquery('english', ?)
+                     ) DESC",
+                    [$q]
+                );
+        } else {
+            $thesisQuery
+                ->orderByDesc('approved_at')
+                ->orderByDesc('created_at');
+        }
 
-        $this->storeSearchLogs($request, $q, $theses);
+        $this->applyThesisFilters($thesisQuery, $filters);
+
+        $theses = $thesisQuery
+            ->limit(20)
+            ->with(['submitter:id,name', 'category:id,name,slug'])
+            ->get();
+
+        $users = $hasKeyword && !$hasFilters ? $this->searchUsers($request->user(), $q) : collect();
+
+        $this->storeSearchLogs($request, $this->formatSearchLogQuery($q, $filters), $theses);
 
         return response()->json([
             'results' => [
@@ -50,6 +78,34 @@ class SearchController extends Controller
                 'users' => $users,
             ],
         ]);
+    }
+
+    public function filterOptions(): JsonResponse
+    {
+        return response()->json([
+            'years' => $this->suggestYears(''),
+            'categories' => $this->suggestCategories(''),
+            'programs' => $this->suggestPrograms(''),
+            'departments' => $this->suggestDepartments(''),
+        ]);
+    }
+
+    public function suggestions(Request $request): JsonResponse
+    {
+        $field = trim((string) $request->input('field', ''));
+        $query = mb_strtolower(trim((string) $request->input('q', '')));
+
+        if (!in_array($field, self::SUGGESTION_FIELDS, true)) {
+            return response()->json(['suggestions' => []]);
+        }
+
+        $suggestions = match ($field) {
+            'year' => $this->suggestYears($query),
+            'category' => $this->suggestCategories($query),
+            'program' => $this->suggestPrograms($query),
+        };
+
+        return response()->json(['suggestions' => $suggestions]);
     }
 
     public function click(Request $request): JsonResponse
@@ -187,6 +243,163 @@ class SearchController extends Controller
                 ],
             ];
         })->values();
+    }
+
+    private function suggestYears(string $query): array
+    {
+        $schoolYears = Thesis::query()
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->whereNotNull('school_year')
+            ->when($query !== '', fn ($thesisQuery) => $thesisQuery->whereRaw('LOWER(school_year) LIKE ?', ["%{$query}%"]))
+            ->distinct()
+            ->orderByDesc('school_year')
+            ->limit(12)
+            ->pluck('school_year');
+
+        $calendarYears = Thesis::query()
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->selectRaw("COALESCE(EXTRACT(YEAR FROM approved_at), EXTRACT(YEAR FROM created_at))::text as year")
+            ->whereRaw('COALESCE(approved_at, created_at) IS NOT NULL')
+            ->when($query !== '', fn ($thesisQuery) => $thesisQuery->whereRaw("COALESCE(EXTRACT(YEAR FROM approved_at), EXTRACT(YEAR FROM created_at))::text LIKE ?", ["%{$query}%"]))
+            ->distinct()
+            ->orderByDesc('year')
+            ->limit(12)
+            ->pluck('year');
+
+        return $schoolYears
+            ->merge($calendarYears)
+            ->map(fn ($year) => trim((string) $year))
+            ->filter()
+            ->unique()
+            ->take(12)
+            ->values()
+            ->all();
+    }
+
+    private function suggestCategories(string $query): array
+    {
+        return Category::query()
+            ->when($query !== '', function ($categoryQuery) use ($query) {
+                $categoryQuery
+                    ->whereRaw('LOWER(name) LIKE ?', ["%{$query}%"])
+                    ->orWhereRaw('LOWER(COALESCE(slug, \'\')) LIKE ?', ["%{$query}%"]);
+            })
+            ->orderBy('name')
+            ->limit(12)
+            ->pluck('name')
+            ->map(fn ($category) => trim((string) $category))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function suggestPrograms(string $query): array
+    {
+        return Thesis::query()
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->whereNotNull('program')
+            ->when($query !== '', fn ($thesisQuery) => $thesisQuery->whereRaw('LOWER(program) LIKE ?', ["%{$query}%"]))
+            ->distinct()
+            ->orderBy('program')
+            ->limit(12)
+            ->pluck('program')
+            ->map(fn ($program) => trim((string) $program))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function suggestDepartments(string $query): array
+    {
+        return Thesis::query()
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->whereNotNull('department')
+            ->when($query !== '', fn ($thesisQuery) => $thesisQuery->whereRaw('LOWER(department) LIKE ?', ["%{$query}%"]))
+            ->distinct()
+            ->orderBy('department')
+            ->limit(20)
+            ->pluck('department')
+            ->map(fn ($department) => trim((string) $department))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function applyThesisFilters($queryBuilder, array $filters): void
+    {
+        if ($filters['year'] !== '') {
+            $year = $filters['year'];
+            $yearLike = '%' . mb_strtolower($year) . '%';
+
+            $queryBuilder->where(function ($yearQuery) use ($year, $yearLike) {
+                if (preg_match('/^\d{4}$/', $year)) {
+                    $yearQuery
+                        ->whereYear('approved_at', $year)
+                        ->orWhereYear('created_at', $year);
+                }
+
+                $yearQuery->orWhereRaw('LOWER(COALESCE(school_year, \'\')) LIKE ?', [$yearLike]);
+            });
+        }
+
+        if ($filters['program'] !== '') {
+            $programLike = '%' . mb_strtolower($filters['program']) . '%';
+
+            $queryBuilder->whereRaw('LOWER(COALESCE(program, \'\')) LIKE ?', [$programLike]);
+        }
+
+        if ($filters['department'] !== '') {
+            $departmentLike = '%' . mb_strtolower($filters['department']) . '%';
+
+            $queryBuilder->whereRaw('LOWER(COALESCE(department, \'\')) LIKE ?', [$departmentLike]);
+        }
+
+        if ($filters['category'] !== '') {
+            $categoryLike = '%' . mb_strtolower($filters['category']) . '%';
+            $categoryIds = Category::query()
+                ->where(function ($categoryQuery) use ($categoryLike) {
+                    $categoryQuery
+                        ->whereRaw('LOWER(name) LIKE ?', [$categoryLike])
+                        ->orWhereRaw('LOWER(COALESCE(slug, \'\')) LIKE ?', [$categoryLike]);
+                })
+                ->pluck('id')
+                ->values();
+
+            if ($categoryIds->isEmpty()) {
+                $queryBuilder->whereRaw('1 = 0');
+
+                return;
+            }
+
+            $queryBuilder->where(function ($categoryQuery) use ($categoryIds) {
+                $categoryQuery->whereIn('category_id', $categoryIds);
+
+                foreach ($categoryIds as $categoryId) {
+                    $categoryQuery->orWhereJsonContains('category_ids', $categoryId);
+                }
+            });
+        }
+    }
+
+    private function formatSearchLogQuery(string $query, array $filters): string
+    {
+        $parts = [];
+
+        if (mb_strlen($query) >= 2) {
+            $parts[] = $query;
+        }
+
+        foreach (['year' => 'Year', 'category' => 'Category', 'program' => 'Program', 'department' => 'Department'] as $key => $label) {
+            if (($filters[$key] ?? '') !== '') {
+                $parts[] = "{$label}: {$filters[$key]}";
+            }
+        }
+
+        return implode(' | ', $parts);
     }
 
     private function storeSearchLogs(Request $request, string $query, $results): void

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpenText, CalendarDays, Download, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, BookOpenText, CalendarDays, Download, Eye, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
+import { createWatermarkedThesisPdfBlob, getWatermarkedPdfFileName } from '../../utils/watermarkedPdf';
 import ThesisArchiveCover from './ThesisArchiveCover';
 
 type SharedThesisDetailsPageProps = {
@@ -67,7 +68,8 @@ export default function SharedThesisDetailsPage({
   const [thesis, setThesis] = useState<Thesis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [downloadingManuscript, setDownloadingManuscript] = useState(false);
+  const [openingManuscript, setOpeningManuscript] = useState(false);
+  const [downloadingWatermarkedManuscript, setDownloadingWatermarkedManuscript] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -116,43 +118,89 @@ export default function SharedThesisDetailsPage({
   const thesisCategories = thesis?.categories?.length
     ? thesis.categories.slice(0, 5)
     : (thesis?.category ? [thesis.category] : []);
-  const canDownloadManuscript = (role === 'vpaa' || role === 'faculty') && Boolean(thesis?.file_url);
-  const manuscriptActionLabel = downloadingManuscript ? 'Opening...' : 'View Manuscript';
+  const hasManuscript = Boolean(thesis?.file_url);
+  const canViewManuscript = hasManuscript;
+  const canDownloadWatermarkedManuscript = role === 'student' && hasManuscript;
+  const manuscriptActionLabel = openingManuscript ? 'Opening...' : 'View Thesis';
+  const watermarkedDownloadLabel = downloadingWatermarkedManuscript ? 'Preparing...' : 'Download PDF';
 
-  const handleDownloadManuscript = async () => {
-    if (!thesis?.id || !thesis.file_url || !canDownloadManuscript) {
+  const createStudentWatermarkedManuscript = async () => {
+    if (!thesis?.id) {
+      throw new Error('No manuscript is available right now.');
+    }
+
+    const manuscriptBlob = await thesisService.getManuscriptPdfBlob(thesis.id);
+    return createWatermarkedThesisPdfBlob(manuscriptBlob);
+  };
+
+  const handleViewManuscript = async () => {
+    if (!thesis?.id || !thesis.file_url || !canViewManuscript) {
+      setError('No manuscript is available to view yet.');
+      return;
+    }
+
+    const previewWindow = window.open('', '_blank');
+
+    if (!previewWindow) {
+      setError('Popup blocked while opening the manuscript. Please allow popups and try again.');
+      return;
+    }
+
+    previewWindow.document.title = thesis.file_name || thesis.title || 'Opening manuscript...';
+    previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening manuscript...</p>';
+
+    setError('');
+    setOpeningManuscript(true);
+
+    try {
+      if (role === 'student') {
+        const watermarkedBlob = await createStudentWatermarkedManuscript();
+        const watermarkedUrl = URL.createObjectURL(watermarkedBlob);
+        previewWindow.location.replace(watermarkedUrl);
+        return;
+      }
+
+      const signedUrl = await thesisService.getManuscriptAccessUrl(thesis.id);
+      if (!signedUrl) {
+        throw new Error('Unable to open the manuscript right now.');
+      }
+
+      previewWindow.location.replace(signedUrl);
+    } catch (err) {
+      previewWindow.document.title = 'Unable to open manuscript';
+      previewWindow.document.body.innerHTML = `<p style="font-family: Arial, sans-serif; padding: 24px;">${
+        err instanceof Error ? err.message : 'Unable to open the manuscript right now.'
+      }</p>`;
+      setError(err instanceof Error ? err.message : 'Unable to open the manuscript right now.');
+    } finally {
+      setOpeningManuscript(false);
+    }
+  };
+
+  const handleDownloadWatermarkedManuscript = async () => {
+    if (!thesis?.id || !thesis.file_url || !canDownloadWatermarkedManuscript) {
       setError('No manuscript is available for download yet.');
       return;
     }
 
     setError('');
-    setDownloadingManuscript(true);
+    setDownloadingWatermarkedManuscript(true);
 
     try {
-      const signedUrl = await thesisService.getManuscriptAccessUrl(thesis.id);
+      const watermarkedBlob = await createStudentWatermarkedManuscript();
+      const watermarkedUrl = URL.createObjectURL(watermarkedBlob);
+      const link = document.createElement('a');
 
-      if (!signedUrl) {
-        throw new Error('Unable to download the manuscript right now.');
-      }
-
-      if (role === 'faculty' || role === 'vpaa') {
-        const previewWindow = window.open('', '_blank');
-
-        if (!previewWindow) {
-          throw new Error('Popup blocked while opening the manuscript. Please allow popups and try again.');
-        }
-
-        previewWindow.document.title = thesis.file_name || thesis.title || 'Opening manuscript...';
-        previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening manuscript...</p>';
-        previewWindow.location.replace(signedUrl);
-        return;
-      }
-
-      throw new Error('Unable to open the manuscript right now.');
+      link.href = watermarkedUrl;
+      link.download = getWatermarkedPdfFileName(thesis.file_name || thesis.title || 'thesis.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(watermarkedUrl), 30_000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to open the manuscript right now.');
+      setError(err instanceof Error ? err.message : 'Unable to download the watermarked manuscript right now.');
     } finally {
-      setDownloadingManuscript(false);
+      setDownloadingWatermarkedManuscript(false);
     }
   };
 
@@ -195,18 +243,32 @@ export default function SharedThesisDetailsPage({
                 <div className="student-submission-hero-copy">
                   <div className="student-submission-hero-title-row">
                     <h2>{thesis.title}</h2>
-                    {canDownloadManuscript ? (
+                  </div>
+
+                  {canViewManuscript ? (
+                    <div className="thesis-details-manuscript-actions">
                       <button
                         type="button"
                         className="student-submissions-secondary thesis-details-download-button"
-                        onClick={() => void handleDownloadManuscript()}
-                        disabled={downloadingManuscript}
+                        onClick={() => void handleViewManuscript()}
+                        disabled={openingManuscript || downloadingWatermarkedManuscript}
                       >
-                        <Download size={16} />
+                        <Eye size={16} />
                         <span>{manuscriptActionLabel}</span>
                       </button>
-                    ) : null}
-                  </div>
+                      {canDownloadWatermarkedManuscript ? (
+                        <button
+                          type="button"
+                          className="student-submissions-secondary thesis-details-download-button"
+                          onClick={() => void handleDownloadWatermarkedManuscript()}
+                          disabled={openingManuscript || downloadingWatermarkedManuscript}
+                        >
+                          <Download size={16} />
+                          <span>{watermarkedDownloadLabel}</span>
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div className="student-submission-meta-row">
                     {metadata.map((item) => (

@@ -11,22 +11,24 @@ import {
   Menu,
   MessageSquare,
   MoonStar,
-  Search,
   Shapes,
   SunMedium,
   Upload,
   User,
   FolderOpen,
 } from 'lucide-react';
-import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { useBookThemeCssVariables } from '../../hooks/useBookThemeCssVariables';
 import { useNotificationChannel } from '../../hooks/useNotificationChannel';
 import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
 import { aiService } from '../../services/aiService';
 import ChatMessageContent from '../chats/ChatMessageContent';
 import BrandMarkIcon from '../BrandMarkIcon';
+import BookColorThemePicker from '../BookColorThemePicker';
+import TopbarSearchWithFilters from '../search/TopbarSearchWithFilters';
 import type { AppNotification } from '../../types/notification.types';
 import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import '../../styles/vpaa-shell.css';
@@ -56,9 +58,9 @@ const formatDate = (date: Date) =>
 export default function StudentLayout({ title, description, children, hidePageIntro = false }: Props) {
   const { user, confirmAndLogout } = useAuth();
   const { theme, toggle } = useTheme();
+  const bookThemeStyle = useBookThemeCssVariables(theme);
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -66,9 +68,10 @@ export default function StudentLayout({ title, description, children, hidePageIn
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
+  const [chatIntroTyping, setChatIntroTyping] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
+  const chatIntroTimerRef = useRef<number | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
   const notifications = useNotificationStore((state) => state.notifications);
@@ -120,13 +123,15 @@ export default function StudentLayout({ title, description, children, hidePageIn
   }, [location.pathname]);
 
   useEffect(() => {
-    setSearchQuery(searchParams.get('q') ?? '');
-  }, [searchParams]);
-
-  useEffect(() => {
     if (!chatMessagesRef.current) return;
     chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-  }, [chatMessages, chatOpen]);
+  }, [chatMessages, chatOpen, chatIntroTyping]);
+
+  useEffect(() => () => {
+    if (chatIntroTimerRef.current) {
+      window.clearTimeout(chatIntroTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -159,9 +164,20 @@ export default function StudentLayout({ title, description, children, hidePageIn
     setSidebarCollapsed((current) => !current);
   };
 
+  const showInitialChatGreeting = () => {
+    if (chatIntroTimerRef.current) return;
+
+    setChatIntroTyping(true);
+    chatIntroTimerRef.current = window.setTimeout(() => {
+      chatIntroTimerRef.current = null;
+      setChatIntroTyping(false);
+      setChatMessages((current) => current.length ? current : [{ id: 'bot-1', type: 'bot', text: CHATBOT_GREETING }]);
+    }, 900);
+  };
+
   const handleChatSubmit = async (message: string) => {
     const trimmed = message.trim();
-    if (!trimmed || chatSending) return;
+    if (!trimmed || chatSending || chatIntroTyping) return;
 
     setChatMessages((current) => [
       ...current,
@@ -224,15 +240,6 @@ export default function StudentLayout({ title, description, children, hidePageIn
     }
   };
 
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const trimmed = searchQuery.trim();
-    if (trimmed.length < 2) return;
-
-    navigate(`/student/search?q=${encodeURIComponent(trimmed)}`);
-  };
-
   return (
     <div
       className={[
@@ -241,6 +248,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
         sidebarCollapsed ? 'sidebar-collapsed' : '',
         sidebarOpen ? 'sidebar-open' : '',
       ].filter(Boolean).join(' ')}
+      style={bookThemeStyle}
       onClick={() => {
         setNotifOpen(false);
         setProfileOpen(false);
@@ -277,15 +285,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
             <button type="button" className="vpaa-hamburger-btn" onClick={toggleSidebar} aria-label="Toggle navigation menu">
               <Menu size={18} />
             </button>
-            <form className="vpaa-search-bar" onSubmit={handleSearchSubmit}>
-              <Search size={18} />
-              <input
-                type="text"
-                placeholder="Search the thesis archive, categories, or records..."
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-              />
-            </form>
+            <TopbarSearchWithFilters basePath="/student" />
           </div>
 
           <div className="vpaa-topbar-right">
@@ -376,12 +376,15 @@ export default function StudentLayout({ title, description, children, hidePageIn
         </header>
 
         <section className={`vpaa-content${hidePageIntro ? ' vpaa-content-workspace' : ''}`}>
-          {!hidePageIntro ? (
-            <div className="vpaa-page-intro">
-              <h1>{title}</h1>
-              <p>{description}</p>
-            </div>
-          ) : null}
+          <div className={`vpaa-page-toolbar${hidePageIntro ? ' vpaa-page-toolbar-only' : ''}`}>
+            {!hidePageIntro ? (
+              <div className="vpaa-page-intro">
+                <h1>{title}</h1>
+                <p>{description}</p>
+              </div>
+            ) : null}
+            <BookColorThemePicker />
+          </div>
           {children}
         </section>
       </main>
@@ -401,7 +404,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
                 <ChatMessageContent text={message.text} variant={message.type} />
               </div>
             ))}
-            {chatSending ? (
+            {chatSending || chatIntroTyping ? (
               <div className="vpaa-chat-bubble other typing" aria-label="Chatbot is typing" aria-live="polite">
                 <span className="vpaa-chat-typing-dot" />
                 <span className="vpaa-chat-typing-dot" />
@@ -413,8 +416,8 @@ export default function StudentLayout({ title, description, children, hidePageIn
             event.preventDefault();
             void handleChatSubmit(chatInput);
           }}>
-            <input className="vpaa-ai-chatbot-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Type your question..." disabled={chatSending} />
-            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending}><ChevronRight size={18} /></button>
+            <input className="vpaa-ai-chatbot-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Type your question..." disabled={chatSending || chatIntroTyping} />
+            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending || chatIntroTyping}><ChevronRight size={18} /></button>
           </form>
         </div>
       </div>
@@ -422,7 +425,7 @@ export default function StudentLayout({ title, description, children, hidePageIn
       <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open Archie chatbot" onClick={(event) => {
         event.stopPropagation();
         if (!chatOpen) {
-          setChatMessages((current) => current.length ? current : [{ id: 'bot-1', type: 'bot', text: CHATBOT_GREETING }]);
+          if (!chatMessages.length) showInitialChatGreeting();
         }
         setChatOpen((current) => !current);
       }}>

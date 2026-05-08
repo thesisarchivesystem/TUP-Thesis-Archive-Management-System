@@ -5,7 +5,8 @@
 /.idea
 /.vscode
 /storage
-/bootstrap/cache
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
 .DS_Store
 thumbs.db
 *.log

@@ -316,6 +316,7 @@ export default function Homepage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
+  const [chatIntroTyping, setChatIntroTyping] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatIntroText, setChatIntroText] = useState('');
   const [showChatPreview, setShowChatPreview] = useState(false);
@@ -323,6 +324,7 @@ export default function Homepage() {
   const chatPanelRef = useRef<HTMLDivElement | null>(null);
   const chatFabRef = useRef<HTMLButtonElement | null>(null);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
+  const chatIntroTimerRef = useRef<number | null>(null);
   const chatDragRef = useRef<ChatDragState | null>(null);
   const suppressFabClickRef = useRef(false);
 
@@ -499,7 +501,13 @@ export default function Homepage() {
     if (chatMessagesRef.current) {
       chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
-  }, [messages, isChatOpen, chatIntroText]);
+  }, [messages, isChatOpen, chatIntroText, chatIntroTyping]);
+
+  useEffect(() => () => {
+    if (chatIntroTimerRef.current) {
+      window.clearTimeout(chatIntroTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     setShowChatPreview(true);
@@ -512,7 +520,6 @@ export default function Homepage() {
 
       if (index >= CHATBOT_GREETING.length) {
         window.clearInterval(typingTimer);
-        setMessages((current) => current.length ? current : [{ type: 'bot', text: CHATBOT_GREETING }]);
       }
     }, CHATBOT_TYPING_SPEED);
 
@@ -529,9 +536,20 @@ export default function Homepage() {
     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const showInitialChatGreeting = () => {
+    if (chatIntroTimerRef.current) return;
+
+    setChatIntroTyping(true);
+    chatIntroTimerRef.current = window.setTimeout(() => {
+      chatIntroTimerRef.current = null;
+      setChatIntroTyping(false);
+      setMessages((current) => current.length ? current : [{ type: 'bot', text: CHATBOT_GREETING }]);
+    }, 900);
+  };
+
   const handleChat = async (message: string) => {
     const trimmedMessage = message.trim();
-    if (!trimmedMessage || chatSending) return;
+    if (!trimmedMessage || chatSending || chatIntroTyping) return;
     setMessages((current) => [...current, { type: 'user', text: trimmedMessage }]);
     setChatInput('');
     setChatSending(true);
@@ -813,7 +831,7 @@ export default function Homepage() {
                 <ChatMessageContent text={message.text} variant={message.type} />
               </div>
             ))}
-            {chatSending ? (
+            {chatSending || chatIntroTyping ? (
               <div className="vpaa-chat-bubble other typing" aria-label="Chatbot is typing" aria-live="polite">
                 <span className="vpaa-chat-typing-dot" />
                 <span className="vpaa-chat-typing-dot" />
@@ -836,9 +854,9 @@ export default function Homepage() {
               onChange={(event) => setChatInput(event.target.value)}
               placeholder="Type your question..."
               aria-label="Chat message"
-              disabled={chatSending}
+              disabled={chatSending || chatIntroTyping}
             />
-            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending}>
+            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending || chatIntroTyping}>
               <SendIcon />
             </button>
           </form>
@@ -885,7 +903,7 @@ export default function Homepage() {
             setChatPosition((current) => clampChatPosition(current));
             setShowChatPreview(false);
             setChatIntroText(CHATBOT_GREETING);
-            setMessages((current) => current.length ? current : [{ type: 'bot', text: CHATBOT_GREETING }]);
+            if (!messages.length) showInitialChatGreeting();
           }
           setIsChatOpen((current) => !current);
         }}

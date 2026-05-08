@@ -1,8 +1,13 @@
+import type { CSSProperties } from 'react';
+import { getBookColorTheme, useBookThemeStore } from '../../store/bookThemeStore';
+
 type ThesisCoverCategory = {
   id?: string;
   name: string;
   slug?: string;
 };
+
+type ThesisCoverStyle = CSSProperties & Record<`--${string}`, string>;
 
 type ThesisArchiveCoverProps = {
   title: string;
@@ -37,9 +42,25 @@ export default function ThesisArchiveCover({
 }: ThesisArchiveCoverProps) {
   const visibleCategories = categories.filter((category) => category?.name).slice(0, 5);
   const authorLine = formatAuthorLine(author, authors);
+  const selectedThemeId = useBookThemeStore((state) => state.themeId);
+  const customColor = useBookThemeStore((state) => state.customColor);
+  const bookTheme = getBookColorTheme(selectedThemeId, customColor);
+  const coverStyle: ThesisCoverStyle = {
+    '--thesis-cover-page': bookTheme.page,
+    '--thesis-cover-panel': bookTheme.panel,
+    '--thesis-cover-spine': bookTheme.spine,
+    '--thesis-cover-footer': bookTheme.footer,
+    '--thesis-cover-line': bookTheme.line,
+    '--thesis-cover-text': bookTheme.text,
+    '--thesis-cover-meta': bookTheme.meta,
+    '--thesis-cover-footer-text': bookTheme.footerText,
+    '--thesis-cover-footer-subtext': bookTheme.footerSubtext,
+    '--thesis-cover-pill-bg': bookTheme.pillBg,
+    '--thesis-cover-pill-text': bookTheme.pillText,
+  };
 
   return (
-    <div className={`thesis-archive-cover${compact ? ' compact' : ''} ${className}`.trim()}>
+    <div className={`thesis-archive-cover${compact ? ' compact' : ''} ${className}`.trim()} style={coverStyle}>
       <div className="thesis-archive-cover-book">
         <div className="thesis-archive-cover-spine" aria-hidden="true" />
         <div className="thesis-archive-cover-inner">

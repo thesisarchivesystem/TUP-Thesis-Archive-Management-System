@@ -17,6 +17,7 @@ use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -25,6 +26,8 @@ use Illuminate\Validation\Rule;
 
 class FacultyController extends Controller
 {
+    private const DASHBOARD_THESIS_CACHE_SECONDS = 60;
+
     private const FACULTY_ACTIVITY_ACTIONS = [
         'thesis.approved',
         'thesis.rejected',
@@ -750,28 +753,15 @@ class FacultyController extends Controller
         $user = $request->user();
 
         $assignedStudents = StudentProfile::where('adviser_id', $user->id)->count();
-        $pendingReviews = Thesis::whereIn('status', ['pending', 'under_review'])
+        $thesisStats = Thesis::query()
             ->where('adviser_id', $user->id)
-            ->count();
-        $approvedThesis = Thesis::where('status', 'approved')
-            ->whereRaw('"is_archived" = true')
-            ->where('adviser_id', $user->id)
-            ->count();
-        $rejectedThesis = Thesis::where('status', 'rejected')
-            ->where('adviser_id', $user->id)
-            ->count();
-        $totalSubmissions = Thesis::where('adviser_id', $user->id)->count();
+            ->selectRaw('COUNT(*) as total_submissions')
+            ->selectRaw("SUM(CASE WHEN status IN ('pending', 'under_review') THEN 1 ELSE 0 END) as pending_reviews")
+            ->selectRaw('SUM(CASE WHEN status = \'approved\' AND "is_archived" = true THEN 1 ELSE 0 END) as approved_thesis')
+            ->selectRaw("SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_thesis")
+            ->first();
 
-        $recentTheses = Thesis::query()
-            ->where('status', 'approved')
-            ->whereRaw('"is_archived" = true')
-            ->with(['submitter:id,name', 'category:id,name'])
-            ->orderByDesc('archived_at')
-            ->orderByDesc('updated_at')
-            ->orderByDesc('created_at')
-            ->limit(24)
-            ->get()
-            ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis));
+        $recentTheses = $this->recentDashboardTheses();
 
         $topSearches = $this->resolveTopSearches();
 
@@ -780,15 +770,58 @@ class FacultyController extends Controller
         return response()->json([
             'stats' => [
                 'assigned_students' => $assignedStudents,
-                'pending_reviews' => $pendingReviews,
-                'approved_thesis' => $approvedThesis,
-                'rejected_thesis' => $rejectedThesis,
-                'total_submissions' => $totalSubmissions,
+                'pending_reviews' => (int) ($thesisStats?->pending_reviews ?? 0),
+                'approved_thesis' => (int) ($thesisStats?->approved_thesis ?? 0),
+                'rejected_thesis' => (int) ($thesisStats?->rejected_thesis ?? 0),
+                'total_submissions' => (int) ($thesisStats?->total_submissions ?? 0),
             ],
             'recent_theses' => $recentTheses,
             'top_searches' => $topSearches,
             'daily_quote' => $quote,
         ]);
+    }
+
+    private function recentDashboardTheses(): array
+    {
+        return Cache::remember('dashboard:recent-theses:v2', self::DASHBOARD_THESIS_CACHE_SECONDS, function () {
+            $recentThesisModels = Thesis::query()
+                ->select($this->dashboardThesisColumns())
+                ->where('status', 'approved')
+                ->whereRaw('"is_archived" = true')
+                ->with(['submitter:id,name', 'category:id,name,slug'])
+                ->orderByDesc('archived_at')
+                ->orderByDesc('updated_at')
+                ->orderByDesc('created_at')
+                ->limit(24)
+                ->get();
+
+            $recentCategories = $this->preloadCategorySummaries($recentThesisModels);
+
+            return $recentThesisModels
+                ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis, $recentCategories))
+                ->values()
+                ->all();
+        });
+    }
+
+    private function dashboardThesisColumns(): array
+    {
+        return [
+            'id',
+            'title',
+            'abstract',
+            'authors',
+            'department',
+            'program',
+            'category_id',
+            'category_ids',
+            'submitted_by',
+            'view_count',
+            'approved_at',
+            'archived_at',
+            'updated_at',
+            'created_at',
+        ];
     }
 
     public function advisees(Request $request): JsonResponse
@@ -876,9 +909,9 @@ class FacultyController extends Controller
         ]);
     }
 
-    private function formatDashboardThesis(Thesis $thesis): array
+    private function formatDashboardThesis(Thesis $thesis, ?\Illuminate\Support\Collection $categoriesById = null): array
     {
-        $categories = $this->resolveCategorySummaries($thesis);
+        $categories = $this->resolveCategorySummaries($thesis, $categoriesById);
 
         return [
             'id' => $thesis->id,
@@ -902,21 +935,15 @@ class FacultyController extends Controller
         ];
     }
 
-    private function resolveCategorySummaries(Thesis $thesis): array
+    private function resolveCategorySummaries(Thesis $thesis, ?\Illuminate\Support\Collection $categoriesById = null): array
     {
-        $categoryIds = collect($thesis->category_ids ?? [])
-            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
-            ->values();
-
-        if ($categoryIds->isEmpty() && $thesis->category_id) {
-            $categoryIds = collect([$thesis->category_id]);
-        }
+        $categoryIds = $this->resolveCategoryIds($thesis);
 
         if ($categoryIds->isEmpty()) {
             return [];
         }
 
-        $categories = Category::query()
+        $categories = $categoriesById ?? Category::query()
             ->whereIn('id', $categoryIds)
             ->get(['id', 'name', 'slug'])
             ->keyBy('id');
@@ -931,6 +958,36 @@ class FacultyController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function preloadCategorySummaries(\Illuminate\Support\Collection $theses): \Illuminate\Support\Collection
+    {
+        $categoryIds = $theses
+            ->flatMap(fn (Thesis $thesis) => $this->resolveCategoryIds($thesis))
+            ->unique()
+            ->values();
+
+        if ($categoryIds->isEmpty()) {
+            return collect();
+        }
+
+        return Category::query()
+            ->whereIn('id', $categoryIds)
+            ->get(['id', 'name', 'slug'])
+            ->keyBy('id');
+    }
+
+    private function resolveCategoryIds(Thesis $thesis): \Illuminate\Support\Collection
+    {
+        $categoryIds = collect($thesis->category_ids ?? [])
+            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
+            ->values();
+
+        if ($categoryIds->isEmpty() && $thesis->category_id) {
+            return collect([$thesis->category_id]);
+        }
+
+        return $categoryIds;
     }
 
     private function formatFacultyProfile(FacultyProfile $profile, int $adviseeCount): array
@@ -1024,33 +1081,39 @@ class FacultyController extends Controller
 
     private function resolveTopSearches()
     {
-        $topThesisIds = SearchLog::query()
-            ->whereNotNull('thesis_id')
-            ->whereNotNull('clicked_at')
-            ->select('thesis_id')
-            ->selectRaw('COUNT(*) as click_hits')
-            ->groupBy('thesis_id')
-            ->orderByDesc('click_hits')
-            ->limit(24)
-            ->pluck('thesis_id');
+        return Cache::remember('dashboard:top-searches:v2', self::DASHBOARD_THESIS_CACHE_SECONDS, function () {
+            $topThesisIds = SearchLog::query()
+                ->whereNotNull('thesis_id')
+                ->whereNotNull('clicked_at')
+                ->select('thesis_id')
+                ->selectRaw('COUNT(*) as click_hits')
+                ->groupBy('thesis_id')
+                ->orderByDesc('click_hits')
+                ->limit(24)
+                ->pluck('thesis_id');
 
-        if ($topThesisIds->isEmpty()) {
-            return collect();
-        }
+            if ($topThesisIds->isEmpty()) {
+                return [];
+            }
 
-        $theses = Thesis::query()
-            ->where('status', 'approved')
-            ->whereRaw('"is_archived" = true')
-            ->whereIn('id', $topThesisIds)
-            ->with(['submitter:id,name', 'category:id,name'])
-            ->get()
-            ->keyBy('id');
+            $theses = Thesis::query()
+                ->select($this->dashboardThesisColumns())
+                ->where('status', 'approved')
+                ->whereRaw('"is_archived" = true')
+                ->whereIn('id', $topThesisIds)
+                ->with(['submitter:id,name', 'category:id,name,slug'])
+                ->get()
+                ->keyBy('id');
 
-        return $topThesisIds
-            ->map(fn (string $id) => $theses->get($id))
-            ->filter()
-            ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis))
-            ->values();
+            $topCategories = $this->preloadCategorySummaries($theses->values());
+
+            return $topThesisIds
+                ->map(fn (string $id) => $theses->get($id))
+                ->filter()
+                ->map(fn (Thesis $thesis) => $this->formatDashboardThesis($thesis, $topCategories))
+                ->values()
+                ->all();
+        });
     }
 
     private function generateNextStudentId(): string

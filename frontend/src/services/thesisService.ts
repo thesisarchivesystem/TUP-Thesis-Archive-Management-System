@@ -177,4 +177,18 @@ export const thesisService = {
     const { data } = await api.get<{ data?: { url?: string } }>(`/thesis/${id}/manuscript`);
     return data.data?.url ?? null;
   },
+
+  async getManuscriptPdfBlob(id: string) {
+    const response = await api.get<ArrayBuffer>(`/thesis/${id}/manuscript`, {
+      params: { stream: 1 },
+      responseType: 'arraybuffer',
+      headers: {
+        Accept: 'application/pdf',
+      },
+    });
+
+    return new Blob([response.data], {
+      type: response.headers['content-type'] || 'application/pdf',
+    });
+  },
 };
