@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FacultyProfile extends Model
 {
@@ -16,6 +17,8 @@ class FacultyProfile extends Model
         'faculty_id',
         'department',
         'college',
+        'college_id',
+        'department_id',
         'rank',
         'faculty_role',
         'assigned_chair_id',
@@ -27,6 +30,16 @@ class FacultyProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function college(): BelongsTo
+    {
+        return $this->belongsTo(College::class, 'college_id');
+    }
+
+    public function departmentModel(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
     }
 
     public function assignedChair(): BelongsTo

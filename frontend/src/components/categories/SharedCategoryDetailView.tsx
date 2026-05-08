@@ -6,8 +6,10 @@ import { vpaaCategoriesService } from '../../services/vpaaCategoriesService';
 import type { UserRole } from '../../types/user.types';
 import DashboardCollectionPageHeader from '../dashboard/DashboardCollectionPageHeader';
 
+type ArchiveRole = Exclude<UserRole, 'admin'>;
+
 type Props = {
-  role: UserRole;
+  role: ArchiveRole;
 };
 
 const formatDocumentCount = (count: number) => `${count}+ document${count === 1 ? '' : 's'}`;
