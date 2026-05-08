@@ -125,13 +125,6 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
   const handleClearFilters = () => {
     setFilters(emptyFilters);
     setIsFilterOpen(false);
-
-    if (searchQuery.trim().length >= 2) {
-      navigateToSearch(searchQuery, emptyFilters);
-      return;
-    }
-
-    navigate(`${basePath}/search`);
   };
 
   const renderFilterField = (field: keyof SearchFilters, options: string[]) => {
