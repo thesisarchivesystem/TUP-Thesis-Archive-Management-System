@@ -1,5 +1,6 @@
 export type NotificationType =
   | 'thesis.approved'
+  | 'thesis.certificate_ready'
   | 'thesis.archived'
   | 'thesis.rejected'
   | 'thesis.submitted'

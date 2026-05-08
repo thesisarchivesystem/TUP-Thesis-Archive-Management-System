@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpenText, CalendarDays, FileText, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileText, FolderOpen, GraduationCap, UserRound } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
 import { thesisService } from '../../services/thesisService';
@@ -224,18 +224,6 @@ export default function StudentSubmissionDetailsPage() {
                 <div>
                   <h2>Submission Summary</h2>
                   <p>Snapshot of your research workflow</p>
-                </div>
-                <div className="thesis-details-side-graphic" aria-hidden="true">
-                  <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
-                  <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
-                  <div className="thesis-details-side-cloud">
-                    <div className="thesis-details-side-graphic-book">
-                      <BookOpenText size={24} />
-                    </div>
-                    <div className="thesis-details-side-shield">
-                      <ShieldCheck size={16} />
-                    </div>
-                  </div>
                 </div>
               </div>
 

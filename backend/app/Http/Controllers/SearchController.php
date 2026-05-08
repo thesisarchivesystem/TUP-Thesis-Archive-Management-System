@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class SearchController extends Controller
 {
@@ -18,6 +19,11 @@ class SearchController extends Controller
     public function search(Request $request): JsonResponse
     {
         $q = trim((string) $request->input('q', ''));
+        $normalizedQuery = mb_strtolower($q);
+        $queryLike = '%' . $normalizedQuery . '%';
+        $hasKeywordsColumn = Schema::hasColumn('theses', 'keywords');
+        $hasSubmitterNameColumn = Schema::hasColumn('theses', 'submitter_name');
+        $hasAdviserNameColumn = Schema::hasColumn('theses', 'adviser_name');
         $filters = [
             'year' => trim((string) $request->input('year', '')),
             'category' => trim((string) $request->input('category', '')),
@@ -25,6 +31,7 @@ class SearchController extends Controller
             'department' => trim((string) $request->input('department', '')),
         ];
         $hasKeyword = mb_strlen($q) >= 2;
+        $isYearKeyword = preg_match('/^\d{4}$/', $q) === 1;
         $hasFilters = collect($filters)->contains(fn (string $value) => $value !== '');
 
         if (!$hasKeyword && !$hasFilters) {
@@ -36,24 +43,98 @@ class SearchController extends Controller
             ]);
         }
 
-        $searchDocument = "title || ' ' || COALESCE(abstract, '')";
+        $searchDocumentParts = [
+            "COALESCE(theses.title, '')",
+            "COALESCE(theses.abstract, '')",
+            "COALESCE(theses.department, '')",
+            "COALESCE(theses.program, '')",
+            "COALESCE(theses.school_year, '')",
+            "COALESCE(CAST(theses.authors AS TEXT), '')",
+            "COALESCE(search_categories.name, '')",
+            "COALESCE(search_categories.slug, '')",
+            "COALESCE(submitter_users.name, '')",
+            "COALESCE(adviser_users.name, '')",
+            "COALESCE(EXTRACT(YEAR FROM theses.approved_at)::text, '')",
+            "COALESCE(EXTRACT(YEAR FROM theses.created_at)::text, '')",
+        ];
+
+        if ($hasSubmitterNameColumn) {
+            $searchDocumentParts[] = "COALESCE(theses.submitter_name, '')";
+        }
+
+        if ($hasAdviserNameColumn) {
+            $searchDocumentParts[] = "COALESCE(theses.adviser_name, '')";
+        }
+
+        if ($hasKeywordsColumn) {
+            $searchDocumentParts[] = "COALESCE(CAST(theses.keywords AS TEXT), '')";
+        }
+
+        $searchDocument = implode(" || ' ' || ", $searchDocumentParts);
+
+        $matchingCategoryIds = $hasKeyword
+            ? Category::query()
+                ->where(function ($categoryQuery) use ($queryLike) {
+                    $categoryQuery
+                        ->whereRaw('LOWER(name) LIKE ?', [$queryLike])
+                        ->orWhereRaw('LOWER(COALESCE(slug, \'\')) LIKE ?', [$queryLike]);
+                })
+                ->pluck('id')
+                ->values()
+            : collect();
 
         $thesisQuery = Thesis::query()
+            ->select('theses.*')
+            ->leftJoin('categories as search_categories', 'search_categories.id', '=', 'theses.category_id')
+            ->leftJoin('users as submitter_users', 'submitter_users.id', '=', 'theses.submitted_by')
+            ->leftJoin('users as adviser_users', 'adviser_users.id', '=', 'theses.adviser_id')
             ->where('status', 'approved')
             ->whereRaw('"is_archived" = true');
 
         if ($hasKeyword) {
             $thesisQuery
-                ->whereRaw(
-                    "to_tsvector('english', {$searchDocument}) @@ plainto_tsquery('english', ?)",
-                    [$q]
-                )
+                ->where(function ($queryBuilder) use ($searchDocument, $q, $queryLike, $matchingCategoryIds, $isYearKeyword) {
+                    $queryBuilder
+                        ->whereRaw(
+                            "to_tsvector('english', {$searchDocument}) @@ plainto_tsquery('english', ?)",
+                            [$q]
+                        )
+                        ->orWhereRaw("LOWER({$searchDocument}) LIKE ?", [$queryLike]);
+
+                    if ($isYearKeyword) {
+                        $queryBuilder->orWhere(function ($yearQuery) use ($q, $queryLike) {
+                            $yearQuery
+                                ->whereYear('theses.approved_at', $q)
+                                ->orWhereYear('theses.created_at', $q)
+                                ->orWhereRaw('LOWER(COALESCE(theses.school_year, \'\')) LIKE ?', [$queryLike]);
+                        });
+                    }
+
+                    if ($matchingCategoryIds->isNotEmpty()) {
+                        $queryBuilder->orWhere(function ($categoryQuery) use ($matchingCategoryIds) {
+                            $categoryQuery->whereIn('theses.category_id', $matchingCategoryIds);
+
+                            foreach ($matchingCategoryIds as $categoryId) {
+                                $categoryQuery->orWhereJsonContains('theses.category_ids', $categoryId);
+                            }
+                        });
+                    }
+                })
                 ->orderByRaw(
                     "ts_rank(
                        to_tsvector('english', {$searchDocument}),
                        plainto_tsquery('english', ?)
-                     ) DESC",
-                    [$q]
+                     ) DESC,
+                     CASE
+                       WHEN LOWER(COALESCE(theses.title, '')) LIKE ? THEN 3
+                       WHEN LOWER(COALESCE(CAST(theses.authors AS TEXT), '')) LIKE ? THEN 2
+                       WHEN LOWER(COALESCE(" . ($hasSubmitterNameColumn ? "theses.submitter_name, " : "") . "submitter_users.name, '')) LIKE ? THEN 2
+                       WHEN LOWER(COALESCE(theses.department, '')) LIKE ? THEN 1
+                       WHEN LOWER(COALESCE(theses.program, '')) LIKE ? THEN 1
+                       WHEN LOWER(COALESCE(theses.school_year, '')) LIKE ? THEN 1
+                       ELSE 0
+                     END DESC",
+                    [$q, $queryLike, $queryLike, $queryLike, $queryLike, $queryLike, $queryLike]
                 );
         } else {
             $thesisQuery
@@ -338,24 +419,24 @@ class SearchController extends Controller
             $queryBuilder->where(function ($yearQuery) use ($year, $yearLike) {
                 if (preg_match('/^\d{4}$/', $year)) {
                     $yearQuery
-                        ->whereYear('approved_at', $year)
-                        ->orWhereYear('created_at', $year);
+                        ->whereYear('theses.approved_at', $year)
+                        ->orWhereYear('theses.created_at', $year);
                 }
 
-                $yearQuery->orWhereRaw('LOWER(COALESCE(school_year, \'\')) LIKE ?', [$yearLike]);
+                $yearQuery->orWhereRaw('LOWER(COALESCE(theses.school_year, \'\')) LIKE ?', [$yearLike]);
             });
         }
 
         if ($filters['program'] !== '') {
             $programLike = '%' . mb_strtolower($filters['program']) . '%';
 
-            $queryBuilder->whereRaw('LOWER(COALESCE(program, \'\')) LIKE ?', [$programLike]);
+            $queryBuilder->whereRaw('LOWER(COALESCE(theses.program, \'\')) LIKE ?', [$programLike]);
         }
 
         if ($filters['department'] !== '') {
             $departmentLike = '%' . mb_strtolower($filters['department']) . '%';
 
-            $queryBuilder->whereRaw('LOWER(COALESCE(department, \'\')) LIKE ?', [$departmentLike]);
+            $queryBuilder->whereRaw('LOWER(COALESCE(theses.department, \'\')) LIKE ?', [$departmentLike]);
         }
 
         if ($filters['category'] !== '') {
@@ -376,7 +457,7 @@ class SearchController extends Controller
             }
 
             $queryBuilder->where(function ($categoryQuery) use ($categoryIds) {
-                $categoryQuery->whereIn('category_id', $categoryIds);
+                $categoryQuery->whereIn('theses.category_id', $categoryIds);
 
                 foreach ($categoryIds as $categoryId) {
                     $categoryQuery->orWhereJsonContains('category_ids', $categoryId);

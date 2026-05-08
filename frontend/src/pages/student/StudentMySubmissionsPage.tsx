@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, BookOpenText, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine, ShieldCheck, Sparkles } from 'lucide-react';
+import { AlertCircle, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { messageService } from '../../services/messageService';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis, ThesisStatus } from '../../types/thesis.types';
@@ -127,6 +128,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 
 export default function StudentMySubmissionsPage() {
   const navigate = useNavigate();
+  const { confirm } = useConfirmDialog();
   const [items, setItems] = useState<Thesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -305,7 +307,13 @@ export default function StudentMySubmissionsPage() {
       return;
     }
 
-    const confirmed = window.confirm(`Delete the draft "${item.title}"?`);
+    const confirmed = await confirm({
+      title: 'Delete Draft',
+      message: `Delete the draft "${item.title}"?`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
     setError(null);
@@ -327,7 +335,13 @@ export default function StudentMySubmissionsPage() {
       return;
     }
 
-    const confirmed = window.confirm(`Withdraw "${item.title}"? This will delete the submission.`);
+    const confirmed = await confirm({
+      title: 'Withdraw Submission',
+      message: `Withdraw "${item.title}"?\n\nThis will delete the submission.`,
+      confirmLabel: 'Withdraw',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
     setError(null);
@@ -686,18 +700,6 @@ export default function StudentMySubmissionsPage() {
               <div>
                 <h2>Submission Summary</h2>
                 <p>Snapshot of your research workflow</p>
-              </div>
-              <div className="submissions-summary-graphic" aria-hidden="true">
-                <Sparkles size={12} className="submissions-summary-spark submissions-summary-spark-left" />
-                <Sparkles size={10} className="submissions-summary-spark submissions-summary-spark-right" />
-                <div className="submissions-summary-cloud">
-                  <div className="submissions-summary-graphic-book">
-                    <BookOpenText size={24} />
-                  </div>
-                  <div className="submissions-summary-shield">
-                    <ShieldCheck size={16} />
-                  </div>
-                </div>
               </div>
             </div>
 

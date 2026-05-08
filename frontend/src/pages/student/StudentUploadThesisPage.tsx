@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, UserRound } from 'lucide-react';
 import axios from 'axios';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { departmentOptionsByCollege } from '../../constants/academicUnits';
@@ -718,18 +718,6 @@ export default function StudentUploadThesisPage() {
             <div>
               <h2>Submission Guide &amp; Status</h2>
               <p>Review the privacy, access, and approval details before finalizing your thesis submission.</p>
-            </div>
-            <div className="thesis-details-side-graphic" aria-hidden="true">
-              <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
-              <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
-              <div className="thesis-details-side-cloud">
-                <div className="thesis-details-side-graphic-book">
-                  <ClipboardList size={24} />
-                </div>
-                <div className="thesis-details-side-shield">
-                  <ShieldCheck size={16} />
-                </div>
-              </div>
             </div>
           </div>
 

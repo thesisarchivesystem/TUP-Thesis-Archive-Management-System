@@ -6,6 +6,7 @@ const notificationTypesByRole: Record<UserRole, NotificationType[]> = {
     'new_message',
     'thesis.uploaded',
     'thesis.approved',
+    'thesis.certificate_ready',
     'thesis.rejected',
     'thesis.archived',
   ],

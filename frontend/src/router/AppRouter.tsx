@@ -62,12 +62,15 @@ import VpaaSearchResultsPage from '../pages/vpaa/VpaaSearchResultsPage';
 import StudentRecentlyAddedPage from '../pages/student/StudentRecentlyAddedPage';
 import StudentTopSearchesPage from '../pages/student/StudentTopSearchesPage';
 import StudentAllThesesPage from '../pages/student/StudentAllThesesPage';
+import StudentFavoritesPage from '../pages/student/StudentFavoritesPage';
 import FacultyRecentlyAddedPage from '../pages/faculty/FacultyRecentlyAddedPage';
 import FacultyTopSearchesPage from '../pages/faculty/FacultyTopSearchesPage';
 import FacultyAllThesesPage from '../pages/faculty/FacultyAllThesesPage';
+import FacultyFavoritesPage from '../pages/faculty/FacultyFavoritesPage';
 import VpaaRecentlyAddedPage from '../pages/vpaa/VpaaRecentlyAddedPage';
 import VpaaTopSearchesPage from '../pages/vpaa/VpaaTopSearchesPage';
 import VpaaAllThesesPage from '../pages/vpaa/VpaaAllThesesPage';
+import VpaaFavoritesPage from '../pages/vpaa/VpaaFavoritesPage';
 import StudentCategoryDetailPage from '../pages/student/StudentCategoryDetailPage';
 import FacultyCategoryDetailPage from '../pages/faculty/FacultyCategoryDetailPage';
 import VpaaCategoryDetailPage from '../pages/vpaa/VpaaCategoryDetailPage';
@@ -140,6 +143,7 @@ export default function AppRouter() {
           <Route path="dashboard/recently-added" element={<VpaaRecentlyAddedPage />} />
           <Route path="dashboard/top-searches" element={<VpaaTopSearchesPage />} />
           <Route path="dashboard/all" element={<VpaaAllThesesPage />} />
+          <Route path="dashboard/favorites" element={<VpaaFavoritesPage />} />
           <Route path="categories" element={<VpaaCategoriesPage />} />
           <Route path="categories/:slug" element={<VpaaCategoryDetailPage />} />
           <Route path="search" element={<VpaaSearchResultsPage />} />
@@ -163,6 +167,7 @@ export default function AppRouter() {
           <Route path="dashboard/recently-added" element={<FacultyRecentlyAddedPage />} />
           <Route path="dashboard/top-searches" element={<FacultyTopSearchesPage />} />
           <Route path="dashboard/all" element={<FacultyAllThesesPage />} />
+          <Route path="dashboard/favorites" element={<FacultyFavoritesPage />} />
           <Route path="categories" element={<FacultyCategoriesPage />} />
           <Route path="categories/:slug" element={<FacultyCategoryDetailPage />} />
           <Route path="search" element={<FacultySearchResultsPage />} />
@@ -196,6 +201,7 @@ export default function AppRouter() {
           <Route path="dashboard/recently-added" element={<StudentRecentlyAddedPage />} />
           <Route path="dashboard/top-searches" element={<StudentTopSearchesPage />} />
           <Route path="dashboard/all" element={<StudentAllThesesPage />} />
+          <Route path="dashboard/favorites" element={<StudentFavoritesPage />} />
           <Route path="categories" element={<StudentCategoriesPage />} />
           <Route path="categories/:slug" element={<StudentCategoryDetailPage />} />
           <Route path="search" element={<StudentSearchResultsPage />} />
