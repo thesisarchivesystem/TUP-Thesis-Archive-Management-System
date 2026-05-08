@@ -25,6 +25,7 @@ const notificationTypesByRole: Record<UserRole, NotificationType[]> = {
     'faculty.updated',
     'faculty.role_changed',
   ],
+  admin: [],
 };
 
 export function isNotificationTypeAllowedForRole(role: UserRole, type: string): type is NotificationType {

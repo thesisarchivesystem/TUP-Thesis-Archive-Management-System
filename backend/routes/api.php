@@ -10,6 +10,7 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\AiChatbotController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ExtensionRequestController;
 use App\Http\Controllers\SupportTicketController;
 use Illuminate\Support\Facades\Route;
@@ -102,5 +103,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/advisers', [StudentController::class, 'advisers']);
         Route::get('/my-submissions', [ThesisController::class, 'mySubmissions']);
         Route::get('/recently-viewed', [ThesisController::class, 'recentlyViewed']);
+    });
+
+    Route::middleware('role:admin')->prefix('admin')->group(function () {
+        Route::get('/dashboard', [AdminController::class, 'dashboard']);
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::post('/users', [AdminController::class, 'storeUser']);
+        Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+        Route::patch('/users/{id}/status', [AdminController::class, 'toggleUserStatus']);
+        Route::get('/categories', [AdminController::class, 'categories']);
+        Route::post('/categories', [AdminController::class, 'storeCategory']);
+        Route::put('/categories/{id}', [AdminController::class, 'updateCategory']);
+        Route::get('/structure', [AdminController::class, 'structure']);
+        Route::post('/colleges', [AdminController::class, 'storeCollege']);
+        Route::put('/colleges/{id}', [AdminController::class, 'updateCollege']);
+        Route::post('/departments', [AdminController::class, 'storeDepartment']);
+        Route::put('/departments/{id}', [AdminController::class, 'updateDepartment']);
+        Route::post('/programs', [AdminController::class, 'storeProgram']);
+        Route::put('/programs/{id}', [AdminController::class, 'updateProgram']);
+        Route::post('/sections', [AdminController::class, 'storeSection']);
+        Route::put('/sections/{id}', [AdminController::class, 'updateSection']);
     });
 });

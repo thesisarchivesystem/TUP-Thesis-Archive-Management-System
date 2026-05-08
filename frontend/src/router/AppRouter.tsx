@@ -10,6 +10,7 @@ import Homepage from '../pages/public/Homepage';
 import VpaaSignIn from '../pages/auth/VpaaSignIn';
 import FacultySignIn from '../pages/auth/FacultySignIn';
 import StudentSignIn from '../pages/auth/StudentSignIn';
+import AdminSignIn from '../pages/auth/AdminSignIn';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import ResetPassword from '../pages/auth/ResetPassword';
 // Dashboard pages
@@ -73,11 +74,24 @@ import VpaaFavoritesPage from '../pages/vpaa/VpaaFavoritesPage';
 import StudentCategoryDetailPage from '../pages/student/StudentCategoryDetailPage';
 import FacultyCategoryDetailPage from '../pages/faculty/FacultyCategoryDetailPage';
 import VpaaCategoryDetailPage from '../pages/vpaa/VpaaCategoryDetailPage';
+import AdminLayout from '../components/admin/AdminLayout';
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import AdminUsersPage from '../pages/admin/AdminUsersPage';
+import AdminStructurePage from '../pages/admin/AdminStructurePage';
+import AdminCategoriesPage from '../pages/admin/AdminCategoriesPage';
+import AdminRecentSubmissionsPage from '../pages/admin/AdminRecentSubmissionsPage';
+import AdminRecentActivityPage from '../pages/admin/AdminRecentActivityPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
-  if (!token || !user) return <Navigate to="/" replace />;
-  if (!allowedRoles.includes(user.role)) return <Navigate to="/unauthorized" replace />;
+  if (!token || !user) {
+    const loginPath = allowedRoles.includes('admin') ? '/admin/login' : '/';
+    return <Navigate to={loginPath} replace />;
+  }
+  if (!allowedRoles.includes(user.role)) {
+    const fallbackPath = user.role === 'admin' ? '/admin/dashboard' : '/';
+    return <Navigate to={fallbackPath} replace />;
+  }
   return <Outlet />;
 };
 
@@ -118,6 +132,7 @@ export default function AppRouter() {
         <Route path="/sign-in/vpaa" element={<VpaaSignIn />} />
         <Route path="/sign-in/faculty" element={<FacultySignIn />} />
         <Route path="/sign-in/student" element={<StudentSignIn />} />
+        <Route path="/admin/login" element={<AdminSignIn />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -202,6 +217,19 @@ export default function AppRouter() {
           <Route path="support" element={<StudentSupportPage />} />
           <Route path="terms" element={<StudentTermsPage />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
+        </Route>
+
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route element={<AdminLayout />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="submissions" element={<AdminRecentSubmissionsPage />} />
+            <Route path="activity" element={<AdminRecentActivityPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="structure" element={<AdminStructurePage />} />
+            <Route path="categories" element={<AdminCategoriesPage />} />
+            <Route path="*" element={<Navigate to="dashboard" replace />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -14,8 +14,13 @@ class StudentProfile extends Model
     protected $fillable = [
         'user_id',
         'student_id',
+        'college_id',
+        'department_id',
+        'program_id',
+        'section_id',
         'department',
         'program',
+        'section',
         'year_level',
         'adviser_id',
         'created_by',
@@ -24,6 +29,26 @@ class StudentProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function college(): BelongsTo
+    {
+        return $this->belongsTo(College::class, 'college_id');
+    }
+
+    public function departmentModel(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function programModel(): BelongsTo
+    {
+        return $this->belongsTo(Program::class, 'program_id');
+    }
+
+    public function sectionModel(): BelongsTo
+    {
+        return $this->belongsTo(Section::class, 'section_id');
     }
 
     public function adviser(): BelongsTo
