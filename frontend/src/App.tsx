@@ -17,6 +17,9 @@ function App() {
   useEffect(() => {
     const bookTheme = getBookColorTheme(bookThemeId, customBookColor);
     const themeVariables = getBookScreenThemeVariables(bookTheme, theme);
+    Object.entries(themeVariables).forEach(([key, value]) => {
+      document.documentElement.style.setProperty(key, value);
+    });
     updateThemedFavicon(themeVariables['--maroon']);
   }, [bookThemeId, customBookColor, theme]);
 

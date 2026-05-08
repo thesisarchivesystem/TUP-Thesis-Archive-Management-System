@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, BookOpenText, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine, ShieldCheck, Sparkles } from 'lucide-react';
+import { AlertCircle, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
@@ -188,7 +188,13 @@ export default function FacultyMyThesesPage() {
       return;
     }
 
-    const confirmed = window.confirm(`Delete the draft "${item.title}"?`);
+    const confirmed = await confirm({
+      title: 'Delete Draft',
+      message: `Delete the draft "${item.title}"?`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
     setError(null);
@@ -456,18 +462,6 @@ export default function FacultyMyThesesPage() {
               <div>
                 <h2>Submission Summary</h2>
                 <p>Snapshot of your faculty archive workflow</p>
-              </div>
-              <div className="submissions-summary-graphic" aria-hidden="true">
-                <Sparkles size={12} className="submissions-summary-spark submissions-summary-spark-left" />
-                <Sparkles size={10} className="submissions-summary-spark submissions-summary-spark-right" />
-                <div className="submissions-summary-cloud">
-                  <div className="submissions-summary-graphic-book">
-                    <BookOpenText size={24} />
-                  </div>
-                  <div className="submissions-summary-shield">
-                    <ShieldCheck size={16} />
-                  </div>
-                </div>
               </div>
             </div>
 

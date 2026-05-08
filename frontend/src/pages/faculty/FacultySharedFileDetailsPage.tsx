@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpenText, CalendarDays, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FolderOpen, GraduationCap, UserRound } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
@@ -218,18 +218,6 @@ export default function FacultySharedFileDetailsPage() {
                 <div>
                   <h2>File Details</h2>
                   <p>Database-backed shared library record</p>
-                </div>
-                <div className="thesis-details-side-graphic" aria-hidden="true">
-                  <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
-                  <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
-                  <div className="thesis-details-side-cloud">
-                    <div className="thesis-details-side-graphic-book">
-                      <BookOpenText size={24} />
-                    </div>
-                    <div className="thesis-details-side-shield">
-                      <ShieldCheck size={16} />
-                    </div>
-                  </div>
                 </div>
               </div>
 

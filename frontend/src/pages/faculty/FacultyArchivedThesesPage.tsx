@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Archive, Clock3, Files, LibraryBig } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
 
@@ -50,6 +51,7 @@ const getLatestTimestamp = (values: Array<string | undefined>) => {
 };
 
 export default function FacultyArchivedThesesPage() {
+  const { confirm } = useConfirmDialog();
   const [theses, setTheses] = useState<Thesis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -92,7 +94,13 @@ export default function FacultyArchivedThesesPage() {
   const handleDeleteThesis = async (thesis: Thesis) => {
     if (deletingId) return;
 
-    const confirmed = window.confirm(`Delete "${thesis.title}" from archived theses?\n\nThis action cannot be undone.`);
+    const confirmed = await confirm({
+      title: 'Delete Archived Thesis',
+      message: `Delete "${thesis.title}" from archived theses?\n\nThis action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
     setDeletingId(thesis.id);
