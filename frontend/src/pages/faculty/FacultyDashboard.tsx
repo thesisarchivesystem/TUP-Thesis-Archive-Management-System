@@ -5,6 +5,7 @@ import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import { useAuth } from '../../hooks/useAuth';
+import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
 import {
   facultyDashboardService,
   type FacultyDashboardThesis,
@@ -20,6 +21,10 @@ export default function FacultyDashboard() {
   const [quote, setQuote] = useState<FacultyDailyQuote | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const favoriteTheses = useFavoriteThesisStore((state) =>
+    state.favorites
+      .filter((item) => item.role === 'faculty')
+      .sort((left, right) => new Date(right.favorited_at).getTime() - new Date(left.favorited_at).getTime()));
 
   const sortDashboardTheses = (items: FacultyDashboardThesis[]) => [...items].sort((left, right) => {
     const leftTime = new Date(left.archived_at || left.updated_at || left.approved_at || left.created_at || 0).getTime();
@@ -50,7 +55,7 @@ export default function FacultyDashboard() {
       });
   }, [user?.role]);
 
-  const recentCards = useMemo(() => recentTheses.slice(0, 4), [recentTheses]);
+  const favoriteCards = useMemo(() => favoriteTheses.slice(0, 4), [favoriteTheses]);
   const recentlyAddedCards = useMemo(
     () => recentTheses.slice(0, DISPLAY_LIMIT),
     [recentTheses, DISPLAY_LIMIT],
@@ -64,7 +69,7 @@ export default function FacultyDashboard() {
     [recentTheses, DISPLAY_LIMIT],
   );
 
-  const thesisHref = (item: FacultyDashboardThesis) => `/faculty/theses/${encodeURIComponent(item.id)}`;
+  const thesisHref = (item: { id: string }) => `/faculty/theses/${encodeURIComponent(item.id)}`;
   const truncateContinueReadingTitle = (title: string, maxWords = 5) => {
     const words = title.trim().split(/\s+/).filter(Boolean);
     if (words.length <= maxWords) return title;
@@ -72,6 +77,7 @@ export default function FacultyDashboard() {
   };
   const truncateContinueReadingAuthor = (value: string, maxLength = 22) =>
     value.length <= maxLength ? value : `${value.slice(0, maxLength).trimEnd()}...`;
+  const formatAuthorSummary = (author: string, year?: string | null) => (year ? `${author} · ${year}` : author);
   const formatAuthorLine = (item: FacultyDashboardThesis) => {
     const rawAuthor = item.author || item.submitter_name || 'Student';
     const authors = rawAuthor
@@ -99,7 +105,7 @@ export default function FacultyDashboard() {
           title={item.title}
           college={item.college}
           department={item.department}
-          author={formatAuthorLine(item)}
+          author={formatAuthorSummary(item.author, item.year)}
           year={item.year}
           categories={item.categories?.filter((category) => Boolean(category?.name)).length
             ? item.categories.filter((category): category is { id: string; name: string; slug: string } => Boolean(category?.name))
@@ -136,7 +142,7 @@ export default function FacultyDashboard() {
     );
   };
 
-  const renderContinueReadingCard = (item: FacultyDashboardThesis) => {
+  const renderFavoriteCard = (item: { id: string; title: string; college?: string | null; department: string; author: string; year?: string | null; category?: string | null; keywords?: string[]; categories?: Array<{ id?: string; name: string; slug?: string }>; program?: string | null; }) => {
     const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
 
     return (
@@ -147,10 +153,10 @@ export default function FacultyDashboard() {
           title={truncateContinueReadingTitle(item.title)}
           college={item.college}
           department={item.department}
-          author={truncateContinueReadingAuthor(formatAuthorLine(item))}
+          author={truncateContinueReadingAuthor(item.author)}
           year={item.year}
           categories={item.categories?.filter((category) => Boolean(category?.name)).length
-            ? item.categories.filter((category): category is { id: string; name: string; slug: string } => Boolean(category?.name))
+            ? item.categories.filter((category): category is { id?: string; name: string; slug?: string } => Boolean(category?.name))
             : tags.map((tag, index) => ({ id: `${item.id}-${index}`, name: String(tag) }))}
         />
       </Link>
@@ -188,14 +194,23 @@ export default function FacultyDashboard() {
             </div>
 
             <div className="vpaa-cover-strip">
-              <div className="vpaa-cover-strip-label">Continue Reading</div>
-              <div className="vpaa-cover-scroll">
-                {recentCards.map(renderContinueReadingCard)}
-                {!recentCards.length ? (
-                  <div className="continue-reading-card" aria-hidden="true">
-                    <ThesisArchiveCover className="continue-reading-cover" compact title="No recent submissions yet" author="Faculty Workspace" year="" categories={[]} />
-                  </div>
-                ) : null}
+              <div className="vpaa-cover-strip-label">My Favorites</div>
+              <div className="vpaa-cover-strip-content">
+                <div className="vpaa-cover-strip-head">
+                  <div className="vpaa-cover-strip-title">My Favorites</div>
+                  {favoriteTheses.length > 4 ? (
+                    <button
+                      type="button"
+                      className="vpaa-dashboard-toggle"
+                      onClick={() => navigate('/faculty/dashboard/favorites')}
+                    >
+                      View All
+                    </button>
+                  ) : null}
+                </div>
+                <div className="vpaa-cover-scroll">
+                {favoriteCards.map(renderFavoriteCard)}
+                </div>
               </div>
             </div>
           </div>

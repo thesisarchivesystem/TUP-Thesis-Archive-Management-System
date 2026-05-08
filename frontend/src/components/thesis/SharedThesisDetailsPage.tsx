@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpenText, CalendarDays, Download, Eye, FolderOpen, GraduationCap, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, BookOpenText, CalendarDays, Download, Eye, FolderOpen, GraduationCap, Heart, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { thesisService } from '../../services/thesisService';
+import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
 import type { Thesis } from '../../types/thesis.types';
+import { createFavoriteThesis } from '../../utils/favoriteThesis';
 import { createWatermarkedThesisPdfBlob, getWatermarkedPdfFileName } from '../../utils/watermarkedPdf';
 import ThesisArchiveCover from './ThesisArchiveCover';
 
@@ -70,6 +72,8 @@ export default function SharedThesisDetailsPage({
   const [error, setError] = useState('');
   const [openingManuscript, setOpeningManuscript] = useState(false);
   const [downloadingWatermarkedManuscript, setDownloadingWatermarkedManuscript] = useState(false);
+  const toggleFavorite = useFavoriteThesisStore((state) => state.toggleFavorite);
+  const isFavorite = useFavoriteThesisStore((state) => (id ? state.isFavorite(role, decodeURIComponent(id)) : false));
 
   useEffect(() => {
     if (!id) {
@@ -243,6 +247,18 @@ export default function SharedThesisDetailsPage({
                 <div className="student-submission-hero-copy">
                   <div className="student-submission-hero-title-row">
                     <h2>{thesis.title}</h2>
+                    <button
+                      type="button"
+                      className={`thesis-favorite-button${isFavorite ? ' active' : ''}`}
+                      aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                      aria-pressed={isFavorite}
+                      title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                      onClick={() => {
+                        toggleFavorite(createFavoriteThesis(role, thesis));
+                      }}
+                    >
+                      <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
+                    </button>
                   </div>
 
                   {canViewManuscript ? (
