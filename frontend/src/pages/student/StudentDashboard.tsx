@@ -5,6 +5,7 @@ import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import StudentLayout from '../../components/student/StudentLayout';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import { useAuth } from '../../hooks/useAuth';
+import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
 import {
   studentDashboardService,
   type StudentDailyQuote,
@@ -20,6 +21,10 @@ export default function StudentDashboard() {
   const [quote, setQuote] = useState<StudentDailyQuote | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const favoriteTheses = useFavoriteThesisStore((state) =>
+    state.favorites
+      .filter((item) => item.role === 'student')
+      .sort((left, right) => new Date(right.favorited_at).getTime() - new Date(left.favorited_at).getTime()));
 
   const sortDashboardTheses = (items: StudentDashboardThesis[]) => [...items].sort((left, right) => {
     const leftTime = new Date(left.archived_at || left.updated_at || left.approved_at || left.created_at || 0).getTime();
@@ -51,7 +56,7 @@ export default function StudentDashboard() {
       });
   }, [user?.role]);
 
-  const recentCards = useMemo(() => recentTheses.slice(0, 4), [recentTheses]);
+  const favoriteCards = useMemo(() => favoriteTheses.slice(0, 4), [favoriteTheses]);
   const recentlyAddedCards = useMemo(
     () => recentTheses.slice(0, DISPLAY_LIMIT),
     [recentTheses, DISPLAY_LIMIT],
@@ -65,7 +70,7 @@ export default function StudentDashboard() {
     [recentTheses, DISPLAY_LIMIT],
   );
   const firstName = user?.first_name || user?.name?.split(' ')[0] || 'Student';
-  const thesisHref = (item: StudentDashboardThesis) => `/student/theses/${encodeURIComponent(item.id)}`;
+  const thesisHref = (item: { id: string }) => `/student/theses/${encodeURIComponent(item.id)}`;
   const truncateContinueReadingTitle = (title: string, maxWords = 5) => {
     const words = title.trim().split(/\s+/).filter(Boolean);
     if (words.length <= maxWords) return title;
@@ -73,6 +78,7 @@ export default function StudentDashboard() {
   };
   const truncateContinueReadingAuthor = (value: string, maxLength = 22) =>
     value.length <= maxLength ? value : `${value.slice(0, maxLength).trimEnd()}...`;
+  const formatAuthorSummary = (author: string, year?: string | null) => (year ? `${author} · ${year}` : author);
   const formatAuthorLine = (item: StudentDashboardThesis) => {
     const rawAuthor = item.author || item.submitter_name || 'Unknown author';
     const authors = rawAuthor
@@ -100,7 +106,7 @@ export default function StudentDashboard() {
           title={item.title}
           college={item.college}
           department={item.department}
-          author={formatAuthorLine(item)}
+          author={formatAuthorSummary(item.author, item.year)}
           year={item.year}
           categories={item.categories?.filter((category) => Boolean(category?.name)).length
             ? item.categories.filter((category): category is { id: string; name: string; slug: string } => Boolean(category?.name))
@@ -137,7 +143,7 @@ export default function StudentDashboard() {
     );
   };
 
-  const renderCover = (item: StudentDashboardThesis) => {
+  const renderFavoriteCover = (item: { id: string; title: string; college?: string | null; department: string; author: string; year?: string | null; category?: string | null; keywords?: string[]; categories?: Array<{ id?: string; name: string; slug?: string }>; program?: string | null; }) => {
     const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
 
     return (
@@ -148,10 +154,10 @@ export default function StudentDashboard() {
           title={truncateContinueReadingTitle(item.title)}
           college={item.college}
           department={item.department}
-          author={truncateContinueReadingAuthor(formatAuthorLine(item))}
+          author={truncateContinueReadingAuthor(item.author)}
           year={item.year}
           categories={item.categories?.filter((category) => Boolean(category?.name)).length
-            ? item.categories.filter((category): category is { id: string; name: string; slug: string } => Boolean(category?.name))
+            ? item.categories.filter((category): category is { id?: string; name: string; slug?: string } => Boolean(category?.name))
             : tags.map((tag, index) => ({ id: `${item.id}-${index}`, name: String(tag) }))}
         />
       </Link>
@@ -189,14 +195,23 @@ export default function StudentDashboard() {
             </div>
 
             <div className="vpaa-cover-strip">
-              <div className="vpaa-cover-strip-label">Continue Reading</div>
-              <div className="vpaa-cover-scroll">
-                {recentCards.map(renderCover)}
-                {!recentCards.length ? (
-                  <div className="continue-reading-card" aria-hidden="true">
-                    <ThesisArchiveCover className="continue-reading-cover" compact title="No recent submissions yet" author="Student Workspace" year="" categories={[]} />
-                  </div>
-                ) : null}
+              <div className="vpaa-cover-strip-label">My Favorites</div>
+              <div className="vpaa-cover-strip-content">
+                <div className="vpaa-cover-strip-head">
+                  <div className="vpaa-cover-strip-title">My Favorites</div>
+                  {favoriteTheses.length > 4 ? (
+                    <button
+                      type="button"
+                      className="vpaa-dashboard-toggle"
+                      onClick={() => navigate('/student/dashboard/favorites')}
+                    >
+                      View All
+                    </button>
+                  ) : null}
+                </div>
+                <div className="vpaa-cover-scroll">
+                {favoriteCards.map(renderFavoriteCover)}
+                </div>
               </div>
             </div>
           </div>

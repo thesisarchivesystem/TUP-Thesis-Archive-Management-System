@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
+import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
 import { vpaaDashboardService, type DailyQuote, type VpaaDashboardThesis } from '../../services/vpaaDashboardService';
 
 export default function VpaaDashboard() {
@@ -14,6 +15,10 @@ export default function VpaaDashboard() {
   const [quote, setQuote] = useState<DailyQuote | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const favoriteTheses = useFavoriteThesisStore((state) =>
+    state.favorites
+      .filter((item) => item.role === 'vpaa')
+      .sort((left, right) => new Date(right.favorited_at).getTime() - new Date(left.favorited_at).getTime()));
 
   const sortDashboardTheses = (items: VpaaDashboardThesis[]) => [...items].sort((left, right) => {
     const leftTime = new Date(left.archived_at || left.updated_at || left.approved_at || 0).getTime();
@@ -49,7 +54,7 @@ export default function VpaaDashboard() {
     () => recentTheses.slice(0, DISPLAY_LIMIT),
     [recentTheses, DISPLAY_LIMIT],
   );
-  const continueReadingCards = useMemo(() => recentTheses.slice(0, 4), [recentTheses]);
+  const favoriteCards = useMemo(() => favoriteTheses.slice(0, 4), [favoriteTheses]);
   const topSearchCards = useMemo(
     () => topSearches.slice(0, DISPLAY_LIMIT),
     [topSearches, DISPLAY_LIMIT],
@@ -59,7 +64,7 @@ export default function VpaaDashboard() {
     [recentTheses, DISPLAY_LIMIT],
   );
 
-  const thesisHref = (item: VpaaDashboardThesis) => `/vpaa/theses/${encodeURIComponent(item.id)}`;
+  const thesisHref = (item: { id: string }) => `/vpaa/theses/${encodeURIComponent(item.id)}`;
   const truncateContinueReadingTitle = (title: string, maxWords = 5) => {
     const words = title.trim().split(/\s+/).filter(Boolean);
     if (words.length <= maxWords) return title;
@@ -67,6 +72,7 @@ export default function VpaaDashboard() {
   };
   const truncateContinueReadingAuthor = (value: string, maxLength = 22) =>
     value.length <= maxLength ? value : `${value.slice(0, maxLength).trimEnd()}...`;
+  const formatAuthorSummary = (author: string, year?: string | null) => (year ? `${author} · ${year}` : author);
   const formatAuthorLine = (item: VpaaDashboardThesis) => {
     const rawAuthor = item.author || 'Unknown author';
     const authors = rawAuthor
@@ -94,7 +100,7 @@ export default function VpaaDashboard() {
           title={item.title}
           college={item.college}
           department={item.department}
-          author={formatAuthorLine(item)}
+          author={formatAuthorSummary(item.author, item.year)}
           year={item.year}
           categories={item.categories?.filter((category) => Boolean(category?.name)).length
             ? item.categories.filter((category): category is { id: string; name: string; slug: string } => Boolean(category?.name))
@@ -131,7 +137,7 @@ export default function VpaaDashboard() {
     );
   };
 
-  const renderContinueReadingCard = (item: VpaaDashboardThesis) => {
+  const renderFavoriteCard = (item: { id: string; title: string; college?: string | null; department: string; author: string; year?: string | null; category?: string | null; keywords?: string[]; categories?: Array<{ id?: string; name: string; slug?: string }>; program?: string | null; }) => {
     const tags = (item.keywords?.length ? item.keywords : [item.category, item.department]).filter(Boolean).slice(0, 2);
 
     return (
@@ -142,10 +148,10 @@ export default function VpaaDashboard() {
           title={truncateContinueReadingTitle(item.title)}
           college={item.college}
           department={item.department}
-          author={truncateContinueReadingAuthor(formatAuthorLine(item))}
+          author={truncateContinueReadingAuthor(item.author)}
           year={item.year}
           categories={item.categories?.filter((category) => Boolean(category?.name)).length
-            ? item.categories.filter((category): category is { id: string; name: string; slug: string } => Boolean(category?.name))
+            ? item.categories.filter((category): category is { id?: string; name: string; slug?: string } => Boolean(category?.name))
             : tags.map((tag, index) => ({ id: `${item.id}-${index}`, name: String(tag) }))}
         />
       </Link>
@@ -177,14 +183,23 @@ export default function VpaaDashboard() {
             </div>
 
             <div className="vpaa-cover-strip">
-              <div className="vpaa-cover-strip-label">Continue Reading</div>
-              <div className="vpaa-cover-scroll">
-                {continueReadingCards.map(renderContinueReadingCard)}
-                {!continueReadingCards.length ? (
-                  <div className="continue-reading-card" aria-hidden="true">
-                    <ThesisArchiveCover className="continue-reading-cover" compact title="No recent theses yet" author="VPAA Workspace" year="" categories={[]} />
-                  </div>
-                ) : null}
+              <div className="vpaa-cover-strip-label">My Favorites</div>
+              <div className="vpaa-cover-strip-content">
+                <div className="vpaa-cover-strip-head">
+                  <div className="vpaa-cover-strip-title">My Favorites</div>
+                  {favoriteTheses.length > 4 ? (
+                    <button
+                      type="button"
+                      className="vpaa-dashboard-toggle"
+                      onClick={() => navigate('/vpaa/dashboard/favorites')}
+                    >
+                      View All
+                    </button>
+                  ) : null}
+                </div>
+                <div className="vpaa-cover-scroll">
+                {favoriteCards.map(renderFavoriteCard)}
+                </div>
               </div>
             </div>
           </div>
