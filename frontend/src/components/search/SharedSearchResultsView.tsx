@@ -134,13 +134,13 @@ export default function SharedSearchResultsView() {
 
   if (!hasSearchCriteria) {
     return (
-      <div className="vpaa-card vpaa-search-results-empty">
-        <SearchX size={20} />
-        <div>
-          <strong>Enter a keyword or choose filters</strong>
-          <p>Use the search bar or filter button to find theses by year, category, program, department, or a combination.</p>
+        <div className="vpaa-card vpaa-search-results-empty">
+          <SearchX size={20} />
+          <div>
+            <strong>Enter a keyword or choose filters</strong>
+            <p>Use the search bar or filters to find theses by title, author, year, category, department, program, adviser, or related keywords.</p>
+          </div>
         </div>
-      </div>
     );
   }
 
@@ -173,7 +173,7 @@ export default function SharedSearchResultsView() {
           </div>
           <div className="vpaa-search-results-empty-copy">
             <strong>No matches found</strong>
-            <p>Try a different keyword, thesis title, user name, or email.</p>
+            <p>Try a different title, author, year, category, department, program, user name, or email.</p>
           </div>
         </div>
       ) : (

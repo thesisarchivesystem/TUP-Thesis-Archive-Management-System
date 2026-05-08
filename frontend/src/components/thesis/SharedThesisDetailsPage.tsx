@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpenText, CalendarDays, Download, Eye, FolderOpen, GraduationCap, Heart, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Download, Eye, FolderOpen, GraduationCap, Heart, UserRound } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { thesisService } from '../../services/thesisService';
 import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
@@ -330,18 +330,6 @@ export default function SharedThesisDetailsPage({
                 <div>
                   <h2>Thesis Details</h2>
                   <p>Database-backed archive record</p>
-                </div>
-                <div className="thesis-details-side-graphic" aria-hidden="true">
-                  <Sparkles size={12} className="thesis-details-side-spark thesis-details-side-spark-left" />
-                  <Sparkles size={10} className="thesis-details-side-spark thesis-details-side-spark-right" />
-                  <div className="thesis-details-side-cloud">
-                    <div className="thesis-details-side-graphic-book">
-                      <BookOpenText size={24} />
-                    </div>
-                    <div className="thesis-details-side-shield">
-                      <ShieldCheck size={16} />
-                    </div>
-                  </div>
                 </div>
               </div>
 

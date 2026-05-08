@@ -165,7 +165,7 @@ export default function TopbarSearchWithFilters({ basePath }: TopbarSearchWithFi
         <Search size={18} />
         <input
           type="text"
-          placeholder="Search the thesis archive, categories, or records..."
+          placeholder="Search titles, authors, years, departments, programs, or records..."
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
         />
