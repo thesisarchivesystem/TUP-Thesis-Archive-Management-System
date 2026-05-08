@@ -47,9 +47,11 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
+  const [chatIntroTyping, setChatIntroTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
+  const chatIntroTimerRef = useRef<number | null>(null);
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
   const notifications = useNotificationStore((state) => state.notifications);
@@ -111,7 +113,13 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   useEffect(() => {
     if (!chatMessagesRef.current) return;
     chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-  }, [chatMessages, chatOpen]);
+  }, [chatMessages, chatOpen, chatIntroTyping]);
+
+  useEffect(() => () => {
+    if (chatIntroTimerRef.current) {
+      window.clearTimeout(chatIntroTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -146,9 +154,20 @@ export default function FacultyLayout({ title, description, children, hidePageIn
     setSidebarCollapsed((current) => !current);
   };
 
+  const showInitialChatGreeting = () => {
+    if (chatIntroTimerRef.current) return;
+
+    setChatIntroTyping(true);
+    chatIntroTimerRef.current = window.setTimeout(() => {
+      chatIntroTimerRef.current = null;
+      setChatIntroTyping(false);
+      setChatMessages((current) => current.length ? current : [{ id: 'bot-1', type: 'bot', text: CHATBOT_GREETING }]);
+    }, 900);
+  };
+
   const handleChatSubmit = async (message: string) => {
     const trimmed = message.trim();
-    if (!trimmed || chatSending) return;
+    if (!trimmed || chatSending || chatIntroTyping) return;
 
     setChatMessages((current) => [
       ...current,
@@ -404,7 +423,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
             {chatMessages.map((message) => (
               <div className={`vpaa-chat-bubble ${message.type === 'user' ? 'self' : 'other'}`} key={message.id}>{message.text}</div>
             ))}
-            {chatSending ? (
+            {chatSending || chatIntroTyping ? (
               <div className="vpaa-chat-bubble other typing" aria-label="Chatbot is typing" aria-live="polite">
                 <span className="vpaa-chat-typing-dot" />
                 <span className="vpaa-chat-typing-dot" />
@@ -416,8 +435,8 @@ export default function FacultyLayout({ title, description, children, hidePageIn
             event.preventDefault();
             void handleChatSubmit(chatInput);
           }}>
-            <input className="vpaa-ai-chatbot-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Type your question..." disabled={chatSending} />
-            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending}><ChevronRight size={18} /></button>
+            <input className="vpaa-ai-chatbot-input" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Type your question..." disabled={chatSending || chatIntroTyping} />
+            <button type="submit" className="vpaa-ai-chatbot-send" aria-label="Send message" disabled={chatSending || chatIntroTyping}><ChevronRight size={18} /></button>
           </form>
         </div>
       </div>
@@ -425,7 +444,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
       <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open Archi chatbot" onClick={(event) => {
         event.stopPropagation();
         if (!chatOpen) {
-          setChatMessages((current) => current.length ? current : [{ id: 'bot-1', type: 'bot', text: CHATBOT_GREETING }]);
+          if (!chatMessages.length) showInitialChatGreeting();
         }
         setChatOpen((current) => !current);
       }}>

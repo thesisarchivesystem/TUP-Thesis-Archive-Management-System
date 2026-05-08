@@ -22,7 +22,8 @@ const STRUCTURE_LABELS = new Set([
 ]);
 
 const LIST_PATTERN = /^(\d+)[.)]\s+(.+)$|^[-*\u2022]\s+(.+)$/;
-const BOLD_PATTERN = /(\*\*|__)(.+?)\1/g;
+const INLINE_PATTERN = /(`([^`]+)`)|(\*\*|__)(.+?)\3|(==(.+?)==)|(\/(?:student|faculty|vpaa|sign-in|forgot-password|reset-password)[^\s.,)]*)/g;
+const LEAD_LABEL_PATTERN = /^([^:]{2,42}):\s+(.+)$/;
 
 function isHeadingLine(line: string): boolean {
   const normalized = line.replace(/:$/, '').trim().toLowerCase();
@@ -98,26 +99,59 @@ function parseBlocks(text: string): TextBlock[] {
   return blocks;
 }
 
-function renderInlineMarkup(text: string): ReactNode[] {
+function renderInlineMarkup(text: string, options: { emphasizeLeadLabel?: boolean } = {}): ReactNode[] {
+  if (options.emphasizeLeadLabel) {
+    const leadMatch = text.match(LEAD_LABEL_PATTERN);
+    if (leadMatch && /^[A-Z0-9]/.test(leadMatch[1]) && !leadMatch[1].includes('/')) {
+      return [
+        <strong className="vpaa-chat-message-label" key="lead-label">
+          {leadMatch[1]}:
+        </strong>,
+        ' ',
+        ...renderInlineMarkup(leadMatch[2]),
+      ];
+    }
+  }
+
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  BOLD_PATTERN.lastIndex = 0;
+  INLINE_PATTERN.lastIndex = 0;
 
-  while ((match = BOLD_PATTERN.exec(text)) !== null) {
-    const [fullMatch, , boldText] = match;
+  while ((match = INLINE_PATTERN.exec(text)) !== null) {
+    const [fullMatch, , codeText, , boldText, , highlightText, pathText] = match;
     const start = match.index;
 
     if (start > lastIndex) {
       nodes.push(text.slice(lastIndex, start));
     }
 
-    nodes.push(
-      <strong key={`${start}-${boldText.length}`}>
-        {boldText}
-      </strong>
-    );
+    if (codeText) {
+      nodes.push(
+        <code className="vpaa-chat-message-code" key={`${start}-code`}>
+          {codeText}
+        </code>
+      );
+    } else if (boldText) {
+      nodes.push(
+        <strong key={`${start}-bold`}>
+          {boldText}
+        </strong>
+      );
+    } else if (highlightText) {
+      nodes.push(
+        <mark className="vpaa-chat-message-highlight" key={`${start}-highlight`}>
+          {highlightText}
+        </mark>
+      );
+    } else if (pathText) {
+      nodes.push(
+        <span className="vpaa-chat-message-path" key={`${start}-path`}>
+          {pathText}
+        </span>
+      );
+    }
 
     lastIndex = start + fullMatch.length;
   }
@@ -157,7 +191,7 @@ export default function ChatMessageContent({ text, variant = 'bot' }: ChatMessag
             <ListTag className={`vpaa-chat-message-list ${block.ordered ? 'ordered' : 'unordered'}`} key={`${block.type}-${index}`}>
               {block.items.map((item, itemIndex) => (
                 <li className="vpaa-chat-message-item" key={`${index}-${itemIndex}`}>
-                  {renderInlineMarkup(item)}
+                  {renderInlineMarkup(item, { emphasizeLeadLabel: true })}
                 </li>
               ))}
             </ListTag>
