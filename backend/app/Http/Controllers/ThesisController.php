@@ -359,6 +359,18 @@ class ThesisController extends Controller
             if ($request->status === 'approved') {
                 $this->notifications->notify(
                     $student,
+                    'thesis.certificate_ready',
+                    'Certificate Ready',
+                    'Your thesis certificate is now ready to view or download.',
+                    [
+                        'thesis_id' => $thesis->id,
+                        'thesis_title' => $thesis->title,
+                        'status' => $request->status,
+                    ],
+                );
+
+                $this->notifications->notify(
+                    $student,
                     'thesis.archived',
                     'Thesis is now archived',
                     $thesis->title,

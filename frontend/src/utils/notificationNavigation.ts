@@ -33,7 +33,7 @@ export function getNotificationNavigationTarget(
   if (
     role === 'student'
     && thesisId
-    && ['thesis.uploaded', 'thesis.approved', 'thesis.rejected', 'thesis.archived', 'extension.approved', 'extension.rejected']
+    && ['thesis.uploaded', 'thesis.approved', 'thesis.certificate_ready', 'thesis.rejected', 'thesis.archived', 'extension.approved', 'extension.rejected']
       .includes(notification.type)
   ) {
     return {

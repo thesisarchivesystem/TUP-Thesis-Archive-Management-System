@@ -419,24 +419,24 @@ class SearchController extends Controller
             $queryBuilder->where(function ($yearQuery) use ($year, $yearLike) {
                 if (preg_match('/^\d{4}$/', $year)) {
                     $yearQuery
-                        ->whereYear('approved_at', $year)
-                        ->orWhereYear('created_at', $year);
+                        ->whereYear('theses.approved_at', $year)
+                        ->orWhereYear('theses.created_at', $year);
                 }
 
-                $yearQuery->orWhereRaw('LOWER(COALESCE(school_year, \'\')) LIKE ?', [$yearLike]);
+                $yearQuery->orWhereRaw('LOWER(COALESCE(theses.school_year, \'\')) LIKE ?', [$yearLike]);
             });
         }
 
         if ($filters['program'] !== '') {
             $programLike = '%' . mb_strtolower($filters['program']) . '%';
 
-            $queryBuilder->whereRaw('LOWER(COALESCE(program, \'\')) LIKE ?', [$programLike]);
+            $queryBuilder->whereRaw('LOWER(COALESCE(theses.program, \'\')) LIKE ?', [$programLike]);
         }
 
         if ($filters['department'] !== '') {
             $departmentLike = '%' . mb_strtolower($filters['department']) . '%';
 
-            $queryBuilder->whereRaw('LOWER(COALESCE(department, \'\')) LIKE ?', [$departmentLike]);
+            $queryBuilder->whereRaw('LOWER(COALESCE(theses.department, \'\')) LIKE ?', [$departmentLike]);
         }
 
         if ($filters['category'] !== '') {
@@ -457,7 +457,7 @@ class SearchController extends Controller
             }
 
             $queryBuilder->where(function ($categoryQuery) use ($categoryIds) {
-                $categoryQuery->whereIn('category_id', $categoryIds);
+                $categoryQuery->whereIn('theses.category_id', $categoryIds);
 
                 foreach ($categoryIds as $categoryId) {
                     $categoryQuery->orWhereJsonContains('category_ids', $categoryId);
