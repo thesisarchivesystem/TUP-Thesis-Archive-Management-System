@@ -35,9 +35,16 @@ const getCurrentSchoolYear = () => {
   return `${year}-${year + 1}`;
 };
 
+const libraryTypeOptions = ['Book', 'Dissertation', 'Research File', 'Manuscript', 'Journal'] as const;
+const otherLibraryType = 'Others';
+
+const isPresetLibraryType = (value: string): value is typeof libraryTypeOptions[number] =>
+  libraryTypeOptions.includes(value as typeof libraryTypeOptions[number]);
+
 const initialForm = {
   title: '',
   type: 'Book',
+  customType: '',
   categoryIds: [] as string[],
   college: '',
   department: '',
@@ -54,6 +61,7 @@ const initialForm = {
 
 type ShareValidationField =
   | 'title'
+  | 'type'
   | 'category'
   | 'targetCollege'
   | 'targetDepartment'
@@ -96,6 +104,7 @@ export default function FacultyFileSharingPage() {
   const [shareValidationField, setShareValidationField] = useState<ShareValidationField>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const titleFieldRef = useRef<HTMLLabelElement | null>(null);
+  const typeFieldRef = useRef<HTMLLabelElement | null>(null);
   const categoryFieldRef = useRef<HTMLDivElement | null>(null);
   const targetCollegeFieldRef = useRef<HTMLLabelElement | null>(null);
   const targetDepartmentFieldRef = useRef<HTMLLabelElement | null>(null);
@@ -122,10 +131,15 @@ export default function FacultyFileSharingPage() {
     [departmentsByCollege, form.targetCollege],
   );
   const visibleLibraryItems = useMemo(() => libraryItems.slice(0, 6), [libraryItems]);
+  const selectedResourceType = form.type === otherLibraryType ? form.customType.trim() : form.type;
 
   const getMissingShareField = () => {
     if (!form.title.trim()) {
       return { field: 'title' as const, message: 'Please fill out the required field: title.' };
+    }
+
+    if (form.type === otherLibraryType && !form.customType.trim()) {
+      return { field: 'type' as const, message: 'Please specify the file type.' };
     }
 
     if (!form.categoryIds.length) {
@@ -168,6 +182,7 @@ export default function FacultyFileSharingPage() {
 
     const fieldMap: Record<Exclude<ShareValidationField, null>, HTMLElement | null> = {
       title: titleFieldRef.current,
+      type: typeFieldRef.current,
       category: categoryFieldRef.current,
       targetCollege: targetCollegeFieldRef.current,
       targetDepartment: targetDepartmentFieldRef.current,
@@ -266,11 +281,14 @@ export default function FacultyFileSharingPage() {
     const draft = locationState?.draft;
     if (!draft) return;
 
+    const draftType = draft.type ?? 'Book';
+
     setEditingDraftId(draft.id);
     setFormOpen(true);
     setForm({
       title: draft.title ?? '',
-      type: draft.type ?? 'Book',
+      type: isPresetLibraryType(draftType) ? draftType : otherLibraryType,
+      customType: isPresetLibraryType(draftType) ? '' : draftType,
       categoryIds: draft.category_ids?.length
         ? draft.category_ids
         : [draft.category_id ?? ''].filter(Boolean),
@@ -308,6 +326,13 @@ export default function FacultyFileSharingPage() {
   };
 
   const handleSave = async (mode: 'draft' | 'share') => {
+    if (form.type === otherLibraryType && !selectedResourceType) {
+      setShareValidationField('type');
+      setShareWarning('Please specify the file type.');
+      scrollToValidationField('type');
+      return;
+    }
+
     if (mode === 'share') {
       const missingField = getMissingShareField();
       if (missingField) {
@@ -327,7 +352,7 @@ export default function FacultyFileSharingPage() {
     try {
       const payload = {
         title: form.title,
-        resource_type: form.type,
+        resource_type: selectedResourceType,
         abstract: form.notes,
         college: form.college || undefined,
         department: form.department || undefined,
@@ -549,20 +574,43 @@ export default function FacultyFileSharingPage() {
                     {shareValidationField === 'title' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
 
-                  <label className="block">
+                  <label className={`block${shareValidationField === 'type' ? ' student-upload-field has-error' : ''}`} ref={typeFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
                       <span className="inline-flex items-center gap-2"><Files size={14} className="text-[var(--maroon)]" /> Type</span>
                     </span>
                     <select
                       className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
                       value={form.type}
-                      onChange={(event) => setForm({ ...form, type: event.target.value })}
+                      onChange={(event) => {
+                        const type = event.target.value;
+                        setShareWarning('');
+                        setShareValidationField((current) => (current === 'type' ? null : current));
+                        setForm({
+                          ...form,
+                          type,
+                          customType: type === otherLibraryType ? form.customType : '',
+                        });
+                      }}
                     >
-                      <option>Book</option>
-                      <option>Dissertation</option>
-                      <option>Research File</option>
-                      <option>Manuscript</option>
+                      {libraryTypeOptions.map((type) => (
+                        <option key={type}>{type}</option>
+                      ))}
+                      <option>{otherLibraryType}</option>
                     </select>
+                    {form.type === otherLibraryType ? (
+                      <input
+                        className="mt-3 w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                        value={form.customType}
+                        onChange={(event) => {
+                          setShareWarning('');
+                          setShareValidationField((current) => (current === 'type' ? null : current));
+                          setForm({ ...form, customType: event.target.value });
+                        }}
+                        placeholder="Type the specific file type"
+                        maxLength={100}
+                      />
+                    ) : null}
+                    {shareValidationField === 'type' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
 
                   <label className="block">
