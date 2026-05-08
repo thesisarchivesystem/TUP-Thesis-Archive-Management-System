@@ -744,16 +744,35 @@ EOT);
         try {
             $categories = $this->resolveArchiveCategories();
         } catch (Throwable) {
-            return 'Browse by Category section: Web & Mobile Development, Artificial Intelligence & ML, Cybersecurity & Networking, IoT & Embedded Systems, Data Science & Analytics, Human-Computer Interaction, Game Development, and Automation & Robotics.';
+            return $this->buildDefaultCategoryKnowledge();
         }
 
         if ($categories->isEmpty()) {
-            return 'Browse by Category section: Web & Mobile Development, Artificial Intelligence & ML, Cybersecurity & Networking, IoT & Embedded Systems, Data Science & Analytics, Human-Computer Interaction, Game Development, and Automation & Robotics.';
+            return $this->buildDefaultCategoryKnowledge();
         }
 
-        return 'Browse by Category section: ' . $categories->map(function (array $category) {
-            return $category['name'] . ($category['description'] ? ' - ' . $category['description'] : '');
-        })->implode(', ') . '.';
+        $lines = $categories->map(function (array $category) {
+            $description = trim((string) ($category['description'] ?? ''));
+
+            return '- ' . $category['name'] . ($description !== '' ? ': ' . $description : '');
+        });
+
+        return "Browse by Category section:\n" . $lines->implode("\n");
+    }
+
+    private function buildDefaultCategoryKnowledge(): string
+    {
+        return implode("\n", [
+            'Browse by Category section:',
+            '- Web & Mobile Development',
+            '- Artificial Intelligence & ML',
+            '- Cybersecurity & Networking',
+            '- IoT & Embedded Systems',
+            '- Data Science & Analytics',
+            '- Human-Computer Interaction',
+            '- Game Development',
+            '- Automation & Robotics',
+        ]);
     }
 
     private function buildRelevantThesisKnowledge(string $message, array $context = []): string
