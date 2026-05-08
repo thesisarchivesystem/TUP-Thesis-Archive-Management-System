@@ -53,6 +53,7 @@ class NotificationController extends Controller
                 'new_message',
                 'thesis.uploaded',
                 'thesis.approved',
+                'thesis.certificate_ready',
                 'thesis.rejected',
                 'thesis.archived',
             ],
