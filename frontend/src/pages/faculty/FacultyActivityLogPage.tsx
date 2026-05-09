@@ -187,7 +187,7 @@ export default function FacultyActivityLogPage() {
         <div className="vpaa-grid-4 student-submissions-stats vpaa-activity-summary-grid" style={{ marginBottom: 28 }}>
           {summaryCards.map((card) => (
             <article className="student-submissions-stat-card vpaa-card vpaa-activity-summary-card" key={card.label}>
-              <div>
+              <div className="student-submissions-stat-copy">
                 <span>{card.label}</span>
                 <strong>{card.value}</strong>
               </div>

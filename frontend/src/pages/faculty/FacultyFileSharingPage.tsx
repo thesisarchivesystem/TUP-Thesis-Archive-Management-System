@@ -430,13 +430,13 @@ export default function FacultyFileSharingPage() {
 
         <section className="student-submissions-stats">
           {statCards.map(({ label, value, icon: Icon, tone }) => (
-            <article key={label} className="student-submissions-stat-card">
-              <div>
+            <article key={label} className="student-submissions-stat-card faculty-file-sharing-stat-card">
+              <div className="student-submissions-stat-copy">
                 <span>{label}</span>
                 <strong>{value}</strong>
               </div>
               <span
-                className="student-submissions-stat-icon"
+                className="student-submissions-stat-icon faculty-file-sharing-stat-icon"
                 style={{
                   background:
                     tone === 'maroon' ? 'rgba(139,35,50,0.08)'

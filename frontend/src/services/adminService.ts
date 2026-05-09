@@ -108,6 +108,62 @@ export type AdminCategory = {
   is_active: boolean;
 };
 
+export type AdminTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export type AdminTicketPriority = 'low' | 'medium' | 'high';
+
+export type AdminTicketAgent = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export type AdminSupportTicketSummary = {
+  id: string;
+  reference: string;
+  requester_role: string;
+  full_name: string;
+  email: string;
+  subject: string;
+  category: string;
+  message: string;
+  status: AdminTicketStatus;
+  priority: AdminTicketPriority;
+  submitted_at?: string | null;
+  updated_at?: string | null;
+  resolved_at?: string | null;
+  requester: {
+    id?: string | null;
+    name: string;
+    email: string;
+  };
+  assignee: AdminTicketAgent | null;
+  replies_count: number;
+};
+
+export type AdminSupportTicketReply = {
+  id: string;
+  author_name: string;
+  author_role?: string | null;
+  message: string;
+  is_system: boolean;
+  created_at?: string | null;
+};
+
+export type AdminSupportTicketDetail = AdminSupportTicketSummary & {
+  replies: AdminSupportTicketReply[];
+};
+
+export type AdminSupportTicketsResponse = {
+  stats: {
+    total: number;
+    open: number;
+    in_progress: number;
+    resolved: number;
+  };
+  agents: AdminTicketAgent[];
+  tickets: AdminSupportTicketSummary[];
+};
+
 export const adminService = {
   async getDashboard(params?: {
     year?: number;
@@ -201,5 +257,39 @@ export const adminService = {
   async updateCategory(id: string, payload: Record<string, unknown>) {
     const { data } = await api.put(`/admin/categories/${id}`, payload);
     return data.data as AdminCategory;
+  },
+
+  async listSupportTickets(params?: {
+    search?: string;
+    status?: string;
+    priority?: string;
+  }): Promise<AdminSupportTicketsResponse> {
+    const { data } = await api.get('/admin/support-tickets', {
+      params: {
+        search: params?.search || undefined,
+        status: params?.status || undefined,
+        priority: params?.priority || undefined,
+      },
+    });
+    return data.data;
+  },
+
+  async getSupportTicket(id: string): Promise<AdminSupportTicketDetail> {
+    const { data } = await api.get(`/admin/support-tickets/${id}`);
+    return data.data;
+  },
+
+  async updateSupportTicket(id: string, payload: {
+    status?: AdminTicketStatus;
+    priority?: AdminTicketPriority;
+    assigned_to?: string | null;
+  }): Promise<AdminSupportTicketDetail> {
+    const { data } = await api.patch(`/admin/support-tickets/${id}`, payload);
+    return data.data;
+  },
+
+  async replySupportTicket(id: string, payload: { message: string }): Promise<AdminSupportTicketDetail> {
+    const { data } = await api.post(`/admin/support-tickets/${id}/replies`, payload);
+    return data.data;
   },
 };

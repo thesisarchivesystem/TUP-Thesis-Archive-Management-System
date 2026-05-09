@@ -85,6 +85,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard']);
+        Route::get('/support-tickets', [SupportTicketController::class, 'indexForAdmin']);
+        Route::get('/support-tickets/{id}', [SupportTicketController::class, 'showForAdmin']);
+        Route::patch('/support-tickets/{id}', [SupportTicketController::class, 'updateForAdmin']);
+        Route::post('/support-tickets/{id}/replies', [SupportTicketController::class, 'replyForAdmin']);
         Route::get('/users', [AdminController::class, 'users']);
         Route::post('/users', [AdminController::class, 'storeUser']);
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);

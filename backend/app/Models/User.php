@@ -97,6 +97,16 @@ class User extends Authenticatable
         return $this->hasMany(SupportTicket::class, 'user_id');
     }
 
+    public function assignedSupportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'assigned_to');
+    }
+
+    public function supportTicketReplies(): HasMany
+    {
+        return $this->hasMany(SupportTicketReply::class, 'user_id');
+    }
+
     public function sharedFiles(): HasMany
     {
         return $this->hasMany(SharedFile::class, 'uploaded_by');

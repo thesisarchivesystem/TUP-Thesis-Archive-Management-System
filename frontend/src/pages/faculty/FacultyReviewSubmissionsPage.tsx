@@ -121,13 +121,13 @@ export default function FacultyReviewSubmissionsPage() {
 
         <section className="student-submissions-stats">
           {stats.map(({ label, value, icon: Icon, tone }) => (
-            <article key={label} className="student-submissions-stat-card">
-              <div>
+            <article key={label} className="student-submissions-stat-card faculty-review-submissions-stat-card">
+              <div className="student-submissions-stat-copy">
                 <span>{label}</span>
                 <strong>{isLoading ? '--' : value}</strong>
               </div>
               <span
-                className="student-submissions-stat-icon"
+                className="student-submissions-stat-icon faculty-review-submissions-stat-icon"
                 style={{
                   background:
                     tone === 'maroon' ? 'rgba(139,35,50,0.08)'

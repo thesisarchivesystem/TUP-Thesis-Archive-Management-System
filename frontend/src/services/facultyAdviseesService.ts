@@ -48,9 +48,11 @@ export interface StudentAccountPayload {
   email: string;
   temporary_password: string;
   student_id?: string;
+  college?: string;
   department: string;
   program: string;
   year_level?: number;
+  section?: string;
 }
 
 type StudentRecordResponse = {
