@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -177,6 +178,182 @@ class AdminController extends Controller
         ]);
     }
 
+    public function showThesis(string $id): JsonResponse
+    {
+        $thesis = Thesis::query()
+            ->with([
+                'submitter:id,name,email',
+                'adviser:id,name,email',
+                'category:id,name,slug',
+            ])
+            ->findOrFail($id);
+
+        return response()->json([
+            'data' => $this->formatAdminThesisDetail($thesis),
+        ]);
+    }
+
+    public function storeThesis(Request $request): JsonResponse
+    {
+        $categoryIds = $this->normalizeJsonArrayInput($request->input('category_ids'));
+        $authors = $this->normalizeJsonArrayInput($request->input('authors'));
+
+        $request->merge([
+            'category_ids' => $categoryIds,
+            'category_id' => $categoryIds[0] ?? $request->input('category_id'),
+            'authors' => $authors,
+        ]);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:500',
+            'abstract' => 'nullable|string',
+            'department' => 'required|string|max:255',
+            'program' => 'nullable|string|max:255',
+            'category_id' => 'required|uuid|exists:categories,id',
+            'category_ids' => 'required|array|min:1|max:5',
+            'category_ids.*' => 'uuid|exists:categories,id|distinct',
+            'school_year' => 'required|string|max:255',
+            'authors' => 'required|array|min:1',
+            'authors.*' => 'string|max:255',
+            'adviser_id' => 'nullable|uuid|exists:users,id',
+            'confirm_original' => 'required|accepted',
+            'allow_review' => 'required|accepted',
+            'manuscript' => 'required|file|mimes:pdf|max:51200',
+            'supplementary_files' => 'nullable|array',
+            'supplementary_files.*' => 'file|max:51200',
+        ]);
+
+        $manuscriptUpload = $this->uploadToSupabase($request->file('manuscript'), 'manuscripts');
+        $supplementaryUploads = collect($request->file('supplementary_files', []))
+            ->filter()
+            ->map(fn (\Illuminate\Http\UploadedFile $file) => $this->uploadToSupabase($file, 'supplementary'))
+            ->values()
+            ->all();
+
+        $timestamp = now();
+        $thesis = Thesis::query()->create([
+            'title' => $validated['title'],
+            'abstract' => $validated['abstract'] ?? null,
+            'department' => $validated['department'],
+            'program' => $validated['program'] ?? null,
+            'category_id' => $validated['category_id'],
+            'category_ids' => $validated['category_ids'],
+            'school_year' => $validated['school_year'],
+            'authors' => $validated['authors'],
+            'file_url' => $manuscriptUpload['url'],
+            'file_name' => $manuscriptUpload['name'],
+            'file_size' => $manuscriptUpload['size'],
+            'supplementary_files' => $supplementaryUploads,
+            'status' => 'approved',
+            'is_archived' => true,
+            'submitted_by' => $request->user()->id,
+            'submitter_name' => $request->user()->name,
+            'adviser_id' => $validated['adviser_id'] ?? null,
+            'approved_at' => $timestamp,
+            'submitted_at' => $timestamp,
+            'archived_at' => $timestamp,
+            'archived_by' => $request->user()->id,
+            'archived_by_name' => $request->user()->name,
+        ]);
+
+        $this->logger->log($request->user(), 'admin.thesis_created', 'thesis', $thesis->id, [
+            'title' => $thesis->title,
+            'status' => $thesis->status,
+        ]);
+
+        return response()->json([
+            'data' => $this->formatAdminThesisDetail(
+                $thesis->fresh([
+                    'submitter:id,name,email',
+                    'adviser:id,name,email',
+                    'category:id,name,slug',
+                ])
+            ),
+            'message' => 'Thesis added successfully.',
+        ], 201);
+    }
+
+    public function updateThesis(Request $request, string $id): JsonResponse
+    {
+        $thesis = Thesis::query()->findOrFail($id);
+        $categoryIds = $this->normalizeJsonArrayInput($request->input('category_ids'));
+        $authors = $this->normalizeJsonArrayInput($request->input('authors'));
+
+        $request->merge([
+            'category_ids' => $categoryIds,
+            'category_id' => $categoryIds[0] ?? $request->input('category_id'),
+            'authors' => $authors,
+        ]);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:500',
+            'abstract' => 'nullable|string',
+            'department' => 'required|string|max:255',
+            'program' => 'nullable|string|max:255',
+            'category_id' => 'required|uuid|exists:categories,id',
+            'category_ids' => 'required|array|min:1|max:5',
+            'category_ids.*' => 'uuid|exists:categories,id|distinct',
+            'school_year' => 'required|string|max:255',
+            'authors' => 'required|array|min:1',
+            'authors.*' => 'string|max:255',
+            'adviser_id' => 'nullable|uuid|exists:users,id',
+            'manuscript' => 'nullable|file|mimes:pdf|max:51200',
+            'supplementary_files' => 'nullable|array',
+            'supplementary_files.*' => 'file|max:51200',
+        ]);
+
+        $payload = [
+            'title' => $validated['title'],
+            'abstract' => $validated['abstract'] ?? null,
+            'department' => $validated['department'],
+            'program' => $validated['program'] ?? null,
+            'category_id' => $validated['category_id'],
+            'category_ids' => $validated['category_ids'],
+            'school_year' => $validated['school_year'],
+            'authors' => $validated['authors'],
+            'adviser_id' => $validated['adviser_id'] ?? null,
+        ];
+
+        if ($request->hasFile('manuscript')) {
+            $manuscriptUpload = $this->uploadToSupabase($request->file('manuscript'), 'manuscripts');
+            $payload['file_url'] = $manuscriptUpload['url'];
+            $payload['file_name'] = $manuscriptUpload['name'];
+            $payload['file_size'] = $manuscriptUpload['size'];
+        }
+
+        if ($request->hasFile('supplementary_files')) {
+            $existingFiles = collect($thesis->supplementary_files ?? [])
+                ->filter(fn ($file) => is_array($file))
+                ->values()
+                ->all();
+            $newUploads = collect($request->file('supplementary_files', []))
+                ->filter()
+                ->map(fn (\Illuminate\Http\UploadedFile $file) => $this->uploadToSupabase($file, 'supplementary'))
+                ->values()
+                ->all();
+
+            $payload['supplementary_files'] = array_values([...$existingFiles, ...$newUploads]);
+        }
+
+        $thesis->update($payload);
+
+        $this->logger->log($request->user(), 'admin.thesis_updated', 'thesis', $thesis->id, [
+            'title' => $thesis->title,
+            'status' => $thesis->status,
+        ]);
+
+        return response()->json([
+            'data' => $this->formatAdminThesisDetail(
+                $thesis->fresh([
+                    'submitter:id,name,email',
+                    'adviser:id,name,email',
+                    'category:id,name,slug',
+                ])
+            ),
+            'message' => 'Thesis updated successfully.',
+        ]);
+    }
+
     private function courseUploadLabel(string $course): string
     {
         $normalized = trim($course);
@@ -198,6 +375,92 @@ class AdminController extends Controller
         }
 
         return $normalized;
+    }
+
+    private function normalizeJsonArrayInput(mixed $value): array
+    {
+        if (is_array($value)) {
+            return collect($value)
+                ->map(fn ($item) => is_string($item) ? trim($item) : $item)
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return collect($decoded)
+                ->map(fn ($item) => is_string($item) ? trim($item) : $item)
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        return [];
+    }
+
+    private function formatAdminThesisDetail(Thesis $thesis): array
+    {
+        $categoryIds = collect($thesis->category_ids ?? [])
+            ->filter(fn ($value) => is_string($value) && trim($value) !== '')
+            ->values();
+
+        if ($categoryIds->isEmpty() && filled($thesis->category_id)) {
+            $categoryIds->push((string) $thesis->category_id);
+        }
+
+        $categories = $categoryIds->isNotEmpty()
+            ? Category::query()
+                ->whereIn('id', $categoryIds->all())
+                ->get(['id', 'name', 'slug'])
+                ->keyBy('id')
+            : collect();
+
+        return [
+            'id' => $thesis->id,
+            'title' => $thesis->title,
+            'abstract' => $thesis->abstract,
+            'department' => $thesis->department,
+            'program' => $thesis->program,
+            'school_year' => $thesis->school_year,
+            'category_id' => $thesis->category_id,
+            'category_ids' => $categoryIds->all(),
+            'categories' => $categoryIds
+                ->map(fn (string $categoryId) => $categories->get($categoryId))
+                ->filter()
+                ->map(fn (Category $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                ])
+                ->values()
+                ->all(),
+            'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+            'status' => $thesis->status,
+            'file_name' => $thesis->file_name,
+            'file_size' => $thesis->file_size,
+            'file_url' => $thesis->file_url,
+            'supplementary_files' => collect($thesis->supplementary_files ?? [])
+                ->filter(fn ($file) => is_array($file))
+                ->map(fn (array $file) => [
+                    'name' => (string) ($file['name'] ?? 'Attachment'),
+                    'size' => isset($file['size']) ? (int) $file['size'] : null,
+                    'url' => isset($file['url']) ? (string) $file['url'] : null,
+                    'path' => isset($file['path']) ? (string) $file['path'] : null,
+                ])
+                ->values()
+                ->all(),
+            'adviser_id' => $thesis->adviser_id,
+            'adviser_name' => $thesis->adviser?->name ?? $thesis->adviser_name,
+            'submitter_name' => $thesis->submitter?->name ?? $thesis->submitter_name,
+            'created_at' => optional($thesis->created_at)?->toISOString(),
+            'updated_at' => optional($thesis->updated_at)?->toISOString(),
+        ];
     }
 
     private function formatAdminActivityTitle(ActivityLog $log): string
@@ -234,6 +497,44 @@ class AdminController extends Controller
             'thesis.rejected', 'admin.user_status_updated' => 'orange',
             default => 'rose',
         };
+    }
+
+    private function uploadToSupabase(\Illuminate\Http\UploadedFile $file, string $folder): array
+    {
+        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
+        $serviceKey = (string) config('services.supabase.service_key');
+        $bucket = (string) config('services.supabase.bucket');
+
+        if ($supabaseUrl === '' || $serviceKey === '' || $bucket === '') {
+            throw new \RuntimeException('Supabase storage is not configured.');
+        }
+
+        $path = sprintf(
+            'admin-theses/%s/%s/%s-%s',
+            $folder,
+            now()->format('Y/m'),
+            (string) Str::uuid(),
+            preg_replace('/[^A-Za-z0-9.\-_]/', '-', $file->getClientOriginalName())
+        );
+
+        $response = Http::withHeaders([
+            'apikey' => $serviceKey,
+            'Authorization' => 'Bearer ' . $serviceKey,
+            'x-upsert' => 'true',
+            'Content-Type' => $file->getMimeType() ?: 'application/octet-stream',
+        ])->withBody(file_get_contents($file->getRealPath()), $file->getMimeType() ?: 'application/octet-stream')
+            ->post("{$supabaseUrl}/storage/v1/object/{$bucket}/{$path}");
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Failed to upload file to storage.');
+        }
+
+        return [
+            'name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'path' => $path,
+            'url' => "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$path}",
+        ];
     }
 
     public function users(Request $request): JsonResponse

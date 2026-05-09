@@ -85,6 +85,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard']);
+        Route::post('/theses', [AdminController::class, 'storeThesis']);
+        Route::get('/theses/{id}', [AdminController::class, 'showThesis']);
+        Route::post('/theses/{id}', [AdminController::class, 'updateThesis']);
+        Route::patch('/theses/{id}', [AdminController::class, 'updateThesis']);
         Route::get('/support-tickets', [SupportTicketController::class, 'indexForAdmin']);
         Route::get('/support-tickets/{id}', [SupportTicketController::class, 'showForAdmin']);
         Route::patch('/support-tickets/{id}', [SupportTicketController::class, 'updateForAdmin']);
