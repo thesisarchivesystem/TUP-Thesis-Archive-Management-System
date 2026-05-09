@@ -24,6 +24,11 @@ class SupportTicketReply extends Model
         'is_system' => 'boolean',
     ];
 
+    public function setIsSystemAttribute(bool|int|string|null $value): void
+    {
+        $this->attributes['is_system'] = filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+    }
+
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(SupportTicket::class, 'support_ticket_id');

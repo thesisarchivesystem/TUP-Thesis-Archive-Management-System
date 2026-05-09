@@ -1,10 +1,28 @@
-import { ChevronDown, ChevronLeft, ChevronRight, Search, Ticket } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileImage,
+  FileText,
+  Folder,
+  Mail,
+  Paperclip,
+  Search,
+  Tag,
+  Ticket,
+  UserRound,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import {
   adminService,
+  type AdminSupportTicketDetail,
   type AdminSupportTicketSummary,
   type AdminSupportTicketsResponse,
+  type AdminTicketStatus,
 } from '../../services/adminService';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
@@ -19,6 +37,19 @@ const formatDate = (value?: string | null) => {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+  });
+};
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return 'Not available';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not available';
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 };
 
@@ -46,6 +77,20 @@ const getPaginationItems = (currentPage: number, totalPages: number) => {
   return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis-end', totalPages] as const;
 };
 
+const getAttachmentName = (ticket: AdminSupportTicketSummary | AdminSupportTicketDetail) => {
+  const attachment = ticket.attachment_url || ticket.attachment_access_url;
+  if (!attachment) return 'Ticket attachment';
+
+  try {
+    const parsed = new URL(attachment);
+    const name = parsed.pathname.split('/').filter(Boolean).pop();
+    return name ? decodeURIComponent(name) : 'Ticket attachment';
+  } catch {
+    const name = attachment.split('/').filter(Boolean).pop();
+    return name ? decodeURIComponent(name.split('?')[0]) : 'Ticket attachment';
+  }
+};
+
 export default function AdminTicketsPage() {
   const [data, setData] = useState<AdminSupportTicketsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +101,12 @@ export default function AdminTicketsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<AdminSupportTicketDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<AdminTicketStatus | null>(null);
+  const [resolutionNote, setResolutionNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     const loadTickets = async () => {
@@ -122,6 +173,122 @@ export default function AdminTicketsPage() {
   const paginationItems = getPaginationItems(currentPage, totalPages);
   const showingStart = filteredTickets.length ? (currentPage - 1) * pageSize + 1 : 0;
   const showingEnd = Math.min(currentPage * pageSize, filteredTickets.length);
+  const fallbackSelectedTicket = useMemo(
+    () => data?.tickets.find((ticket) => ticket.id === selectedTicketId) ?? null,
+    [data?.tickets, selectedTicketId],
+  );
+  const viewedTicket = selectedTicket ?? fallbackSelectedTicket;
+  const adminNotes = selectedTicket?.replies.filter((reply) => reply.author_role === 'admin' || reply.is_system) ?? [];
+  const attachmentUrl = viewedTicket?.attachment_access_url || viewedTicket?.attachment_url || '';
+
+  const openTicket = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
+    setSelectedTicket(null);
+    setDetailError(null);
+  };
+
+  const closeTicket = () => {
+    setSelectedTicketId(null);
+    setSelectedTicket(null);
+    setDetailError(null);
+    setUpdatingStatus(null);
+    setResolutionNote('');
+    setSavingNote(false);
+  };
+
+  useEffect(() => {
+    if (!selectedTicketId) return;
+
+    let active = true;
+
+    const loadTicketDetail = async () => {
+      setDetailLoading(true);
+      setDetailError(null);
+
+      try {
+        const ticket = await adminService.getSupportTicket(selectedTicketId);
+        if (active) setSelectedTicket(ticket);
+      } catch (err: unknown) {
+        const message =
+          typeof err === 'object' && err !== null && 'response' in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : null;
+        if (active) setDetailError(message || 'Failed to load ticket details.');
+      } finally {
+        if (active) setDetailLoading(false);
+      }
+    };
+
+    void loadTicketDetail();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedTicketId]);
+
+  const updateTicketStatus = async (status: AdminTicketStatus) => {
+    if (!selectedTicketId) return;
+
+    setUpdatingStatus(status);
+    setDetailError(null);
+
+    try {
+      const updated = await adminService.updateSupportTicket(selectedTicketId, { status });
+      setSelectedTicket(updated);
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              tickets: current.tickets.map((ticket) =>
+                ticket.id === updated.id ? { ...ticket, ...updated } : ticket,
+              ),
+            }
+          : current,
+      );
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' && err !== null && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : null;
+      setDetailError(message || 'Failed to update ticket status.');
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const saveResolutionNote = async () => {
+    if (!selectedTicketId) return;
+
+    const message = resolutionNote.trim();
+    if (!message) return;
+
+    setSavingNote(true);
+    setDetailError(null);
+
+    try {
+      const updated = await adminService.replySupportTicket(selectedTicketId, { message });
+      setSelectedTicket(updated);
+      setResolutionNote('');
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              tickets: current.tickets.map((ticket) =>
+                ticket.id === updated.id ? { ...ticket, ...updated } : ticket,
+              ),
+            }
+          : current,
+      );
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' && err !== null && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : null;
+      setDetailError(message || 'Failed to save admin note.');
+    } finally {
+      setSavingNote(false);
+    }
+  };
 
   if (loading) return <SectionLoadingScreen label="Loading ticket list..." />;
   if (error && !data) return <div className="admin-alert">{error}</div>;
@@ -220,7 +387,7 @@ export default function AdminTicketsPage() {
                         <button
                           type="button"
                           className="admin-ticket-view-btn"
-                          onClick={() => setSelectedTicketId(ticket.id)}
+                          onClick={() => openTicket(ticket.id)}
                         >
                           View
                         </button>
@@ -286,6 +453,171 @@ export default function AdminTicketsPage() {
           </div>
         </div>
       </section>
+
+      {selectedTicketId ? (
+        <div className="admin-ticket-view-backdrop" onClick={closeTicket} role="presentation">
+          <article
+            className="admin-ticket-view-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-ticket-view-title"
+          >
+            <header className="admin-ticket-view-header">
+              <div className="admin-ticket-view-title">
+                <span className="admin-ticket-title-icon">
+                  <Ticket size={16} strokeWidth={1.9} />
+                </span>
+                <h2 id="admin-ticket-view-title">View Ticket</h2>
+              </div>
+              <button type="button" className="admin-ticket-view-close" onClick={closeTicket} aria-label="Close ticket">
+                <X size={20} />
+              </button>
+            </header>
+
+            {viewedTicket ? (
+              <>
+                <section className="admin-ticket-view-card admin-ticket-view-overview">
+                  <div className="admin-ticket-view-overview-head">
+                    <div>
+                      <h3>{viewedTicket.subject}</h3>
+                      <p>{viewedTicket.reference}</p>
+                    </div>
+                    <div className="admin-ticket-view-priority">
+                      <span className={`admin-ticket-badge priority-${viewedTicket.priority}`}>
+                        {priorityLabel(viewedTicket.priority)}
+                      </span>
+                      <small>Priority</small>
+                    </div>
+                  </div>
+
+                  <div className="admin-ticket-view-meta">
+                    <div className="admin-ticket-view-meta-item">
+                      <UserRound size={18} />
+                      <span>Requester</span>
+                      <strong>{viewedTicket.full_name}</strong>
+                    </div>
+                    <div className="admin-ticket-view-meta-item">
+                      <Mail size={18} />
+                      <span>Email</span>
+                      <strong>{viewedTicket.email}</strong>
+                    </div>
+                    <div className="admin-ticket-view-meta-item">
+                      <Tag size={18} />
+                      <span>Status</span>
+                      <strong>
+                        <span className={`admin-ticket-badge status-${viewedTicket.status}`}>
+                          {statusLabel(viewedTicket.status)}
+                        </span>
+                      </strong>
+                    </div>
+                    <div className="admin-ticket-view-meta-item">
+                      <Folder size={18} />
+                      <span>Category</span>
+                      <strong>{viewedTicket.category}</strong>
+                    </div>
+                    <div className="admin-ticket-view-meta-item">
+                      <CalendarDays size={18} />
+                      <span>Submitted</span>
+                      <strong>{formatDateTime(viewedTicket.submitted_at)}</strong>
+                    </div>
+                    <div className="admin-ticket-view-meta-item">
+                      <CalendarDays size={18} />
+                      <span>Last Updated</span>
+                      <strong>{formatDateTime(viewedTicket.updated_at || viewedTicket.submitted_at)}</strong>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="admin-ticket-view-card admin-ticket-view-section">
+                  <FileText size={18} />
+                  <div>
+                    <h3>Concern Details</h3>
+                    <p>{viewedTicket.message}</p>
+                  </div>
+                </section>
+
+                <section className="admin-ticket-view-card admin-ticket-view-section">
+                  <Paperclip size={18} />
+                  <div>
+                    <h3>Attachment ({attachmentUrl ? 1 : 0})</h3>
+                    {attachmentUrl ? (
+                      <a className="admin-ticket-attachment" href={attachmentUrl} target="_blank" rel="noreferrer">
+                        <FileImage size={18} />
+                        <span>
+                          <strong>{getAttachmentName(viewedTicket)}</strong>
+                          <small>Open attached file</small>
+                        </span>
+                        <Download size={18} />
+                      </a>
+                    ) : (
+                      <p className="admin-ticket-muted">No attachment was provided for this ticket.</p>
+                    )}
+                  </div>
+                </section>
+
+                <section className="admin-ticket-view-card admin-ticket-view-section">
+                  <FileText size={18} />
+                  <div>
+                    <h3>Admin Resolution Notes</h3>
+                    {detailLoading ? <p className="admin-ticket-muted">Loading notes...</p> : null}
+                    {!detailLoading && adminNotes.length ? (
+                      adminNotes.map((reply) => <p key={reply.id}>{reply.message}</p>)
+                    ) : null}
+                    {!detailLoading && !adminNotes.length ? (
+                      <p className="admin-ticket-muted">No admin notes have been added yet.</p>
+                    ) : null}
+                    <label className="admin-ticket-note-field">
+                      <span>Add note</span>
+                      <textarea
+                        value={resolutionNote}
+                        onChange={(event) => setResolutionNote(event.target.value)}
+                        placeholder="Type admin resolution notes here..."
+                      />
+                    </label>
+                    <div className="admin-ticket-note-actions">
+                      <button
+                        type="button"
+                        className="admin-ticket-modal-btn progress"
+                        disabled={savingNote || !resolutionNote.trim()}
+                        onClick={saveResolutionNote}
+                      >
+                        {savingNote ? 'Saving...' : 'Save Note'}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </>
+            ) : (
+              <div className="admin-ticket-view-loading">Loading ticket details...</div>
+            )}
+
+            {detailError ? <div className="admin-alert admin-ticket-view-alert">{detailError}</div> : null}
+
+            <footer className="admin-ticket-view-actions">
+              <button type="button" className="admin-ticket-modal-btn neutral" onClick={closeTicket}>
+                Close
+              </button>
+              <button
+                type="button"
+                className="admin-ticket-modal-btn progress"
+                disabled={!viewedTicket || viewedTicket.status === 'in_progress' || updatingStatus !== null}
+                onClick={() => updateTicketStatus('in_progress')}
+              >
+                {updatingStatus === 'in_progress' ? 'Updating...' : 'Mark In Progress'}
+              </button>
+              <button
+                type="button"
+                className="admin-ticket-modal-btn resolve"
+                disabled={!viewedTicket || viewedTicket.status === 'resolved' || updatingStatus !== null}
+                onClick={() => updateTicketStatus('resolved')}
+              >
+                {updatingStatus === 'resolved' ? 'Resolving...' : 'Resolve Ticket'}
+              </button>
+            </footer>
+          </article>
+        </div>
+      ) : null}
     </div>
   );
 }

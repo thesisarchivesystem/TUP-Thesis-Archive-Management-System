@@ -8,6 +8,8 @@ export type NotificationType =
   | 'extension.requested'
   | 'extension.approved'
   | 'extension.rejected'
+  | 'support.ticket_in_progress'
+  | 'support.ticket_resolved'
   | 'new_message'
   | 'faculty.created'
   | 'faculty.updated'

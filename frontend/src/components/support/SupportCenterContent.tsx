@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CircleHelp, Clock3, FileImage, FileUp, KeyRound, LibraryBig, MailCheck, ShieldAlert, X } from 'lucide-react';
 import type { UserRole } from '../../types/user.types';
 import { supportTicketService } from '../../services/supportTicketService';
@@ -32,6 +32,7 @@ const categoryOptions = [
 ];
 
 const OTHER_CATEGORY = 'Others';
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Props = {
   role: UserRole;
@@ -54,6 +55,16 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!successMessage) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setSuccessMessage(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [successMessage]);
 
   const handleChange = (field: 'full_name' | 'email' | 'category' | 'other_category' | 'message', value: string) => {
     setForm((current) => {
@@ -80,6 +91,25 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const fullName = form.full_name.trim();
+    const email = form.email.trim();
+    const message = form.message.trim();
+
+    if (!fullName) {
+      setErrorMessage('Please enter your full name.');
+      return;
+    }
+
+    if (!email) {
+      setErrorMessage('Please enter your email address.');
+      return;
+    }
+
+    if (!emailPattern.test(email)) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+
     if (!form.category) {
       setErrorMessage('Please choose an issue category.');
       return;
@@ -87,6 +117,11 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
 
     if (form.category === OTHER_CATEGORY && !form.other_category.trim()) {
       setErrorMessage('Please specify your issue category.');
+      return;
+    }
+
+    if (message.length < 10) {
+      setErrorMessage('Please describe your concern in at least 10 characters.');
       return;
     }
 
@@ -99,15 +134,20 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
         ? form.other_category.trim()
         : form.category;
 
-      await supportTicketService.createTicket({
-        full_name: form.full_name.trim(),
-        email: form.email.trim(),
+      const response = await supportTicketService.createTicket({
+        full_name: fullName,
+        email,
         category: normalizedCategory,
-        message: form.message.trim(),
+        message,
         attachment,
       });
 
-      setSuccessMessage('Your support ticket has been submitted. The archive support team has been notified.');
+      const reference = response.data?.reference;
+      setSuccessMessage(
+        reference
+          ? `Ticket submitted successfully. Your reference number is ${reference}.`
+          : response.message || 'Ticket submitted successfully. The archive support team has been notified.',
+      );
       setForm((current) => ({
         ...current,
         category: '',
@@ -195,18 +235,18 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
             <span className="vpaa-support-reference-label">Ticket</span>
             <h3>Open a support ticket</h3>
           </div>
-          <form className="vpaa-support-reference-form" onSubmit={handleSubmit}>
+          <form className="vpaa-support-reference-form" onSubmit={handleSubmit} noValidate>
             <label>
               <span>Full Name</span>
-              <input className="vpaa-support-input" type="text" value={form.full_name} onChange={(event) => handleChange('full_name', event.target.value)} required />
+              <input className="vpaa-support-input" type="text" value={form.full_name} onChange={(event) => handleChange('full_name', event.target.value)} />
             </label>
             <label>
               <span>Email</span>
-              <input className="vpaa-support-input" type="email" value={form.email} onChange={(event) => handleChange('email', event.target.value)} required />
+              <input className="vpaa-support-input" type="email" value={form.email} onChange={(event) => handleChange('email', event.target.value)} />
             </label>
             <label>
               <span>Issue Category</span>
-              <select className="vpaa-support-input" value={form.category} onChange={(event) => handleChange('category', event.target.value)} required>
+              <select className="vpaa-support-input" value={form.category} onChange={(event) => handleChange('category', event.target.value)}>
                 <option value="" disabled>Select a category...</option>
                 {categoryOptions.map((option) => (
                   <option key={option} value={option}>{option}</option>
@@ -222,13 +262,12 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
                   value={form.other_category}
                   onChange={(event) => handleChange('other_category', event.target.value)}
                   placeholder="Enter your issue category..."
-                  required
                 />
               </label>
             ) : null}
             <label>
               <span>Describe Your Concern</span>
-              <textarea className="vpaa-support-textarea" value={form.message} onChange={(event) => handleChange('message', event.target.value)} placeholder="Briefly describe the issue you're experiencing..." minLength={10} required />
+              <textarea className="vpaa-support-textarea" value={form.message} onChange={(event) => handleChange('message', event.target.value)} placeholder="Briefly describe the issue you're experiencing..." />
             </label>
             <label>
               <span>Upload Image</span>
@@ -271,8 +310,16 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
                 ) : null}
               </div>
             </label>
-            {successMessage ? <p className="vpaa-support-reference-success">{successMessage}</p> : null}
-            {errorMessage ? <p className="vpaa-support-reference-error">{errorMessage}</p> : null}
+            {successMessage ? (
+              <p className="vpaa-support-reference-feedback success" role="status" aria-live="polite">
+                {successMessage}
+              </p>
+            ) : null}
+            {errorMessage ? (
+              <p className="vpaa-support-reference-feedback error" role="alert">
+                {errorMessage}
+              </p>
+            ) : null}
             <button type="submit" className="btn-primary vpaa-support-reference-submit" disabled={submitting}>
               {submitting ? 'Submitting...' : 'Submit Ticket'}
             </button>

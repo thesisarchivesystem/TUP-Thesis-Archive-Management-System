@@ -56,6 +56,8 @@ class NotificationController extends Controller
                 'thesis.certificate_ready',
                 'thesis.rejected',
                 'thesis.archived',
+                'support.ticket_in_progress',
+                'support.ticket_resolved',
             ],
             'faculty' => [
                 'new_message',
@@ -65,6 +67,8 @@ class NotificationController extends Controller
                 'department.file_shared',
                 'student.created',
                 'student.updated',
+                'support.ticket_in_progress',
+                'support.ticket_resolved',
             ],
             default => ['new_message'],
         };
