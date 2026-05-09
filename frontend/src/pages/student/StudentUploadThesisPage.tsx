@@ -556,13 +556,28 @@ export default function StudentUploadThesisPage() {
                 <span><Layers3 size={14} /> Category</span>
                 <details className="student-upload-multi-dropdown">
                   <summary className="student-upload-multi-dropdown-trigger" aria-invalid={Boolean(fieldErrors.category_id)}>
-                    <span className="student-upload-multi-dropdown-value">
+                    <span className="student-upload-multi-dropdown-value student-upload-token-row">
                       {form.category_ids.length
                         ? categories
                             .filter((category) => form.category_ids.includes(category.id))
-                            .map((category) => category.label)
-                            .join(', ')
-                        : 'Select categories'}
+                            .map((category) => (
+                              <span className="student-upload-token-chip" key={category.id}>
+                                <span>{category.label}</span>
+                                <button
+                                  type="button"
+                                  className="student-upload-token-remove"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    toggleCategory(category.id);
+                                  }}
+                                  aria-label={`Remove ${category.label}`}
+                                >
+                                  x
+                                </button>
+                              </span>
+                            ))
+                        : <span className="student-upload-token-placeholder">Select categories</span>}
                     </span>
                     <span className="student-upload-multi-dropdown-meta">{form.category_ids.length}/{MAX_CATEGORY_SELECTIONS}</span>
                   </summary>
@@ -586,26 +601,13 @@ export default function StudentUploadThesisPage() {
             <label className={`student-upload-field full${fieldErrors.authors ? ' has-error' : ''}`}>
               <span><UserRound size={14} /> Authors</span>
               <div className="student-upload-author-box">
-                <input
-                  value={authorInput}
-                  onChange={(event) => setAuthorInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      addAuthor(authorInput);
-                    }
-                  }}
-                  onBlur={() => addAuthor(authorInput)}
-                  placeholder="Type an author name, then press Enter"
-                />
-                <div className="student-upload-author-tags">
+                <div className="student-upload-token-field">
                   {form.authors.map((author) => (
-                    <span className="student-upload-author-chip student-upload-author-pill" key={author}>
-                      <span className="student-upload-author-avatar">{getNameInitials(author)}</span>
-                      <span className="student-upload-author-name">{author}</span>
+                    <span className="student-upload-token-chip student-upload-author-token" key={author}>
+                      <span>{author}</span>
                       <button
                         type="button"
-                        className="student-upload-adviser-remove"
+                        className="student-upload-token-remove"
                         onClick={() => removeAuthor(author)}
                         aria-label={`Remove ${author}`}
                       >
@@ -613,6 +615,18 @@ export default function StudentUploadThesisPage() {
                       </button>
                     </span>
                   ))}
+                  <input
+                    value={authorInput}
+                    onChange={(event) => setAuthorInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        addAuthor(authorInput);
+                      }
+                    }}
+                    onBlur={() => addAuthor(authorInput)}
+                    placeholder={form.authors.length ? 'Add another author' : 'Type an author name, then press Enter'}
+                  />
                 </div>
               </div>
               {fieldErrors.authors ? <small className="student-upload-field-error">{fieldErrors.authors}</small> : <small>Press Enter after each author name to add another one.</small>}

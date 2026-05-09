@@ -108,6 +108,56 @@ export type AdminCategory = {
   is_active: boolean;
 };
 
+export type AdminThesisAttachment = {
+  name: string;
+  size?: number | null;
+  url?: string | null;
+  path?: string | null;
+};
+
+export type AdminThesisDetail = {
+  id: string;
+  title: string;
+  abstract?: string | null;
+  department: string;
+  program?: string | null;
+  school_year: string;
+  category_id?: string | null;
+  category_ids: string[];
+  categories: Array<{
+    id: string;
+    name: string;
+    slug: string;
+  }>;
+  authors: string[];
+  status: string;
+  file_name?: string | null;
+  file_size?: number | null;
+  file_url?: string | null;
+  supplementary_files: AdminThesisAttachment[];
+  adviser_id?: string | null;
+  adviser_name?: string | null;
+  submitter_name?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type AdminThesisPayload = {
+  title: string;
+  abstract?: string;
+  department: string;
+  program?: string;
+  category_id: string;
+  category_ids: string[];
+  school_year: string;
+  authors: string[];
+  adviser_id?: string;
+  confirm_original?: boolean;
+  allow_review?: boolean;
+  manuscript?: File | null;
+  supplementary_files?: File[];
+};
+
 export type AdminTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 export type AdminTicketPriority = 'low' | 'medium' | 'high';
 
@@ -247,6 +297,72 @@ export const adminService = {
   async listCategories(): Promise<AdminCategory[]> {
     const { data } = await api.get('/admin/categories');
     return data.data ?? [];
+  },
+
+  async getThesis(id: string): Promise<AdminThesisDetail> {
+    const { data } = await api.get(`/admin/theses/${id}`);
+    return data.data;
+  },
+
+  async createThesis(payload: AdminThesisPayload): Promise<AdminThesisDetail> {
+    const formData = new FormData();
+    formData.append('title', payload.title);
+    formData.append('abstract', payload.abstract ?? '');
+    formData.append('department', payload.department);
+    formData.append('program', payload.program ?? '');
+    formData.append('category_id', payload.category_id);
+    formData.append('category_ids', JSON.stringify(payload.category_ids));
+    formData.append('school_year', payload.school_year);
+    formData.append('authors', JSON.stringify(payload.authors));
+    formData.append('adviser_id', payload.adviser_id ?? '');
+    formData.append('confirm_original', payload.confirm_original ? '1' : '0');
+    formData.append('allow_review', payload.allow_review ? '1' : '0');
+
+    if (payload.manuscript) {
+      formData.append('manuscript', payload.manuscript);
+    }
+
+    (payload.supplementary_files ?? []).forEach((file) => {
+      formData.append('supplementary_files[]', file);
+    });
+
+    const { data } = await api.post('/admin/theses', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return data.data;
+  },
+
+  async updateThesis(id: string, payload: AdminThesisPayload): Promise<AdminThesisDetail> {
+    const formData = new FormData();
+    formData.append('title', payload.title);
+    formData.append('abstract', payload.abstract ?? '');
+    formData.append('department', payload.department);
+    formData.append('program', payload.program ?? '');
+    formData.append('category_id', payload.category_id);
+    formData.append('category_ids', JSON.stringify(payload.category_ids));
+    formData.append('school_year', payload.school_year);
+    formData.append('authors', JSON.stringify(payload.authors));
+    formData.append('adviser_id', payload.adviser_id ?? '');
+    formData.append('_method', 'PATCH');
+
+    if (payload.manuscript) {
+      formData.append('manuscript', payload.manuscript);
+    }
+
+    (payload.supplementary_files ?? []).forEach((file) => {
+      formData.append('supplementary_files[]', file);
+    });
+
+    const { data } = await api.post(`/admin/theses/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return data.data;
   },
 
   async createCategory(payload: Record<string, unknown>) {

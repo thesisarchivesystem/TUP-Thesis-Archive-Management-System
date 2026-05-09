@@ -2220,6 +2220,39 @@
   gap: 10px;
 }
 
+.student-upload-token-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--maroon) 10%, var(--border));
+  border-radius: 16px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, white 2%), var(--bg-card));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+
+.student-upload-token-field:focus-within {
+  border-color: var(--maroon);
+  box-shadow: 0 0 0 3px rgba(var(--book-theme-accent-rgb), 0.08);
+}
+
+.student-upload-token-field input {
+  flex: 1;
+  min-width: 180px;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.student-upload-token-field input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 .student-upload-searchbox {
   display: grid;
   gap: 10px;
@@ -2283,6 +2316,62 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.student-upload-token-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.student-upload-token-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.14);
+  background: linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.06), rgba(var(--book-theme-accent-rgb), 0.025));
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.student-upload-token-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-upload-token-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(var(--book-theme-accent-rgb), 0.08);
+  color: #8b6d70;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  padding: 0;
+}
+
+.student-upload-token-remove:hover {
+  background: rgba(var(--book-theme-accent-rgb), 0.14);
+  color: var(--maroon);
+}
+
+.student-upload-token-placeholder {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .student-upload-author-chip {
@@ -2409,11 +2498,11 @@
 
 .student-upload-multi-dropdown-trigger {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   min-height: 52px;
-  padding: 14px 16px;
+  padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--maroon) 10%, var(--border));
   border-radius: 16px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, white 2%), var(--bg-card));
@@ -2430,6 +2519,7 @@
   font-size: 13px;
   line-height: 1.5;
   font-weight: 400;
+  flex: 1;
 }
 
 .student-upload-multi-dropdown-meta {
@@ -2959,6 +3049,24 @@
 
 .theme-dark .student-upload-author-name {
   color: #f0e4e6;
+}
+
+.theme-dark .student-upload-token-field,
+.theme-dark .student-upload-token-chip {
+  border-color: rgba(200, 160, 170, 0.14);
+  background: rgba(47, 36, 43, 0.96);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .student-upload-token-field input,
+.theme-dark .student-upload-token-chip,
+.theme-dark .student-upload-token-placeholder {
+  color: #f0e4e6;
+}
+
+.theme-dark .student-upload-token-remove {
+  background: rgba(var(--book-theme-accent-rgb), 0.12);
+  color: #c8b2b7;
 }
 
 .theme-dark .student-upload-title-badge,
