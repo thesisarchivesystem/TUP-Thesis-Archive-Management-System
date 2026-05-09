@@ -317,7 +317,7 @@ export default function SharedThesisDetailsPage({
                 </div>
               </div>
 
-              <div className="thesis-record-section">
+              <div className="thesis-record-section thesis-record-section-stack">
                 <strong className="thesis-record-section-label">
                   <span className="thesis-record-section-icon"><FileText size={16} /></span>
                   <span>Abstract</span>
@@ -327,12 +327,12 @@ export default function SharedThesisDetailsPage({
                 </div>
               </div>
 
-              <div className="thesis-record-section">
+              <div className="thesis-record-section thesis-record-section-stack">
                 <strong className="thesis-record-section-label">
                   <span className="thesis-record-section-icon"><Users2 size={16} /></span>
                   <span>Authors</span>
                 </strong>
-                <div className="thesis-record-authors">
+                <div className="thesis-record-authors thesis-record-section-body">
                   {(thesis.authors?.filter(Boolean).length ? thesis.authors.filter(Boolean) : [authorLabel]).map((author) => {
                     const initials = author
                       .split(' ')
