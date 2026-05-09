@@ -5278,14 +5278,22 @@
 }
 
 .thesis-record-section-label {
-  display: inline-flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
+  width: 100%;
   font-family: 'DM Serif Display', serif;
   font-size: 1.2rem;
   color: var(--text-primary);
   letter-spacing: 0;
   text-transform: none;
+}
+
+.thesis-record-section-label > span:last-child {
+  min-width: 0;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .thesis-record-section-icon {
@@ -5305,6 +5313,15 @@
   font-size: 13px;
   line-height: 1.72;
   margin: 0;
+}
+
+.thesis-record-section-stack {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.thesis-record-section-stack .thesis-record-section-body {
+  padding-left: 42px;
 }
 
 .thesis-record-authors {

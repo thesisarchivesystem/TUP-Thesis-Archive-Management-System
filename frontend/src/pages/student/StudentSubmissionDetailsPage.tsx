@@ -1,9 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarDays, FileText, FolderOpen, GraduationCap, UserRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  CalendarDays,
+  Download,
+  Eye,
+  FileText,
+  FolderOpen,
+  GraduationCap,
+  Heart,
+  Info,
+  LibraryBig,
+  Quote,
+  Tags,
+  UserRound,
+  Users2,
+} from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
+import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import { thesisService } from '../../services/thesisService';
+import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
 import type { Thesis } from '../../types/thesis.types';
+import { createFavoriteThesis } from '../../utils/favoriteThesis';
+import { createWatermarkedThesisPdfBlob, getWatermarkedPdfFileName } from '../../utils/watermarkedPdf';
 
 const formatDateTime = (value?: string) => {
   if (!value) return 'Not available';
@@ -33,35 +52,82 @@ const formatDate = (value?: string) => {
   });
 };
 
-const buildProgressSteps = (status?: Thesis['status'], isArchived?: boolean) => {
-  if (status === 'draft') {
-    return ['Submitted', 'For Review', 'Approved', 'Archived'].map((label) => ({ label, done: false }));
+const truncateCoverTitle = (title: string, maxWords = 5) => {
+  const words = title.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return title;
+  return `${words.slice(0, maxWords).join(' ')}...`;
+};
+
+const getStatusLabel = (submission?: Thesis | null) => {
+  if (!submission) return 'Pending Review';
+  if (submission.status === 'approved' && submission.is_archived) return 'Archived';
+  if (submission.status === 'approved') return 'Approved';
+  if (submission.status === 'rejected') return 'Revisions Needed';
+  if (submission.status === 'draft') return 'Draft';
+  return 'For Review';
+};
+
+const getStatusTone = (submission?: Thesis | null) => {
+  if (!submission) return 'pending';
+  if (submission.status === 'approved' && submission.is_archived) return 'archived';
+  if (submission.status === 'approved') return 'approved';
+  if (submission.status === 'rejected') return 'revision_needed';
+  if (submission.status === 'draft') return 'pending';
+  return submission.status;
+};
+
+const buildProgressSteps = (submission?: Thesis | null) => {
+  if (!submission || submission.status === 'draft') {
+    return [
+      { label: 'Submitted', tone: 'current' },
+      { label: 'For Review', tone: 'pending' },
+      { label: 'Approved', tone: 'pending' },
+      { label: 'Archived', tone: 'pending' },
+    ] as const;
   }
 
-  if (status === 'approved') {
+  if (submission.status === 'approved' && submission.is_archived) {
     return [
-      { label: 'Submitted', done: true },
-      { label: 'For Review', done: true },
-      { label: 'Approved', done: true },
-      { label: 'Archived', done: Boolean(isArchived) },
-    ];
+      { label: 'Submitted', tone: 'done' },
+      { label: 'For Review', tone: 'done' },
+      { label: 'Approved', tone: 'done' },
+      { label: 'Archived', tone: 'done' },
+    ] as const;
   }
 
-  if (status === 'under_review') {
+  if (submission.status === 'approved') {
     return [
-      { label: 'Submitted', done: true },
-      { label: 'For Review', done: true },
-      { label: 'Approved', done: true },
-      { label: 'Archived', done: false },
-    ];
+      { label: 'Submitted', tone: 'done' },
+      { label: 'For Review', tone: 'done' },
+      { label: 'Approved', tone: 'done' },
+      { label: 'Archived', tone: 'pending' },
+    ] as const;
+  }
+
+  if (submission.status === 'rejected') {
+    return [
+      { label: 'Submitted', tone: 'done' },
+      { label: 'For Review', tone: 'done' },
+      { label: 'Approved', tone: 'pending' },
+      { label: 'Archived', tone: 'pending' },
+    ] as const;
   }
 
   return [
-    { label: 'Submitted', done: true },
-    { label: 'For Review', done: true },
-    { label: 'Approved', done: false },
-    { label: 'Archived', done: false },
-  ];
+    { label: 'Submitted', tone: 'done' },
+    { label: 'For Review', tone: 'current' },
+    { label: 'Approved', tone: 'pending' },
+    { label: 'Archived', tone: 'pending' },
+  ] as const;
+};
+
+const buildCitation = (submission: Thesis, authorLabel: string) => {
+  const year = submission.school_year || submission.approved_at?.slice(0, 4) || submission.created_at?.slice(0, 4) || 'n.d.';
+  const categoryNames = submission.categories?.length
+    ? submission.categories.map((category) => category.name).join(', ')
+    : submission.category?.name || '';
+  const categorySuffix = categoryNames ? ` ${categoryNames}.` : '';
+  return `${authorLabel} (${year}). ${submission.title}.${categorySuffix} ${submission.department}.`;
 };
 
 type LocationState = {
@@ -76,6 +142,19 @@ export default function StudentSubmissionDetailsPage() {
   const [submission, setSubmission] = useState<Thesis | null>(locationState?.submission ?? null);
   const [isLoading, setIsLoading] = useState(() => !locationState?.submission);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [openingManuscript, setOpeningManuscript] = useState(false);
+  const [downloadingManuscript, setDownloadingManuscript] = useState(false);
+  const toggleFavorite = useFavoriteThesisStore((state) => state.toggleFavorite);
+  const isFavorite = useFavoriteThesisStore((state) => (id ? state.isFavorite('student', decodeURIComponent(id)) : false));
+
+  useEffect(() => {
+    document.body.classList.add('thesis-detail-mode');
+
+    return () => {
+      document.body.classList.remove('thesis-detail-mode');
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -86,16 +165,16 @@ export default function StudentSubmissionDetailsPage() {
 
     const normalizedId = decodeURIComponent(id);
     const stateSubmission = locationState?.submission ?? null;
+    const hasMatchingStateSubmission = Boolean(stateSubmission && String(stateSubmission.id) === normalizedId);
 
-    if (stateSubmission && String(stateSubmission.id) === normalizedId) {
+    if (hasMatchingStateSubmission) {
       setSubmission(stateSubmission);
-      setIsLoading(false);
       setError('');
-      return;
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+      setError('');
     }
-
-    setIsLoading(true);
-    setError('');
 
     void thesisService.get(normalizedId)
       .then((response) => {
@@ -122,32 +201,113 @@ export default function StudentSubmissionDetailsPage() {
 
   const authorLabel = useMemo(() => {
     if (!submission) return 'Student';
-    return submission.authors?.join(', ') || submission.submitter?.name || 'Student';
+    return submission.authors?.filter(Boolean).join(', ') || submission.submitter?.name || submission.submitter_name || 'Student';
   }, [submission]);
 
-  const summary = useMemo(() => {
-    if (!submission) {
-      return {
-        turnaround: 0,
-        panelComments: 0,
-        filesUploaded: 0,
-        pendingTasks: 0,
-      };
+  const submissionCategories = useMemo(() => {
+    if (!submission) return [];
+    if (submission.categories?.length) return submission.categories.slice(0, 5);
+    return submission.category ? [submission.category] : [];
+  }, [submission]);
+
+  const manuscriptActionLabel = openingManuscript ? 'Opening...' : 'View Thesis';
+  const downloadLabel = downloadingManuscript ? 'Preparing...' : 'Download PDF';
+  const feedbackLabel = submission?.status === 'rejected' ? 'Revision Notes' : 'Approval Comment';
+  const feedbackText = submission?.rejection_reason || submission?.adviser_remarks || '';
+  const progressSteps = buildProgressSteps(submission);
+  const recordStatus = getStatusLabel(submission);
+  const recordStatusTone = getStatusTone(submission);
+  const publishedYear = submission?.school_year || submission?.approved_at?.slice(0, 4) || submission?.created_at?.slice(0, 4) || 'Not available';
+
+  const createStudentWatermarkedManuscript = async () => {
+    if (!submission?.id) {
+      throw new Error('No manuscript is available right now.');
     }
 
-    const start = new Date(submission.submitted_at || submission.created_at).getTime();
-    const end = new Date(submission.reviewed_at || submission.approved_at || submission.created_at).getTime();
-    const turnaround = Number.isNaN(start) || Number.isNaN(end)
-      ? 1
-      : Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+    const manuscriptBlob = await thesisService.getManuscriptPdfBlob(submission.id);
+    return createWatermarkedThesisPdfBlob(manuscriptBlob);
+  };
 
-    return {
-      turnaround,
-      panelComments: submission.adviser_remarks || submission.rejection_reason ? 1 : 0,
-      filesUploaded: submission.file_url ? 1 : 0,
-      pendingTasks: submission.status === 'approved' && submission.is_archived ? 0 : 1,
-    };
-  }, [submission]);
+  const handleViewManuscript = async () => {
+    if (!submission?.id || !submission.file_url) {
+      setError('No manuscript is available to view yet.');
+      setSuccess('');
+      return;
+    }
+
+    const previewWindow = window.open('', '_blank');
+
+    if (!previewWindow) {
+      setError('Popup blocked while opening the manuscript. Please allow popups and try again.');
+      setSuccess('');
+      return;
+    }
+
+    previewWindow.document.title = submission.file_name || submission.title || 'Opening manuscript...';
+    previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening manuscript...</p>';
+
+    setError('');
+    setSuccess('');
+    setOpeningManuscript(true);
+
+    try {
+      const watermarkedBlob = await createStudentWatermarkedManuscript();
+      const watermarkedUrl = URL.createObjectURL(watermarkedBlob);
+      previewWindow.location.replace(watermarkedUrl);
+      window.setTimeout(() => URL.revokeObjectURL(watermarkedUrl), 30_000);
+    } catch (err) {
+      previewWindow.document.title = 'Unable to open manuscript';
+      previewWindow.document.body.innerHTML = `<p style="font-family: Arial, sans-serif; padding: 24px;">${
+        err instanceof Error ? err.message : 'Unable to open the manuscript right now.'
+      }</p>`;
+      setError(err instanceof Error ? err.message : 'Unable to open the manuscript right now.');
+    } finally {
+      setOpeningManuscript(false);
+    }
+  };
+
+  const handleDownloadManuscript = async () => {
+    if (!submission?.id || !submission.file_url) {
+      setError('No manuscript is available for download yet.');
+      setSuccess('');
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    setDownloadingManuscript(true);
+
+    try {
+      const watermarkedBlob = await createStudentWatermarkedManuscript();
+      const watermarkedUrl = URL.createObjectURL(watermarkedBlob);
+      const link = document.createElement('a');
+      link.href = watermarkedUrl;
+      link.download = getWatermarkedPdfFileName(submission.file_name || submission.title || 'thesis.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(watermarkedUrl), 30_000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to download the manuscript right now.');
+    } finally {
+      setDownloadingManuscript(false);
+    }
+  };
+
+  const handleCopyCitation = async () => {
+    if (!submission) return;
+
+    const citation = buildCitation(submission, authorLabel);
+
+    try {
+      await navigator.clipboard.writeText(citation);
+      setSuccess('Citation copied to clipboard.');
+      setError('');
+    } catch {
+      setError('Unable to copy the citation right now.');
+      setSuccess('');
+    }
+  };
 
   return (
     <StudentLayout
@@ -164,6 +324,7 @@ export default function StudentSubmissionDetailsPage() {
         </div>
 
         {error ? <div className="vpaa-banner-error">{error}</div> : null}
+        {success ? <div className="vpaa-banner-success">{success}</div> : null}
 
         {isLoading ? (
           <div className="vpaa-card student-submission-details-loading">Loading submission details...</div>
@@ -173,107 +334,216 @@ export default function StudentSubmissionDetailsPage() {
           <div className="student-submission-details-grid">
             <section className="vpaa-card student-submission-hero-card">
               <div className="student-submission-hero-top">
-                <div className="student-submission-cover">
-                  <span className="student-submission-cover-meta">TUP Thesis Archive</span>
-                  <span className="student-submission-cover-meta">{submission.department || 'Computer Studies Department'}</span>
-                  <strong>{submission.title}</strong>
-                </div>
+                <ThesisArchiveCover
+                  className="continue-reading-cover"
+                  compact
+                  title={truncateCoverTitle(submission.title)}
+                  college={submission.college}
+                  department={submission.department}
+                  author={authorLabel}
+                  authors={submission.authors}
+                  year={submission.school_year ?? submission.created_at?.slice(0, 4) ?? ''}
+                  categories={submissionCategories.map((category, index) => ({
+                    id: category.id ?? `${submission.id}-category-${index}`,
+                    name: category.name,
+                    slug: category.slug,
+                  }))}
+                />
 
                 <div className="student-submission-hero-copy">
-                  <div className="student-submission-steps student-submission-steps-header">
-                    {buildProgressSteps(submission.status, submission.is_archived).map((step) => (
-                      <div key={step.label} className={`student-submission-step${step.done ? ' done' : ''}`}>
+                  <div className="student-submission-hero-title-row">
+                    <h2>{submission.title}</h2>
+                    <button
+                      type="button"
+                      className={`thesis-favorite-button${isFavorite ? ' active' : ''}`}
+                      aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                      aria-pressed={isFavorite}
+                      title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                      onClick={() => {
+                        toggleFavorite(createFavoriteThesis('student', submission));
+                      }}
+                    >
+                      <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
+                    </button>
+                  </div>
+
+                  <div className="thesis-details-manuscript-actions">
+                    <button
+                      type="button"
+                      className="thesis-details-quick-button thesis-details-quick-button-primary thesis-details-download-button"
+                      onClick={() => void handleViewManuscript()}
+                      disabled={!submission.file_url || openingManuscript || downloadingManuscript}
+                    >
+                      <Eye size={16} />
+                      <span>{manuscriptActionLabel}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="thesis-details-quick-button thesis-details-download-button"
+                      onClick={() => void handleDownloadManuscript()}
+                      disabled={!submission.file_url || openingManuscript || downloadingManuscript}
+                    >
+                      <Download size={16} />
+                      <span>{downloadLabel}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="thesis-details-quick-button thesis-details-inline-action"
+                      onClick={() => void handleCopyCitation()}
+                    >
+                      <Quote size={14} />
+                      <span>Cite This Thesis</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="thesis-record-section thesis-record-section-stack">
+                <strong className="thesis-record-section-label">
+                  <span className="thesis-record-section-icon"><FileText size={16} /></span>
+                  <span>Abstract</span>
+                </strong>
+                <div className="thesis-record-section-body">
+                  <p>{submission.abstract || 'No abstract provided for this submission.'}</p>
+                </div>
+              </div>
+
+              {feedbackText ? (
+                <div className="thesis-record-section thesis-record-section-stack" id="student-feedback-section">
+                  <strong className="thesis-record-section-label">
+                    <span className="thesis-record-section-icon"><Quote size={16} /></span>
+                    <span>{feedbackLabel}</span>
+                  </strong>
+                  <div className="thesis-record-section-body">
+                    <p>{feedbackText}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="thesis-record-section thesis-record-section-stack">
+                <strong className="thesis-record-section-label">
+                  <span className="thesis-record-section-icon"><Users2 size={16} /></span>
+                  <span>Authors</span>
+                </strong>
+                <div className="thesis-record-authors thesis-record-section-body">
+                  {(submission.authors?.filter(Boolean).length ? submission.authors.filter(Boolean) : [authorLabel]).map((author) => {
+                    const initials = author
+                      .split(' ')
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part) => part[0]?.toUpperCase())
+                      .join('');
+
+                    return (
+                      <span key={author} className="thesis-record-author-chip">
+                        <span className="thesis-record-author-avatar">{initials || 'AU'}</span>
+                        <span>{author}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
+            <aside className="thesis-details-side-column">
+              <section className="student-submissions-side vpaa-card thesis-details-side-card">
+                <div className="student-submissions-summary-head thesis-details-side-head">
+                  <div>
+                    <h2>Thesis Details</h2>
+                    <p>Database-backed submission record</p>
+                  </div>
+                </div>
+
+                <div className="thesis-details-pane-grid">
+                  <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-archive">
+                    <div className="thesis-details-info-icon">
+                      <CalendarDays size={20} />
+                    </div>
+                    <div className="thesis-details-info-copy">
+                      <span>Submitted</span>
+                      <strong>{formatDateTime(submission.submitted_at || submission.created_at)}</strong>
+                    </div>
+                  </article>
+
+                  <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-submitter">
+                    <div className="thesis-details-info-icon">
+                      <UserRound size={20} />
+                    </div>
+                    <div className="thesis-details-info-copy">
+                      <span>Adviser</span>
+                      <strong>{submission.adviser?.name || submission.adviser_name || 'Not assigned yet'}</strong>
+                    </div>
+                  </article>
+
+                  <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-category">
+                    <div className="thesis-details-info-icon">
+                      <FolderOpen size={20} />
+                    </div>
+                    <div className="thesis-details-info-copy">
+                      <span>Categories</span>
+                      <strong>{submissionCategories.map((category) => category.name).join(', ') || 'Not assigned yet'}</strong>
+                    </div>
+                  </article>
+
+                  <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-program">
+                    <div className="thesis-details-info-icon">
+                      <GraduationCap size={20} />
+                    </div>
+                    <div className="thesis-details-info-copy">
+                      <span>Program</span>
+                      <strong>{submission.program || 'Not assigned yet'}</strong>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section className="vpaa-card thesis-details-side-card thesis-details-info-section-card">
+                <section className="thesis-details-info-section">
+                  <div className="thesis-details-section-heading">
+                    <Info size={16} />
+                    <span>Additional Information</span>
+                  </div>
+                  <div className="thesis-details-info-list">
+                    <div className="thesis-details-info-row">
+                      <span><Tags size={14} /> Status</span>
+                      <strong className={`thesis-details-status-inline thesis-status-${recordStatusTone}`}>{recordStatus}</strong>
+                    </div>
+                    <div className="thesis-details-info-row">
+                      <span><LibraryBig size={14} /> Department</span>
+                      <strong>{submission.department || 'Not available'}</strong>
+                    </div>
+                    <div className="thesis-details-info-row">
+                      <span><GraduationCap size={14} /> College</span>
+                      <strong>{submission.college || 'Not available'}</strong>
+                    </div>
+                    <div className="thesis-details-info-row">
+                      <span><CalendarDays size={14} /> Last Updated</span>
+                      <strong>{formatDate(submission.reviewed_at || submission.approved_at || submission.created_at)}</strong>
+                    </div>
+                    <div className="thesis-details-info-row">
+                      <span><CalendarDays size={14} /> Year Published</span>
+                      <strong>{publishedYear}</strong>
+                    </div>
+                  </div>
+                </section>
+              </section>
+
+              <section className="vpaa-card thesis-details-side-card thesis-details-info-section-card">
+                <section className="thesis-details-info-section">
+                  <div className="thesis-details-section-heading">
+                    <Info size={16} />
+                    <span>Progress / Status</span>
+                  </div>
+                  <div className="student-submission-steps">
+                    {progressSteps.map((step) => (
+                      <div key={step.label} className={`student-submission-step ${step.tone}`}>
                         <span className="student-submission-step-dot" />
                         <span>{step.label}</span>
                       </div>
                     ))}
                   </div>
-
-                  <div className="student-submission-hero-title-row">
-                    <h2>{submission.title}</h2>
-                  </div>
-
-                  <p className="student-submission-authors">{authorLabel}</p>
-
-                  <div className="student-submission-meta-row">
-                    <span>{submission.department || 'Computer Studies Department'}</span>
-                    {submission.program ? <span>{submission.program}</span> : null}
-                    <span>{submission.school_year}</span>
-                    {submission.category?.name ? <span>{submission.category.name}</span> : null}
-                    {submission.status === 'rejected' && submission.revision_due_at ? <span>Revision Due {formatDate(submission.revision_due_at)}</span> : null}
-                    <span>Updated {formatDate(submission.reviewed_at || submission.approved_at || submission.created_at)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="student-submission-summary">
-                <strong>Abstract Preview</strong>
-                <p>{submission.abstract || 'No abstract provided for this submission.'}</p>
-              </div>
-
-              {(submission.adviser_remarks || submission.rejection_reason) ? (
-                <div className="student-submission-summary" id="student-feedback-section">
-                  <strong>{submission.status === 'rejected' ? 'Revision Notes' : 'Approval Comment'}</strong>
-                  <p>{submission.rejection_reason || submission.adviser_remarks}</p>
-                </div>
-              ) : null}
-            </section>
-
-            <aside className="student-submissions-side vpaa-card thesis-details-side-card submission-accent-panel">
-              <div className="student-submissions-summary-head thesis-details-side-head">
-                <div>
-                  <h2>Submission Summary</h2>
-                  <p>Snapshot of your research workflow</p>
-                </div>
-              </div>
-
-              <div className="student-submissions-summary-grid thesis-details-pane-grid submission-summary-grid">
-                <div className="student-submissions-summary-box">
-                  <span>Turnaround Avg.</span>
-                  <strong>{summary.turnaround} days</strong>
-                </div>
-                <div className="student-submissions-summary-box">
-                  <span>Faculty Comments</span>
-                  <strong>{summary.panelComments}</strong>
-                </div>
-                <div className="student-submissions-summary-box">
-                  <span>Files Uploaded</span>
-                  <strong>{summary.filesUploaded}</strong>
-                </div>
-                <div className="student-submissions-summary-box">
-                  <span>Pending Tasks</span>
-                  <strong>{summary.pendingTasks}</strong>
-                </div>
-              </div>
-
-              <div className="student-submission-detail-grid">
-                <div className="student-submission-detail-card">
-                  <span><CalendarDays size={13} /> Submitted</span>
-                  <strong>{formatDateTime(submission.submitted_at || submission.created_at)}</strong>
-                </div>
-                <div className="student-submission-detail-card">
-                  <span><UserRound size={13} /> Adviser</span>
-                  <strong>{submission.adviser?.name || 'Not assigned yet'}</strong>
-                </div>
-                {submission.status === 'rejected' ? (
-                  <div className="student-submission-detail-card">
-                    <span><CalendarDays size={13} /> Revision Due Date</span>
-                    <strong>{formatDate(submission.revision_due_at)}</strong>
-                  </div>
-                ) : null}
-                <div className="student-submission-detail-card">
-                  <span><GraduationCap size={13} /> Program</span>
-                  <strong>{submission.program || 'Not assigned yet'}</strong>
-                </div>
-                <div className="student-submission-detail-card">
-                  <span><FolderOpen size={13} /> Category</span>
-                  <strong>{submission.category?.name || 'Not assigned yet'}</strong>
-                </div>
-                <div className="student-submission-detail-card full">
-                  <span><FileText size={13} /> Manuscript</span>
-                  <strong>{submission.file_name || 'No file uploaded'}</strong>
-                </div>
-              </div>
+                </section>
+              </section>
             </aside>
           </div>
         )}
