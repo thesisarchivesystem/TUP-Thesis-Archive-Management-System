@@ -24,6 +24,11 @@ import { facultyLibraryService } from '../../services/facultyLibraryService';
 import { facultyThesisService } from '../../services/facultyThesisService';
 import type { StudentAdviserOption } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
+import {
+  getDepartmentProgramOptions,
+  normalizeProgramValue,
+  resolveProgramDisplayValue,
+} from '../../utils/programs';
 
 const facultyGuideItems = [
   {
@@ -68,17 +73,6 @@ const getNameInitials = (name?: string | null) =>
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join('') || 'NA';
-
-const normalizeProgramLabel = (program?: string | null) => {
-  const normalized = (program ?? '').trim().toUpperCase();
-
-  if (!normalized) return '';
-  if (normalized === 'BSCS' || normalized.includes('COMPUTER SCIENCE')) return 'BSCS';
-  if (normalized === 'BSIT' || normalized.includes('INFORMATION TECHNOLOGY')) return 'BSIT';
-  if (normalized === 'BSIS' || normalized.includes('INFORMATION SYSTEM')) return 'BSIS';
-
-  return program ?? '';
-};
 
 const extractApiErrorMessage = (error: unknown, fallback: string) => {
   if (axios.isAxiosError(error)) {
@@ -181,14 +175,14 @@ export default function FacultyAddThesisPage() {
       .then(([libraryResponse, adviseesResponse]) => {
         if (!isMounted) return;
 
+        const structurePrograms = getDepartmentProgramOptions(selectedDepartmentStructure);
         const libraryPrograms = libraryResponse.items
-          .map((item) => normalizeProgramLabel(item.program))
+          .map((item) => resolveProgramDisplayValue(selectedDepartmentStructure, item.program))
           .filter(Boolean) as string[];
         const adviseePrograms = adviseesResponse.advisees
-          .map((item) => normalizeProgramLabel(item.program))
+          .map((item) => resolveProgramDisplayValue(selectedDepartmentStructure, item.program))
           .filter(Boolean);
         const fallbackYear = '2026';
-        const structurePrograms = selectedDepartmentStructure?.programs.map((program) => program.name) ?? [];
 
         setAvailableColleges(libraryResponse.share_options?.colleges ?? []);
         setDepartmentsByCollege(libraryResponse.share_options?.departments_by_college ?? {});
@@ -200,7 +194,12 @@ export default function FacultyAddThesisPage() {
           ...current,
           college: current.college || libraryResponse.college || '',
           department: current.department || libraryResponse.department || '',
-          program: current.program || structurePrograms[0] || adviseePrograms[0] || libraryPrograms[0] || '',
+          program:
+            resolveProgramDisplayValue(selectedDepartmentStructure, current.program)
+            || structurePrograms[0]
+            || adviseePrograms[0]
+            || libraryPrograms[0]
+            || '',
           schoolYear: current.schoolYear || fallbackYear,
         }));
       })
@@ -269,7 +268,7 @@ export default function FacultyAddThesisPage() {
       title: draft.title ?? '',
       college: draft.college ?? current.college,
       department: draft.department ?? current.department,
-      program: normalizeProgramLabel(draft.program) || current.program,
+      program: normalizeProgramValue(draft.program) || current.program,
       schoolYear: draft.school_year ?? current.schoolYear,
       categoryIds: draft.category_ids?.length
         ? draft.category_ids
@@ -279,6 +278,26 @@ export default function FacultyAddThesisPage() {
       abstract: draft.abstract ?? '',
     }));
   }, [draftFromState, draftQueryId]);
+
+  useEffect(() => {
+    const normalizedProgram = resolveProgramDisplayValue(selectedDepartmentStructure, form.program);
+
+    if (!form.program && programOptions.length) {
+      setForm((current) => ({
+        ...current,
+        program: current.program || programOptions[0] || '',
+      }));
+      return;
+    }
+
+    if (normalizedProgram && normalizedProgram !== form.program) {
+      setForm((current) => (
+        current.program === form.program
+          ? { ...current, program: normalizedProgram }
+          : current
+      ));
+    }
+  }, [form.program, programOptions, selectedDepartmentStructure]);
 
   useEffect(() => {
     if (!success && !error) return;

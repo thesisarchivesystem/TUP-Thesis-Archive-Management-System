@@ -22,6 +22,7 @@ import { archiveCategoriesService, type ArchiveCategory } from '../../services/a
 import { studentProfileService } from '../../services/studentProfileService';
 import { thesisService, type StudentAdviserOption } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
+import { getDepartmentProgramOptions, normalizeProgramValue, resolveProgramDisplayValue } from '../../utils/programs';
 
 type UploadFormState = {
   title: string;
@@ -65,8 +66,6 @@ const getNameInitials = (name?: string | null) =>
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join('') || 'NA';
-
-const normalizeProgramLabel = (program?: string | null) => (program ?? '').trim();
 
 const extractApiErrorMessage = (error: unknown, fallback: string) => {
   if (axios.isAxiosError(error)) {
@@ -118,7 +117,7 @@ export default function StudentUploadThesisPage() {
     collegeEntry.departments.some((departmentEntry) => departmentEntry.name === form.department),
   );
   const selectedDepartment = selectedCollege?.departments.find((departmentEntry) => departmentEntry.name === form.department);
-  const programOptions = selectedDepartment?.programs.map((programEntry) => programEntry.name) ?? [];
+  const programOptions = getDepartmentProgramOptions(selectedDepartment);
   const college = selectedCollege?.name ?? '';
   const selectedAdviser = advisers.find((adviser) => adviser.id === form.adviser_id) ?? null;
   const filteredAdvisers = advisers.filter((adviser) => {
@@ -150,7 +149,7 @@ export default function StudentUploadThesisPage() {
         setForm((current) => ({
           ...current,
           department: profile.department || current.department,
-          program: normalizeProgramLabel(profile.program) || current.program,
+          program: normalizeProgramValue(profile.program) || current.program,
         }));
       })
       .catch(() => {
@@ -194,7 +193,7 @@ export default function StudentUploadThesisPage() {
       setExistingManuscriptName(draft.file_name ?? '');
       setForm({
         title: draft.title ?? '',
-        program: normalizeProgramLabel(draft.program),
+        program: normalizeProgramValue(draft.program),
         department: draft.department ?? '',
         school_year: draft.school_year ?? '2026',
         category_ids: draft.category_ids?.length
@@ -238,13 +237,25 @@ export default function StudentUploadThesisPage() {
   }, [form.department, selectedCollege]);
 
   useEffect(() => {
+    if (!selectedDepartment) return;
+
     if (!form.program && programOptions.length) {
       setForm((current) => ({
         ...current,
         program: current.program || programOptions[0] || '',
       }));
+      return;
     }
-  }, [form.program, programOptions]);
+
+    const normalizedProgram = resolveProgramDisplayValue(selectedDepartment, form.program);
+    if (normalizedProgram && normalizedProgram !== form.program) {
+      setForm((current) => (
+        current.program === form.program
+          ? { ...current, program: normalizedProgram }
+          : current
+      ));
+    }
+  }, [form.program, programOptions, selectedDepartment]);
 
   useEffect(() => {
     if (!message && !error) return;

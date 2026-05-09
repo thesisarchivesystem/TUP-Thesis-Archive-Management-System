@@ -831,7 +831,7 @@ class FacultyController extends Controller
             ->firstOrFail();
 
         $students = StudentProfile::query()
-            ->with('user:id,name,email,created_at')
+            ->with('user:id,name,email,created_at', 'programModel:id,name,code')
             ->where('adviser_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->get();
@@ -877,7 +877,7 @@ class FacultyController extends Controller
                 'first_name' => $student->user?->first_name,
                 'last_name' => $student->user?->last_name,
                 'email' => $student->user?->email,
-                'program' => $student->program,
+                'program' => $student->programModel?->code ?: $student->program,
                 'department' => $student->department ?: $facultyProfile->department,
                 'year_level' => $student->year_level,
                 'status' => $status['label'],

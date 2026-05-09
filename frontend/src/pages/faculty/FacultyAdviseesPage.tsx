@@ -5,6 +5,7 @@ import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import type { AdminStructureCollege } from '../../services/adminService';
 import { academicStructureService } from '../../services/academicStructureService';
 import { facultyAdviseesService, type FacultyAdviseeRecord, type FacultyAdviseesResponse, type StudentAccountPayload } from '../../services/facultyAdviseesService';
+import { findProgramInDepartment, getProgramDisplayValue, resolveProgramDisplayValue } from '../../utils/programs';
 
 const generateTemporaryPassword = () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
@@ -127,9 +128,7 @@ const findStructureMatch = (structure: AdminStructureCollege[], departmentName?:
   for (const college of structure) {
     for (const department of college.departments) {
       const departmentMatches = departmentName ? department.name === departmentName : false;
-      const matchedProgram = programName
-        ? department.programs.find((program) => program.name === programName) ?? null
-        : null;
+      const matchedProgram = findProgramInDepartment(department, programName);
 
       if (departmentMatches || matchedProgram) {
         return {
@@ -237,7 +236,7 @@ export default function FacultyAdviseesPage() {
 
   const programOptions = useMemo(
     () => ['All Programs', ...Array.from(new Set([
-      ...structure.flatMap((college) => college.departments.flatMap((department) => department.programs.map((program) => program.name))),
+      ...structure.flatMap((college) => college.departments.flatMap((department) => department.programs.map((program) => getProgramDisplayValue(program)))),
       ...advisees.map((item) => item.program).filter(Boolean),
     ])).sort((left, right) => left.localeCompare(right))],
     [advisees, structure],
@@ -254,6 +253,10 @@ export default function FacultyAdviseesPage() {
       .map((section) => section.name)
       .sort((left, right) => left.localeCompare(right)) ?? [],
     [createStructureMatch.program],
+  );
+  const editStructureMatch = useMemo(
+    () => findStructureMatch(structure, editForm.department, editForm.program),
+    [editForm.department, editForm.program, structure],
   );
 
   const statusOptions = useMemo(() => {
@@ -289,6 +292,30 @@ export default function FacultyAdviseesPage() {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    const normalizedProgram = resolveProgramDisplayValue(createStructureMatch.department, form.program);
+
+    if (normalizedProgram && normalizedProgram !== form.program) {
+      setForm((current) => (
+        current.program === form.program
+          ? { ...current, program: normalizedProgram }
+          : current
+      ));
+    }
+  }, [createStructureMatch.department, form.program]);
+
+  useEffect(() => {
+    const normalizedProgram = resolveProgramDisplayValue(editStructureMatch.department, editForm.program);
+
+    if (normalizedProgram && normalizedProgram !== editForm.program) {
+      setEditForm((current) => (
+        current.program === editForm.program
+          ? { ...current, program: normalizedProgram }
+          : current
+      ));
+    }
+  }, [editForm.program, editStructureMatch.department]);
 
   const paginatedAdvisees = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
