@@ -5,7 +5,7 @@ import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import type { AdminStructureCollege } from '../../services/adminService';
 import { academicStructureService } from '../../services/academicStructureService';
 import { facultyAdviseesService, type FacultyAdviseeRecord, type FacultyAdviseesResponse, type StudentAccountPayload } from '../../services/facultyAdviseesService';
-import { findProgramInDepartment, getDepartmentProgramOptions, getProgramDisplayValue, resolveProgramDisplayValue } from '../../utils/programs';
+import { findProgramInDepartment, getDepartmentProgramOptions, resolveProgramDisplayValue } from '../../utils/programs';
 
 const generateTemporaryPassword = () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
@@ -14,8 +14,9 @@ const generateTemporaryPassword = () => {
 
 const EDIT_PANEL_CLOSE_DELAY = 280;
 const EDIT_PANEL_SHELL_CLOSE_DELAY = 180;
+const SUCCESS_MESSAGE_DURATION = 5000;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
-const STATUS_DISPLAY_ORDER = ['Account Created', 'Account Changed', 'On Track', 'Proposal Review', 'Needs Update'] as const;
+type AdviseePanelMode = 'view' | 'edit';
 
 const initialForm: StudentAccountPayload = {
   first_name: '',
@@ -62,41 +63,6 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 
   return parts.map((part) => part.charAt(0).toUpperCase()).join('') || 'ST';
-};
-
-const getAdviseeStatusMeta = (advisee: FacultyAdviseeRecord) => {
-  if (advisee.info_changed) {
-    return {
-      label: 'Account Changed',
-      className: 'faculty-advisees-status faculty-advisees-status-changed',
-    };
-  }
-
-  if (advisee.is_recent) {
-    return {
-      label: 'Account Created',
-      className: 'faculty-advisees-status faculty-advisees-status-created',
-    };
-  }
-
-  if (advisee.status === 'On Track' || advisee.status_tone === 'sage') {
-    return {
-      label: 'On Track',
-      className: 'faculty-advisees-status faculty-advisees-status-track',
-    };
-  }
-
-  if (advisee.status === 'Needs Guidance' || advisee.status_tone === 'terracotta' || advisee.needs_guidance) {
-    return {
-      label: 'Needs Update',
-      className: 'faculty-advisees-status faculty-advisees-status-update',
-    };
-  }
-
-  return {
-    label: 'Proposal Review',
-    className: 'faculty-advisees-status faculty-advisees-status-review',
-  };
 };
 
 const getPaginationItems = (currentPage: number, totalPages: number) => {
@@ -157,9 +123,9 @@ export default function FacultyAdviseesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editShellOpen, setEditShellOpen] = useState(false);
+  const [panelMode, setPanelMode] = useState<AdviseePanelMode>('edit');
   const [search, setSearch] = useState('');
-  const [programFilter, setProgramFilter] = useState('All Courses');
-  const [statusFilter, setStatusFilter] = useState('All Statuses');
+  const [collegeFilter, setCollegeFilter] = useState('All Colleges');
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
@@ -209,6 +175,26 @@ export default function FacultyAdviseesPage() {
   }, []);
 
   useEffect(() => {
+    if (!success) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setSuccess('');
+    }, SUCCESS_MESSAGE_DURATION);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [success]);
+
+  useEffect(() => {
+    if (!editSuccess) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setEditSuccess('');
+    }, SUCCESS_MESSAGE_DURATION);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [editSuccess]);
+
+  useEffect(() => {
     if (!createOpen) return undefined;
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -233,11 +219,16 @@ export default function FacultyAdviseesPage() {
 
   const advisees = adviseesData?.advisees ?? [];
   const summary = adviseesData?.summary;
+  const getAdviseeCollege = (advisee: FacultyAdviseeRecord) => (
+    advisee.college
+    || findStructureMatch(structure, advisee.department, advisee.program).college?.name
+    || 'Not set'
+  );
 
-  const programOptions = useMemo(
-    () => ['All Courses', ...Array.from(new Set([
-      ...structure.flatMap((college) => college.departments.flatMap((department) => department.programs.map((program) => getProgramDisplayValue(program)))),
-      ...advisees.map((item) => item.program).filter(Boolean),
+  const collegeOptions = useMemo(
+    () => ['All Colleges', ...Array.from(new Set([
+      ...structure.map((college) => college.name).filter(Boolean),
+      ...advisees.map((item) => getAdviseeCollege(item)).filter((value) => value && value !== 'Not set'),
     ])).sort((left, right) => left.localeCompare(right))],
     [advisees, structure],
   );
@@ -256,36 +247,31 @@ export default function FacultyAdviseesPage() {
     () => findStructureMatch(structure, editForm.department, editForm.program),
     [editForm.department, editForm.program, structure],
   );
+  const editCollegeName = editStructureMatch.college?.name || editForm.college || '';
   const editProgramOptions = useMemo(
     () => getDepartmentProgramOptions(editStructureMatch.department),
     [editStructureMatch.department],
   );
 
-  const statusOptions = useMemo(() => {
-    const availableStatuses = new Set(advisees.map((advisee) => getAdviseeStatusMeta(advisee).label));
-    return ['All Statuses', ...STATUS_DISPLAY_ORDER.filter((status) => availableStatuses.has(status))];
-  }, [advisees]);
-
   const filteredAdvisees = useMemo(() => advisees.filter((advisee) => {
     const normalizedSearch = search.trim().toLowerCase();
-    const statusMeta = getAdviseeStatusMeta(advisee);
     const matchesSearch = !normalizedSearch || [
       advisee.student_name,
       advisee.student_id,
+      getAdviseeCollege(advisee),
       advisee.program,
       advisee.department,
-      statusMeta.label,
     ].join(' ').toLowerCase().includes(normalizedSearch);
 
-    const matchesProgram = programFilter === 'All Courses' || advisee.program === programFilter;
-    const matchesStatus = statusFilter === 'All Statuses' || statusMeta.label === statusFilter;
+    const adviseeCollege = getAdviseeCollege(advisee);
+    const matchesCollege = collegeFilter === 'All Colleges' || adviseeCollege === collegeFilter;
 
-    return matchesSearch && matchesProgram && matchesStatus;
-  }), [advisees, programFilter, search, statusFilter]);
+    return matchesSearch && matchesCollege;
+  }), [advisees, collegeFilter, search, structure]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [pageSize, programFilter, search, statusFilter]);
+  }, [collegeFilter, pageSize, search]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAdvisees.length / pageSize));
 
@@ -333,8 +319,8 @@ export default function FacultyAdviseesPage() {
   const stats = [
     { label: 'Total Advisees', value: summary?.total_advisees ?? 0, icon: <Users2 size={20} />, tone: 'si-sky' },
     { label: 'Active Proposals', value: summary?.active_proposals ?? 0, icon: <FileText size={20} />, tone: 'si-gold' },
-    { label: 'On Track', value: summary?.on_track ?? 0, icon: <CheckCircle2 size={20} />, tone: 'si-sage' },
-    { label: 'Account Changed', value: summary?.info_changed ?? 0, icon: <UserPlus size={20} />, tone: 'si-maroon' },
+    { label: 'New This Term', value: summary?.new_this_term ?? 0, icon: <UserPlus size={20} />, tone: 'si-maroon' },
+    { label: 'For Defense', value: summary?.for_defense ?? 0, icon: <CheckCircle2 size={20} />, tone: 'si-sage' },
   ];
   const selectedAdvisee = editingId ? advisees.find((advisee) => advisee.id === editingId) ?? null : null;
 
@@ -356,6 +342,7 @@ export default function FacultyAdviseesPage() {
           student_id: adviseesData?.next_student_id || '',
           department: adviseesData?.department || '',
         });
+        setPanelMode('edit');
         setEditingId(null);
         editCloseTimeoutRef.current = null;
       }, EDIT_PANEL_SHELL_CLOSE_DELAY);
@@ -375,16 +362,18 @@ export default function FacultyAdviseesPage() {
     setCreateOpen(false);
   };
 
-  const startEdit = (advisee: FacultyAdviseeRecord) => {
+  const openAdviseePanel = (advisee: FacultyAdviseeRecord, mode: AdviseePanelMode) => {
     if (editCloseTimeoutRef.current) {
       window.clearTimeout(editCloseTimeoutRef.current);
       editCloseTimeoutRef.current = null;
     }
 
     const [fallbackFirstName = '', ...restName] = advisee.student_name.split(' ').filter(Boolean);
+    const collegeName = getAdviseeCollege(advisee);
 
     setEditingId(advisee.id);
     setEditShellOpen(true);
+    setPanelMode(mode);
     setEditSuccess('');
     setEditError('');
     setEditForm({
@@ -393,7 +382,7 @@ export default function FacultyAdviseesPage() {
       email: advisee.email || '',
       temporary_password: '',
       student_id: advisee.student_id,
-      college: '',
+      college: collegeName === 'Not set' ? '' : collegeName,
       department: advisee.department || adviseesData?.department || '',
       program: advisee.program || '',
       year_level: advisee.year_level ?? 4,
@@ -459,6 +448,7 @@ export default function FacultyAdviseesPage() {
         last_name: editForm.last_name.trim(),
         email: editForm.email.trim(),
         student_id: editForm.student_id?.trim(),
+        college: editCollegeName || undefined,
         program: editForm.program.trim(),
         department: editForm.department.trim(),
         year_level: editForm.year_level,
@@ -560,16 +550,12 @@ export default function FacultyAdviseesPage() {
                   type="text"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search student ID, name, or title..."
+                  placeholder="Search student ID, name, college, or department..."
                 />
               </label>
 
-              <select className="filter-select faculty-advisees-filter-select" value={programFilter} onChange={(event) => setProgramFilter(event.target.value)}>
-                {programOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
-
-              <select className="filter-select faculty-advisees-filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                {statusOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              <select className="filter-select faculty-advisees-filter-select" value={collegeFilter} onChange={(event) => setCollegeFilter(event.target.value)}>
+                {collegeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
             </div>
           </div>
@@ -579,11 +565,11 @@ export default function FacultyAdviseesPage() {
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th>Course</th>
+                  <th>College</th>
                   <th>Department</th>
+                  <th>Course</th>
                   <th>Year Level</th>
                   <th>Last Update</th>
-                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -592,35 +578,34 @@ export default function FacultyAdviseesPage() {
                   <tr>
                     <td colSpan={7} className="vpaa-activity-empty">Loading advisees...</td>
                   </tr>
-                ) : paginatedAdvisees.length ? paginatedAdvisees.map((advisee) => {
-                  const statusMeta = getAdviseeStatusMeta(advisee);
-
-                  return (
-                    <tr key={advisee.id}>
-                      <td>
-                        <div className="faculty-advisees-student">
-                          <span className="faculty-advisees-avatar">{getInitials(advisee.student_name)}</span>
-                          <div className="faculty-advisees-student-copy">
-                            <span className="faculty-advisees-student-name">{advisee.student_name}</span>
-                            <span className="faculty-advisees-student-id">{advisee.student_id}</span>
-                          </div>
+                ) : paginatedAdvisees.length ? paginatedAdvisees.map((advisee) => (
+                  <tr key={advisee.id}>
+                    <td>
+                      <div className="faculty-advisees-student">
+                        <span className="faculty-advisees-avatar">{getInitials(advisee.student_name)}</span>
+                        <div className="faculty-advisees-student-copy">
+                          <span className="faculty-advisees-student-name">{advisee.student_name}</span>
+                          <span className="faculty-advisees-student-id">{advisee.student_id}</span>
                         </div>
-                      </td>
-                      <td>{advisee.program || 'Not set'}</td>
-                      <td>{advisee.department || 'Not set'}</td>
-                      <td>{formatYearLevel(advisee.year_level)}</td>
-                      <td>{formatDate(advisee.last_update)}</td>
-                      <td>
-                        <span className={statusMeta.className}>{statusMeta.label}</span>
-                      </td>
-                      <td className="table-actions">
-                        <button type="button" className="faculty-advisees-action-button" onClick={() => startEdit(advisee)} disabled={removingId === advisee.id}>
+                      </div>
+                    </td>
+                    <td>{getAdviseeCollege(advisee)}</td>
+                    <td>{advisee.department || 'Not set'}</td>
+                    <td>{advisee.program || 'Not set'}</td>
+                    <td>{formatYearLevel(advisee.year_level)}</td>
+                    <td>{formatDate(advisee.last_update)}</td>
+                    <td className="table-actions">
+                      <div className="faculty-advisees-action-group">
+                        <button type="button" className="faculty-advisees-action-button" onClick={() => openAdviseePanel(advisee, 'view')} disabled={removingId === advisee.id}>
                           View
                         </button>
-                      </td>
-                    </tr>
-                  );
-                }) : (
+                        <button type="button" className="faculty-advisees-action-button faculty-advisees-action-button-primary" onClick={() => openAdviseePanel(advisee, 'edit')} disabled={removingId === advisee.id}>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
                   <tr>
                     <td colSpan={7} className="vpaa-activity-empty">No advisees matched the current filters.</td>
                   </tr>
@@ -816,9 +801,9 @@ export default function FacultyAdviseesPage() {
             <div className="review-panel" ref={editPanelRef}>
               <div className="ra-header">
                 <button type="button" className="vpaa-panel-toggle" onClick={() => setEditOpen((current) => !current)} aria-expanded={editOpen}>
-                  <span className="ra-header-left">
-                    <span className="panel-header-icon phi-maroon"><UserPlus size={17} /></span>
-                    <span className="panel-title">Edit Student Account</span>
+                    <span className="ra-header-left">
+                      <span className="panel-header-icon phi-maroon"><UserPlus size={17} /></span>
+                    <span className="panel-title">{panelMode === 'view' ? 'View Student Account' : 'Edit Student Account'}</span>
                   </span>
                   <span className="vpaa-panel-toggle-actions">
                     <span className="recent-see-all">{editForm.first_name || editForm.last_name ? `${editForm.first_name} ${editForm.last_name}`.trim() : 'Selected Student'}</span>
@@ -836,44 +821,48 @@ export default function FacultyAdviseesPage() {
                     <div className="form-grid">
                       <label className="form-field">
                         Student ID
-                        <input value={editForm.student_id ?? ''} onChange={(event) => setEditForm({ ...editForm, student_id: event.target.value })} required />
+                        <input value={editForm.student_id ?? ''} onChange={(event) => setEditForm({ ...editForm, student_id: event.target.value })} readOnly={panelMode === 'view'} required />
                       </label>
                       <label className="form-field">
                         Institutional Email
-                        <input type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} placeholder="student@tup.edu.ph" required />
+                        <input type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} placeholder="student@tup.edu.ph" readOnly={panelMode === 'view'} required />
                       </label>
                       <label className="form-field">
                         Adviser
                         <input value={adviseesData?.adviser_name ?? 'Faculty Adviser'} readOnly />
                       </label>
                       <label className="form-field">
+                        College
+                        <input value={editCollegeName} readOnly placeholder="College will be set automatically" />
+                      </label>
+                      <label className="form-field">
                         First Name
-                        <input value={editForm.first_name} onChange={(event) => setEditForm({ ...editForm, first_name: event.target.value })} placeholder="Juan" required />
+                        <input value={editForm.first_name} onChange={(event) => setEditForm({ ...editForm, first_name: event.target.value })} placeholder="Juan" readOnly={panelMode === 'view'} required />
                       </label>
                       <label className="form-field">
                         Last Name
-                        <input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} placeholder="Dela Cruz" required />
+                        <input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} placeholder="Dela Cruz" readOnly={panelMode === 'view'} required />
                       </label>
                       <label className="form-field">
                         Suffix
-                        <input value={editForm.suffix ?? ''} onChange={(event) => setEditForm({ ...editForm, suffix: event.target.value })} placeholder="Jr." />
+                        <input value={editForm.suffix ?? ''} onChange={(event) => setEditForm({ ...editForm, suffix: event.target.value })} placeholder="Jr." readOnly={panelMode === 'view'} />
                       </label>
                       <label className="form-field">
                         Year Level
-                        <select value={String(editForm.year_level ?? 4)} onChange={(event) => setEditForm({ ...editForm, year_level: Number(event.target.value) })}>
+                        <select value={String(editForm.year_level ?? 4)} onChange={(event) => setEditForm({ ...editForm, year_level: Number(event.target.value) })} disabled={panelMode === 'view'}>
                           {yearLevelOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                         </select>
                       </label>
                       <label className="form-field">
                         Course
-                        <select value={editForm.program} onChange={(event) => setEditForm({ ...editForm, program: event.target.value })} required>
+                        <select value={editForm.program} onChange={(event) => setEditForm({ ...editForm, program: event.target.value })} disabled={panelMode === 'view'} required>
                           <option value="">Select course</option>
                           {editProgramOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                         </select>
                       </label>
                       <label className="form-field">
                         Department
-                        <input value={editForm.department} onChange={(event) => setEditForm({ ...editForm, department: event.target.value })} required />
+                        <input value={editForm.department} onChange={(event) => setEditForm({ ...editForm, department: event.target.value })} readOnly={panelMode === 'view'} required />
                       </label>
                       <label className="form-field">
                         Temporary Password
@@ -883,17 +872,19 @@ export default function FacultyAdviseesPage() {
                             value={editForm.temporary_password}
                             onChange={(event) => setEditForm({ ...editForm, temporary_password: event.target.value })}
                             placeholder="Leave blank to keep the current password"
+                            readOnly={panelMode === 'view'}
                           />
                           <button
                             type="button"
                             className="btn-secondary"
                             onClick={() => setEditForm({ ...editForm, temporary_password: generateTemporaryPassword() })}
+                            disabled={panelMode === 'view'}
                           >
                             Generate
                           </button>
                         </div>
                       </label>
-                      {selectedAdvisee ? (
+                      {selectedAdvisee && panelMode === 'edit' ? (
                         <div className="form-field faculty-advisee-delete-field">
                           <span>Delete Student Account</span>
                           <button
@@ -909,8 +900,14 @@ export default function FacultyAdviseesPage() {
                     </div>
 
                     <div className="form-actions">
-                      <button className="btn-secondary" type="button" onClick={resetEditForm}>Cancel</button>
-                      <button className="btn-primary" type="submit" disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</button>
+                      <button className="btn-secondary" type="button" onClick={resetEditForm}>{panelMode === 'view' ? 'Close' : 'Cancel'}</button>
+                      {panelMode === 'view' ? (
+                        <button className="btn-primary" type="button" onClick={() => setPanelMode('edit')}>
+                          Edit Account
+                        </button>
+                      ) : (
+                        <button className="btn-primary" type="submit" disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</button>
+                      )}
                     </div>
                   </form>
                 </div>

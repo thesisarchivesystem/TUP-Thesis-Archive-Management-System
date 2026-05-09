@@ -55,6 +55,10 @@ const getTimelineNodeContent = (tone: SubmissionTimelineStep['tone']) => {
     return <span className="student-submission-timeline-node-dot" />;
   }
 
+  if (tone === 'current') {
+    return <span className="student-submission-timeline-node-alert">!</span>;
+  }
+
   return <Check size={18} strokeWidth={2.5} />;
 };
 

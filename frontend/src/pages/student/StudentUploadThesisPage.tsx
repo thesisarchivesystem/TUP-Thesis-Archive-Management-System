@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   BookOpenText,
   ClipboardList,
@@ -53,6 +53,7 @@ const initialFormState: UploadFormState = {
 const MAX_CATEGORY_SELECTIONS = 5;
 const SCHOOL_YEAR_START = 2022;
 const CURRENT_SCHOOL_YEAR = new Date().getFullYear();
+const FEEDBACK_DISMISS_DELAY = 3000;
 const SCHOOL_YEAR_OPTIONS = Array.from(
   { length: Math.max(CURRENT_SCHOOL_YEAR - SCHOOL_YEAR_START + 1, 1) },
   (_, index) => String(SCHOOL_YEAR_START + index),
@@ -103,6 +104,7 @@ export default function StudentUploadThesisPage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [pendingSubmitRedirect, setPendingSubmitRedirect] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<UploadFieldErrors>({});
   const [confirmOriginal, setConfirmOriginal] = useState(false);
@@ -111,6 +113,7 @@ export default function StudentUploadThesisPage() {
   const [supplementaryFiles, setSupplementaryFiles] = useState<File[]>([]);
   const [authorInput, setAuthorInput] = useState('');
   const [adviserSearch, setAdviserSearch] = useState('');
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
   const isRevisionMode = loadedStatus === 'rejected';
   const selectedCollege = structure.find((collegeEntry) =>
     collegeEntry.departments.some((departmentEntry) => departmentEntry.name === form.department),
@@ -258,8 +261,59 @@ export default function StudentUploadThesisPage() {
 
   useEffect(() => {
     if (!message && !error) return;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const frameId = window.requestAnimationFrame(() => {
+      const feedbackElement = feedbackRef.current;
+      const scrollContainer = feedbackElement?.closest('.vpaa-content-workspace, .vpaa-content, .vpaa-main');
+
+      if (scrollContainer instanceof HTMLElement) {
+        scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        feedbackElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      if (feedbackElement) {
+        feedbackElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [message, error]);
+
+  useEffect(() => {
+    if (!message || !message.toLowerCase().includes('draft')) {
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setMessage('');
+    }, FEEDBACK_DISMISS_DELAY);
+
+    return () => window.clearTimeout(timeout);
+  }, [message]);
+
+  useEffect(() => {
+    if (!pendingSubmitRedirect) {
+      return undefined;
+    }
+
+    const hideTimeout = window.setTimeout(() => {
+      setMessage('');
+    }, FEEDBACK_DISMISS_DELAY);
+
+    const redirectTimeout = window.setTimeout(() => {
+      setPendingSubmitRedirect(false);
+      navigate('/student/my-submissions');
+    }, FEEDBACK_DISMISS_DELAY + 180);
+
+    return () => {
+      window.clearTimeout(hideTimeout);
+      window.clearTimeout(redirectTimeout);
+    };
+  }, [navigate, pendingSubmitRedirect]);
 
   const submissionGuideItems = [
     {
@@ -432,10 +486,11 @@ export default function StudentUploadThesisPage() {
 
       await thesisService.submit(thesisId);
       setMessage('Thesis submitted successfully.');
+      setPendingSubmitRedirect(true);
       setDraftId(null);
       setExistingManuscriptName('');
-      setTimeout(() => navigate('/student/my-submissions'), 1200);
     } catch (err) {
+      setPendingSubmitRedirect(false);
       setError(extractApiErrorMessage(err, 'Unable to submit your thesis.'));
     } finally {
       setSubmitting(false);
@@ -487,8 +542,10 @@ export default function StudentUploadThesisPage() {
       description={draftId ? (isRevisionMode ? 'Revise the rejected submission, update the manuscript if needed, and resubmit it for faculty review.' : 'Update your saved draft and continue preparing it for submission.') : 'Submit your thesis with complete metadata, abstract, and required documents for review.'}
       hidePageIntro
     >
-      {message ? <div className="vpaa-banner-success">{message}</div> : null}
-      {error ? <div className="vpaa-banner-error">{error}</div> : null}
+      <div ref={feedbackRef}>
+        {message ? <div className="vpaa-banner-success">{message}</div> : null}
+        {error ? <div className="vpaa-banner-error">{error}</div> : null}
+      </div>
 
       {!draftLoaded ? <div className="vpaa-card">Loading thesis...</div> : null}
 

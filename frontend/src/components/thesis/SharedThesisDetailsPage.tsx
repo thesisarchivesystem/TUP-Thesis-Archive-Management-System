@@ -5,6 +5,7 @@ import { thesisService } from '../../services/thesisService';
 import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
 import type { Thesis } from '../../types/thesis.types';
 import { createFavoriteThesis } from '../../utils/favoriteThesis';
+import { buildApa7ThesisCitation } from '../../utils/thesisCitation';
 import { createWatermarkedThesisPdfBlob, getWatermarkedPdfFileName } from '../../utils/watermarkedPdf';
 import ThesisArchiveCover from './ThesisArchiveCover';
 
@@ -75,6 +76,7 @@ export default function SharedThesisDetailsPage({
   const [thesis, setThesis] = useState<Thesis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [openingManuscript, setOpeningManuscript] = useState(false);
   const [downloadingWatermarkedManuscript, setDownloadingWatermarkedManuscript] = useState(false);
   const toggleFavorite = useFavoriteThesisStore((state) => state.toggleFavorite);
@@ -91,6 +93,7 @@ export default function SharedThesisDetailsPage({
   useEffect(() => {
     if (!id) {
       setError('Thesis not found.');
+      setSuccess('');
       setIsLoading(false);
       return;
     }
@@ -104,6 +107,7 @@ export default function SharedThesisDetailsPage({
 
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     void thesisService.get(normalizedId)
       .then((response) => {
@@ -120,6 +124,18 @@ export default function SharedThesisDetailsPage({
         setIsLoading(false);
       });
   }, [id, locationState?.thesis]);
+
+  useEffect(() => {
+    if (!success) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setSuccess('');
+    }, 5000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [success]);
 
   const authorLabel = useMemo(() => {
     if (!thesis) return 'Unknown author';
@@ -150,6 +166,7 @@ export default function SharedThesisDetailsPage({
   const handleViewManuscript = async () => {
     if (!thesis?.id || !thesis.file_url || !canViewManuscript) {
       setError('No manuscript is available to view yet.');
+      setSuccess('');
       return;
     }
 
@@ -157,6 +174,7 @@ export default function SharedThesisDetailsPage({
 
     if (!previewWindow) {
       setError('Popup blocked while opening the manuscript. Please allow popups and try again.');
+      setSuccess('');
       return;
     }
 
@@ -164,6 +182,7 @@ export default function SharedThesisDetailsPage({
     previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening manuscript...</p>';
 
     setError('');
+    setSuccess('');
     setOpeningManuscript(true);
 
     try {
@@ -194,10 +213,12 @@ export default function SharedThesisDetailsPage({
   const handleDownloadManuscript = async () => {
     if (!thesis?.id || !thesis.file_url || !canDownloadManuscript) {
       setError('No manuscript is available for download yet.');
+      setSuccess('');
       return;
     }
 
     setError('');
+    setSuccess('');
     setDownloadingWatermarkedManuscript(true);
 
     try {
@@ -229,6 +250,21 @@ export default function SharedThesisDetailsPage({
     }
   };
 
+  const handleCopyCitation = async () => {
+    if (!thesis) return;
+
+    const citation = buildApa7ThesisCitation(thesis, window.location.href);
+
+    try {
+      await navigator.clipboard.writeText(citation);
+      setSuccess('APA 7 citation copied to clipboard.');
+      setError('');
+    } catch {
+      setError('Unable to copy the citation right now.');
+      setSuccess('');
+    }
+  };
+
   return (
     <Layout title={title} description={description} hidePageIntro>
       <div className="student-submission-details-shell">
@@ -240,6 +276,7 @@ export default function SharedThesisDetailsPage({
         </div>
 
         {error ? <div className="vpaa-banner-error">{error}</div> : null}
+        {success ? <div className="vpaa-banner-success">{success}</div> : null}
 
         {isLoading ? (
           <div className="vpaa-card student-submission-details-loading">Loading thesis details...</div>
@@ -307,6 +344,7 @@ export default function SharedThesisDetailsPage({
                       <button
                         type="button"
                         className="thesis-details-quick-button thesis-details-inline-action"
+                        onClick={() => void handleCopyCitation()}
                       >
                         <Quote size={14} />
                         <span>Cite This Thesis</span>

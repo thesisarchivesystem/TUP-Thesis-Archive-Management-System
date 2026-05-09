@@ -81,6 +81,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('/advisers', [StudentController::class, 'advisers']);
         Route::get('/my-submissions', [ThesisController::class, 'mySubmissions']);
         Route::get('/recently-viewed', [ThesisController::class, 'recentlyViewed']);
+        Route::get('/extension-requests/thesis/{thesisId}', [ExtensionRequestController::class, 'showForStudentByThesis']);
     });
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {
