@@ -3,8 +3,8 @@ import { ChevronDown, List, UserCheck, UserRoundCog, UserRoundCheck, Users2 } fr
 import VpaaLayout from '../../components/vpaa/VpaaLayout';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { facultyManagementService, type FacultyAccountPayload } from '../../services/facultyManagementService';
+import type { AdminStructureCollege } from '../../services/adminService';
 import type { FacultyProfile } from '../../types/user.types';
-import { collegeOptions, departmentOptionsByCollege } from '../../constants/academicUnits';
 
 const generateTemporaryPassword = () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
@@ -76,6 +76,7 @@ const roleShortLabel = (role: string) => {
 export default function VpaaAdviseesPage() {
   const { confirm } = useConfirmDialog();
   const [faculty, setFaculty] = useState<FacultyProfile[]>([]);
+  const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [form, setForm] = useState(initialForm);
   const [editForm, setEditForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -106,8 +107,18 @@ export default function VpaaAdviseesPage() {
     }
   };
 
+  const loadStructure = async () => {
+    try {
+      const records = await facultyManagementService.listStructure();
+      setStructure(records);
+    } catch {
+      setStructure([]);
+    }
+  };
+
   useEffect(() => {
     void loadFaculty();
+    void loadStructure();
   }, []);
 
   useEffect(() => () => {
@@ -148,13 +159,17 @@ export default function VpaaAdviseesPage() {
   const chairs = useMemo(() => faculty.filter((member) => member.faculty_role === 'Dean'), [faculty]);
   const advisers = useMemo(() => faculty.filter((member) => member.faculty_role === 'Adviser'), [faculty]);
   const coAdvisers = useMemo(() => faculty.filter((member) => member.faculty_role === 'Co-Adviser'), [faculty]);
+  const collegeOptions = useMemo(
+    () => structure.map((college) => college.name),
+    [structure],
+  );
   const createDepartmentOptions = useMemo(
-    () => departmentOptionsByCollege[form.college || ''] ?? [],
-    [form.college],
+    () => structure.find((college) => college.name === form.college)?.departments.map((department) => department.name) ?? [],
+    [form.college, structure],
   );
   const editDepartmentOptions = useMemo(
-    () => departmentOptionsByCollege[editForm.college || ''] ?? [],
-    [editForm.college],
+    () => structure.find((college) => college.name === editForm.college)?.departments.map((department) => department.name) ?? [],
+    [editForm.college, structure],
   );
   const resetCreateForm = () => {
     setForm({

@@ -5,8 +5,6 @@ import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
 
-const PROGRAM_OPTIONS = ['All Programs', 'BSCS', 'BSIT', 'BSIS'] as const;
-
 const normalizeProgram = (value?: string | null) => {
   const normalized = (value ?? '').trim().toUpperCase();
 
@@ -165,6 +163,11 @@ export default function FacultyArchivedThesesPage() {
     });
   }, [programFilter, searchTerm, tagFilter, theses]);
 
+  const programOptions = useMemo(
+    () => ['All Programs', ...Array.from(new Set(theses.map((item) => normalizeProgram(item.program)).filter(Boolean)))],
+    [theses],
+  );
+
   const stats = useMemo(() => {
     const now = new Date();
     const archivedThisMonth = theses.filter((thesis) => {
@@ -243,7 +246,7 @@ export default function FacultyArchivedThesesPage() {
                 value={programFilter}
                 onChange={(event) => setProgramFilter(event.target.value)}
               >
-                {PROGRAM_OPTIONS.map((program) => <option key={program} value={program}>{program}</option>)}
+                {programOptions.map((program) => <option key={program} value={program}>{program}</option>)}
               </select>
             </div>
 

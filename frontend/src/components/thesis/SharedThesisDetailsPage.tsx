@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarDays, Download, Eye, FolderOpen, GraduationCap, Heart, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Download, Eye, FileText, FolderOpen, GraduationCap, Heart, Info, LibraryBig, Quote, Tags, UserRound, Users2 } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { thesisService } from '../../services/thesisService';
 import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
@@ -9,7 +9,7 @@ import { createWatermarkedThesisPdfBlob, getWatermarkedPdfFileName } from '../..
 import ThesisArchiveCover from './ThesisArchiveCover';
 
 type SharedThesisDetailsPageProps = {
-  role: 'vpaa' | 'faculty' | 'student';
+  role: 'vpaa' | 'faculty' | 'student' | 'admin';
   title: string;
   description: string;
   backTo: string;
@@ -56,6 +56,11 @@ const truncateCoverTitle = (title: string, maxWords = 5) => {
   return `${words.slice(0, maxWords).join(' ')}...`;
 };
 
+const formatStatusLabel = (status?: string | null) =>
+  (status || 'archived')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 export default function SharedThesisDetailsPage({
   role,
   title,
@@ -74,6 +79,14 @@ export default function SharedThesisDetailsPage({
   const [downloadingWatermarkedManuscript, setDownloadingWatermarkedManuscript] = useState(false);
   const toggleFavorite = useFavoriteThesisStore((state) => state.toggleFavorite);
   const isFavorite = useFavoriteThesisStore((state) => (id ? state.isFavorite(role, decodeURIComponent(id)) : false));
+
+  useEffect(() => {
+    document.body.classList.add('thesis-detail-mode');
+
+    return () => {
+      document.body.classList.remove('thesis-detail-mode');
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -113,20 +126,17 @@ export default function SharedThesisDetailsPage({
     return thesis.authors?.filter(Boolean).join(', ') || thesis.submitter?.name || thesis.submitter_name || 'Unknown author';
   }, [thesis]);
 
-  const metadata = [
-    thesis?.college,
-    thesis?.department,
-    thesis?.program,
-    thesis?.school_year,
-  ].filter(Boolean);
   const thesisCategories = thesis?.categories?.length
     ? thesis.categories.slice(0, 5)
     : (thesis?.category ? [thesis.category] : []);
   const hasManuscript = Boolean(thesis?.file_url);
   const canViewManuscript = hasManuscript;
-  const canDownloadWatermarkedManuscript = role === 'student' && hasManuscript;
+  const canDownloadManuscript = hasManuscript;
+  const shouldUseWatermarkedDownload = role === 'student';
   const manuscriptActionLabel = openingManuscript ? 'Opening...' : 'View Thesis';
   const watermarkedDownloadLabel = downloadingWatermarkedManuscript ? 'Preparing...' : 'Download PDF';
+  const publishedYear = thesis?.school_year || thesis?.approved_at?.slice(0, 4) || thesis?.created_at?.slice(0, 4) || 'Not available';
+  const recordStatus = formatStatusLabel(thesis?.status);
 
   const createStudentWatermarkedManuscript = async () => {
     if (!thesis?.id) {
@@ -181,8 +191,8 @@ export default function SharedThesisDetailsPage({
     }
   };
 
-  const handleDownloadWatermarkedManuscript = async () => {
-    if (!thesis?.id || !thesis.file_url || !canDownloadWatermarkedManuscript) {
+  const handleDownloadManuscript = async () => {
+    if (!thesis?.id || !thesis.file_url || !canDownloadManuscript) {
       setError('No manuscript is available for download yet.');
       return;
     }
@@ -191,18 +201,29 @@ export default function SharedThesisDetailsPage({
     setDownloadingWatermarkedManuscript(true);
 
     try {
-      const watermarkedBlob = await createStudentWatermarkedManuscript();
-      const watermarkedUrl = URL.createObjectURL(watermarkedBlob);
       const link = document.createElement('a');
 
-      link.href = watermarkedUrl;
-      link.download = getWatermarkedPdfFileName(thesis.file_name || thesis.title || 'thesis.pdf');
+      if (shouldUseWatermarkedDownload) {
+        const watermarkedBlob = await createStudentWatermarkedManuscript();
+        const watermarkedUrl = URL.createObjectURL(watermarkedBlob);
+        link.href = watermarkedUrl;
+        link.download = getWatermarkedPdfFileName(thesis.file_name || thesis.title || 'thesis.pdf');
+        window.setTimeout(() => URL.revokeObjectURL(watermarkedUrl), 30_000);
+      } else {
+        const signedUrl = await thesisService.getManuscriptAccessUrl(thesis.id);
+        if (!signedUrl) {
+          throw new Error('Unable to download the manuscript right now.');
+        }
+
+        link.href = signedUrl;
+        link.download = thesis.file_name || thesis.title || 'thesis.pdf';
+      }
+
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(watermarkedUrl), 30_000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to download the watermarked manuscript right now.');
+      setError(err instanceof Error ? err.message : 'Unable to download the manuscript right now.');
     } finally {
       setDownloadingWatermarkedManuscript(false);
     }
@@ -272,39 +293,45 @@ export default function SharedThesisDetailsPage({
                         <Eye size={16} />
                         <span>{manuscriptActionLabel}</span>
                       </button>
-                      {canDownloadWatermarkedManuscript ? (
+                      {canDownloadManuscript ? (
                         <button
                           type="button"
                           className="student-submissions-secondary thesis-details-download-button"
-                          onClick={() => void handleDownloadWatermarkedManuscript()}
+                          onClick={() => void handleDownloadManuscript()}
                           disabled={openingManuscript || downloadingWatermarkedManuscript}
                         >
                           <Download size={16} />
                           <span>{watermarkedDownloadLabel}</span>
                         </button>
                       ) : null}
+                      <button
+                        type="button"
+                        className="thesis-details-quick-button thesis-details-inline-action"
+                      >
+                        <Quote size={14} />
+                        <span>Cite This Thesis</span>
+                      </button>
                     </div>
                   ) : null}
 
-                  <div className="student-submission-meta-row">
-                    {metadata.map((item) => (
-                      <span key={item}>{item}</span>
-                    ))}
-                    <span>{thesis.status === 'approved' ? 'Archived thesis' : 'Thesis record'}</span>
-                    <span>Updated {formatDate(thesis.reviewed_at || thesis.approved_at || thesis.created_at)}</span>
-                  </div>
                 </div>
               </div>
 
               <div className="thesis-record-section">
-                <strong className="thesis-record-section-label">Abstract</strong>
+                <strong className="thesis-record-section-label">
+                  <span className="thesis-record-section-icon"><FileText size={16} /></span>
+                  <span>Abstract</span>
+                </strong>
                 <div className="thesis-record-section-body">
                   <p>{thesis.abstract || 'No abstract provided for this thesis.'}</p>
                 </div>
               </div>
 
               <div className="thesis-record-section">
-                <strong className="thesis-record-section-label">Authors</strong>
+                <strong className="thesis-record-section-label">
+                  <span className="thesis-record-section-icon"><Users2 size={16} /></span>
+                  <span>Authors</span>
+                </strong>
                 <div className="thesis-record-authors">
                   {(thesis.authors?.filter(Boolean).length ? thesis.authors.filter(Boolean) : [authorLabel]).map((author) => {
                     const initials = author
@@ -325,55 +352,88 @@ export default function SharedThesisDetailsPage({
               </div>
             </section>
 
-            <aside className="student-submissions-side vpaa-card thesis-details-side-card">
-              <div className="student-submissions-summary-head thesis-details-side-head">
-                <div>
-                  <h2>Thesis Details</h2>
-                  <p>Database-backed archive record</p>
+            <aside className="thesis-details-side-column">
+              <section className="student-submissions-side vpaa-card thesis-details-side-card">
+                <div className="student-submissions-summary-head thesis-details-side-head">
+                  <div>
+                    <h2>Thesis Details</h2>
+                    <p>Database-backed archive record</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="thesis-details-pane-grid">
-                <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-archive">
-                  <div className="thesis-details-info-icon">
-                    <CalendarDays size={20} />
-                  </div>
-                  <div className="thesis-details-info-copy">
-                    <span>Archive</span>
-                    <strong>{formatDateTime(thesis.approved_at || thesis.created_at)}</strong>
-                  </div>
-                </article>
+                <div className="thesis-details-pane-grid">
+                  <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-archive">
+                    <div className="thesis-details-info-icon">
+                      <CalendarDays size={20} />
+                    </div>
+                    <div className="thesis-details-info-copy">
+                      <span>Archive</span>
+                      <strong>{formatDateTime(thesis.approved_at || thesis.created_at)}</strong>
+                    </div>
+                  </article>
 
-                <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-submitter">
-                  <div className="thesis-details-info-icon">
-                    <UserRound size={20} />
-                  </div>
-                  <div className="thesis-details-info-copy">
-                    <span>Submitter</span>
-                    <strong>{thesis.submitter?.name || thesis.submitter_name || 'Not available'}</strong>
-                  </div>
-                </article>
+                  <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-submitter">
+                    <div className="thesis-details-info-icon">
+                      <UserRound size={20} />
+                    </div>
+                    <div className="thesis-details-info-copy">
+                      <span>Submitter</span>
+                      <strong>{thesis.submitter?.name || thesis.submitter_name || 'Not available'}</strong>
+                    </div>
+                  </article>
 
-                <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-category">
-                  <div className="thesis-details-info-icon">
-                    <FolderOpen size={20} />
-                  </div>
-                  <div className="thesis-details-info-copy">
-                    <span>Categories</span>
-                    <strong>{thesisCategories.map((category) => category.name).join(', ') || 'Not assigned yet'}</strong>
-                  </div>
-                </article>
+                  <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-category">
+                    <div className="thesis-details-info-icon">
+                      <FolderOpen size={20} />
+                    </div>
+                    <div className="thesis-details-info-copy">
+                      <span>Categories</span>
+                      <strong>{thesisCategories.map((category) => category.name).join(', ') || 'Not assigned yet'}</strong>
+                    </div>
+                  </article>
 
-                <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-program">
-                  <div className="thesis-details-info-icon">
-                    <GraduationCap size={20} />
+                  <article className="student-submission-detail-card thesis-details-pane-card thesis-tone-program">
+                    <div className="thesis-details-info-icon">
+                      <GraduationCap size={20} />
+                    </div>
+                    <div className="thesis-details-info-copy">
+                      <span>Program</span>
+                      <strong>{thesis.program || 'Not assigned yet'}</strong>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section className="vpaa-card thesis-details-side-card thesis-details-info-section-card">
+                <section className="thesis-details-info-section">
+                  <div className="thesis-details-section-heading">
+                    <Info size={16} />
+                    <span>Additional Information</span>
                   </div>
-                  <div className="thesis-details-info-copy">
-                    <span>Program</span>
-                    <strong>{thesis.program || 'Not assigned yet'}</strong>
+                  <div className="thesis-details-info-list">
+                    <div className="thesis-details-info-row">
+                      <span><Tags size={14} /> Status</span>
+                      <strong className={`thesis-details-status-inline thesis-status-${(thesis?.status || 'archived').toLowerCase()}`}>{recordStatus}</strong>
+                    </div>
+                    <div className="thesis-details-info-row">
+                      <span><LibraryBig size={14} /> Department</span>
+                      <strong>{thesis.department || 'Not available'}</strong>
+                    </div>
+                    <div className="thesis-details-info-row">
+                      <span><GraduationCap size={14} /> College</span>
+                      <strong>{thesis.college || 'Not available'}</strong>
+                    </div>
+                    <div className="thesis-details-info-row">
+                      <span><CalendarDays size={14} /> Last Updated</span>
+                      <strong>{formatDate(thesis.reviewed_at || thesis.approved_at || thesis.archived_at || thesis.created_at)}</strong>
+                    </div>
+                    <div className="thesis-details-info-row">
+                      <span><CalendarDays size={14} /> Year Published</span>
+                      <strong>{publishedYear}</strong>
+                    </div>
                   </div>
-                </article>
-              </div>
+                </section>
+              </section>
             </aside>
           </div>
         )}

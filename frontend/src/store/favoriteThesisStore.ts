@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type FavoriteRole = 'vpaa' | 'faculty' | 'student';
+export type FavoriteRole = 'vpaa' | 'faculty' | 'student' | 'admin';
 
 export type FavoriteThesis = {
   id: string;

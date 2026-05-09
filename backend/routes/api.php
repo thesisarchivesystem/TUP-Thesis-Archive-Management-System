@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/categories', [ThesisController::class, 'categories']);
     Route::post('/support-tickets', [SupportTicketController::class, 'store']);
     Route::post('/extension-requests', [ExtensionRequestController::class, 'store']);
+    Route::get('/academic-structure', [AdminController::class, 'structure']);
 
     // Thesis (shared for all roles)
     Route::apiResource('thesis', ThesisController::class);
@@ -60,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/categories', [VpaaController::class, 'categories']);
         Route::get('/activity-log', [VpaaController::class, 'activityLog']);
         Route::get('/daily-quote', [VpaaController::class, 'dailyQuote']);
+        Route::get('/structure', [AdminController::class, 'structure']);
         Route::apiResource('faculty', FacultyController::class);
         Route::patch('/faculty/{id}/status', [FacultyController::class, 'updateStatus']);
         Route::get('/faculty/export', [FacultyController::class, 'export']);

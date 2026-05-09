@@ -206,14 +206,14 @@ export default function AdminDashboardPage() {
               <svg viewBox="0 0 620 220" preserveAspectRatio="none" className="admin-chart-svg" aria-hidden="true">
                 <defs>
                   <linearGradient id="adminLineFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="rgba(196, 34, 34, 0.35)" />
-                    <stop offset="100%" stopColor="rgba(196, 34, 34, 0.02)" />
+                    <stop offset="0%" stopColor="var(--maroon)" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="var(--maroon)" stopOpacity="0.02" />
                   </linearGradient>
                 </defs>
                 <path d={fillPath} fill="url(#adminLineFill)" />
-                <path d={linePath} fill="none" stroke="#c42121" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d={linePath} fill="none" stroke="var(--maroon)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
                 {linePoints.map((point) => (
-                  <circle key={`${point.month}-${point.x}`} cx={point.x} cy={point.y} r="3.8" fill="#c42121">
+                  <circle key={`${point.month}-${point.x}`} cx={point.x} cy={point.y} r="3.8" fill="var(--maroon)">
                     <title>{`${point.month}: ${point.value}`}</title>
                   </circle>
                 ))}

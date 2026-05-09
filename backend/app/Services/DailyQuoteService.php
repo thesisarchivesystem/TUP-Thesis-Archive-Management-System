@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class DailyQuoteService
 {
@@ -34,6 +35,10 @@ class DailyQuoteService
 
     private function fetchTodayQuote(string $today): ?array
     {
+        if (!Schema::hasTable('daily_quotes')) {
+            return $this->formatFallbackQuote($today);
+        }
+
         $localQuote = DailyQuote::query()
             ->whereDate('quote_date', $today)
             ->where('is_active', DB::raw('true'))

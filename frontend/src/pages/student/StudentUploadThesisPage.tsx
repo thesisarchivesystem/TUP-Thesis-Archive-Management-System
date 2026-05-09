@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, UserRound } from 'lucide-react';
 import axios from 'axios';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { departmentOptionsByCollege } from '../../constants/academicUnits';
 import StudentLayout from '../../components/student/StudentLayout';
+import type { AdminStructureCollege } from '../../services/adminService';
+import { academicStructureService } from '../../services/academicStructureService';
 import { studentProfileService } from '../../services/studentProfileService';
 import { thesisService, type StudentAdviserOption } from '../../services/thesisService';
 import { vpaaCategoriesService, type VpaaCategory } from '../../services/vpaaCategoriesService';
@@ -27,8 +28,8 @@ type UploadFieldErrors = Partial<Record<
 
 const initialFormState: UploadFormState = {
   title: '',
-  program: 'BS Computer Science',
-  department: 'Computer Studies Department',
+  program: '',
+  department: '',
   school_year: '2026',
   category_ids: [],
   authors: [],
@@ -52,24 +53,7 @@ const getNameInitials = (name?: string | null) =>
     .map((part) => part.charAt(0).toUpperCase())
     .join('') || 'NA';
 
-const normalizeProgramLabel = (program?: string | null) => {
-  const normalized = (program ?? '').trim().toUpperCase();
-
-  if (!normalized) return '';
-  if (normalized === 'BSCS' || normalized.includes('COMPUTER SCIENCE')) return 'BSCS';
-  if (normalized === 'BSIT' || normalized.includes('INFORMATION TECHNOLOGY')) return 'BSIT';
-  if (normalized === 'BSIS' || normalized.includes('INFORMATION SYSTEM')) return 'BSIS';
-
-  return program ?? '';
-};
-
-const resolveCollegeFromDepartment = (department: string) => {
-  const normalizedDepartment = department.trim().toLowerCase();
-
-  return Object.entries(departmentOptionsByCollege).find(([, departments]) =>
-    departments.some((entry) => entry.trim().toLowerCase() === normalizedDepartment),
-  )?.[0] ?? '';
-};
+const normalizeProgramLabel = (program?: string | null) => (program ?? '').trim();
 
 const extractApiErrorMessage = (error: unknown, fallback: string) => {
   if (axios.isAxiosError(error)) {
@@ -98,6 +82,7 @@ export default function StudentUploadThesisPage() {
   const draftFromState = (location.state as { draft?: Thesis } | null)?.draft ?? null;
   const draftQueryId = searchParams.get('draft');
   const [form, setForm] = useState<UploadFormState>(initialFormState);
+  const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [categories, setCategories] = useState<VpaaCategory[]>([]);
   const [advisers, setAdvisers] = useState<StudentAdviserOption[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -116,7 +101,12 @@ export default function StudentUploadThesisPage() {
   const [authorInput, setAuthorInput] = useState('');
   const [adviserSearch, setAdviserSearch] = useState('');
   const isRevisionMode = loadedStatus === 'rejected';
-  const college = resolveCollegeFromDepartment(form.department);
+  const selectedCollege = structure.find((collegeEntry) =>
+    collegeEntry.departments.some((departmentEntry) => departmentEntry.name === form.department),
+  );
+  const selectedDepartment = selectedCollege?.departments.find((departmentEntry) => departmentEntry.name === form.department);
+  const programOptions = selectedDepartment?.programs.map((programEntry) => programEntry.name) ?? [];
+  const college = selectedCollege?.name ?? '';
   const selectedAdviser = advisers.find((adviser) => adviser.id === form.adviser_id) ?? null;
   const filteredAdvisers = advisers.filter((adviser) => {
     const query = adviserSearch.trim().toLowerCase();
@@ -130,6 +120,16 @@ export default function StudentUploadThesisPage() {
     ].join(' ').toLowerCase().includes(query);
   });
   const showAdviserResults = adviserSearch.trim().length > 0 && (!selectedAdviser || adviserSearch.trim() !== selectedAdviser.name);
+
+  useEffect(() => {
+    void academicStructureService.list()
+      .then((records) => {
+        setStructure(records);
+      })
+      .catch(() => {
+        setStructure([]);
+      });
+  }, []);
 
   useEffect(() => {
     void studentProfileService.getProfile()
@@ -149,10 +149,6 @@ export default function StudentUploadThesisPage() {
     void vpaaCategoriesService.list('student')
       .then((response) => {
         setCategories(response);
-        setForm((current) => ({
-          ...current,
-          program: current.program || response[0]?.theses[0]?.program || 'BS Computer Science',
-        }));
       })
       .catch(() => {
         setCategories([]);
@@ -185,8 +181,8 @@ export default function StudentUploadThesisPage() {
       setExistingManuscriptName(draft.file_name ?? '');
       setForm({
         title: draft.title ?? '',
-        program: normalizeProgramLabel(draft.program) || 'BSCS',
-        department: draft.department ?? 'Computer Studies Department',
+        program: normalizeProgramLabel(draft.program),
+        department: draft.department ?? '',
         school_year: draft.school_year ?? '2026',
         category_ids: draft.category_ids?.length
           ? draft.category_ids
@@ -218,6 +214,24 @@ export default function StudentUploadThesisPage() {
         setDraftLoaded(true);
       });
   }, [draftFromState, draftQueryId]);
+
+  useEffect(() => {
+    if (!form.department && selectedCollege?.departments[0]?.name) {
+      setForm((current) => ({
+        ...current,
+        department: current.department || selectedCollege.departments[0]?.name || '',
+      }));
+    }
+  }, [form.department, selectedCollege]);
+
+  useEffect(() => {
+    if (!form.program && programOptions.length) {
+      setForm((current) => ({
+        ...current,
+        program: current.program || programOptions[0] || '',
+      }));
+    }
+  }, [form.program, programOptions]);
 
   useEffect(() => {
     if (!message && !error) return;

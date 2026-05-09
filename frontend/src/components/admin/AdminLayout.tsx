@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Building2, CalendarDays, Clock3, FolderTree, LayoutDashboard, LogOut, Menu, MoonStar, Search, SunMedium, Users } from 'lucide-react';
+import { Bell, BookOpenText, Building2, CalendarDays, Clock3, FolderTree, LayoutDashboard, LogOut, Menu, MoonStar, Search, SunMedium, Users } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { useBookThemeCssVariables } from '../../hooks/useBookThemeCssVariables';
 import { adminService, type AdminDashboardResponse } from '../../services/adminService';
 import BrandMarkIcon from '../BrandMarkIcon';
+import BookColorThemePicker from '../BookColorThemePicker';
 import '../../styles/vpaa-shell.css';
 
 const mainNavItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/admin/submissions', label: 'Thesis', icon: BookOpenText },
   { to: '/admin/users', label: 'Users', icon: Users },
-  { to: '/admin/structure', label: 'Departments', icon: Building2 },
+  { to: '/admin/structure', label: 'Academic', icon: Building2 },
   { to: '/admin/categories', label: 'Categories', icon: FolderTree },
 ];
 
@@ -23,6 +26,7 @@ const formatDate = (date: Date) =>
 export default function AdminLayout() {
   const { user, confirmAndLogout } = useAuth();
   const { theme, toggle } = useTheme();
+  const bookThemeStyle = useBookThemeCssVariables(theme);
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -120,6 +124,7 @@ export default function AdminLayout() {
         sidebarCollapsed ? 'sidebar-collapsed' : '',
         sidebarOpen ? 'sidebar-open' : '',
       ].filter(Boolean).join(' ')}
+      style={bookThemeStyle}
       onClick={() => {
         setProfileOpen(false);
         setNotificationsOpen(false);
@@ -273,6 +278,9 @@ export default function AdminLayout() {
         </header>
 
         <section className="vpaa-content vpaa-content-workspace">
+          <div className="vpaa-page-toolbar vpaa-page-toolbar-only admin-page-toolbar">
+            <BookColorThemePicker />
+          </div>
           <Outlet />
         </section>
       </main>

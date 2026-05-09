@@ -59,6 +59,8 @@ export type AdminManagedUser = {
   department?: string | null;
   program_id?: string | null;
   program?: string | null;
+  course_id?: string | null;
+  course?: string | null;
   section_id?: string | null;
   section?: string | null;
   year_level?: number | null;

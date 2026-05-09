@@ -14,6 +14,7 @@ const thesisBasePathByRole: Record<FavoriteRole, string> = {
   student: '/student/theses',
   faculty: '/faculty/theses',
   vpaa: '/vpaa/theses',
+  admin: '/admin/theses',
 };
 
 const formatAuthorLine = (author: string, year?: string | null) => (year ? `${author} · ${year}` : author);

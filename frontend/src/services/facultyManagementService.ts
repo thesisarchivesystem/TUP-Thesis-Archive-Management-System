@@ -1,4 +1,5 @@
 import api from './api';
+import type { AdminStructureCollege } from './adminService';
 import type { FacultyProfile } from '../types/user.types';
 
 export interface FacultyAccountPayload {
@@ -44,6 +45,11 @@ type FacultyRecordResponse = {
 export const facultyManagementService = {
   async listFaculty(): Promise<FacultyProfile[]> {
     const response = await api.get<FacultyListResponse>('/vpaa/faculty');
+    return response.data.data ?? [];
+  },
+
+  async listStructure(): Promise<AdminStructureCollege[]> {
+    const response = await api.get<{ data?: AdminStructureCollege[] }>('/vpaa/structure');
     return response.data.data ?? [];
   },
 

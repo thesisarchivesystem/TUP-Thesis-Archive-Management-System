@@ -2,18 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, CheckCircle2, Clock3, List, UserPlus, Users2 } from 'lucide-react';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import type { AdminStructureCollege } from '../../services/adminService';
+import { academicStructureService } from '../../services/academicStructureService';
 import { facultyAdviseesService, type FacultyAdviseeRecord, type FacultyAdviseesResponse, type StudentAccountPayload } from '../../services/facultyAdviseesService';
 
 const generateTemporaryPassword = () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
   return Array.from({ length: 10 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
 };
-
-const defaultProgramOptions = [
-  'BSCS',
-  'BSIT',
-  'BSIS',
-];
 
 const EDIT_PANEL_CLOSE_DELAY = 280;
 const EDIT_PANEL_SHELL_CLOSE_DELAY = 180;
@@ -54,6 +50,7 @@ const formatDate = (value?: string | null) => {
 export default function FacultyAdviseesPage() {
   const { confirm } = useConfirmDialog();
   const [adviseesData, setAdviseesData] = useState<FacultyAdviseesResponse | null>(null);
+  const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [form, setForm] = useState(initialForm);
   const [editForm, setEditForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -98,6 +95,9 @@ export default function FacultyAdviseesPage() {
 
   useEffect(() => {
     void loadAdvisees();
+    void academicStructureService.list()
+      .then((records) => setStructure(records))
+      .catch(() => setStructure([]));
   }, []);
 
   useEffect(() => () => {
@@ -120,8 +120,11 @@ export default function FacultyAdviseesPage() {
   const summary = adviseesData?.summary;
 
   const programOptions = useMemo(
-    () => ['All Programs', ...Array.from(new Set([...defaultProgramOptions, ...advisees.map((item) => item.program).filter(Boolean)]))],
-    [advisees],
+    () => ['All Programs', ...Array.from(new Set([
+      ...structure.flatMap((college) => college.departments.flatMap((department) => department.programs.map((program) => program.name))),
+      ...advisees.map((item) => item.program).filter(Boolean),
+    ]))],
+    [advisees, structure],
   );
 
   const filteredAdvisees = useMemo(() => advisees.filter((advisee) => {

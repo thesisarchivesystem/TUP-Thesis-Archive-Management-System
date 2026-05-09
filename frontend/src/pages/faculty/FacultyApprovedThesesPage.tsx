@@ -6,8 +6,6 @@ import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { thesisService } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
 
-const PROGRAM_OPTIONS = ['All Programs', 'BSCS', 'BSIT', 'BSIS'] as const;
-
 const normalizeProgram = (value?: string | null) => {
   const normalized = (value ?? '').trim().toUpperCase();
 
@@ -159,7 +157,10 @@ export default function FacultyApprovedThesesPage() {
     };
   }, []);
 
-  const programs = PROGRAM_OPTIONS;
+  const programs = useMemo(
+    () => ['All Programs', ...Array.from(new Set(theses.map((item) => normalizeProgram(item.program)).filter(Boolean)))],
+    [theses],
+  );
 
   const filteredTheses = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();

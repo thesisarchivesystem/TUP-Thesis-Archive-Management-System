@@ -77,6 +77,15 @@ export default function AdminUsersPage() {
     () => selectedDepartment?.programs.find((program) => program.id === form.program_id),
     [form.program_id, selectedDepartment],
   );
+  const programCodeById = useMemo(() => {
+    const entries = structure.flatMap((college) =>
+      college.departments.flatMap((department) =>
+        department.programs.map((program) => [program.id, program.code?.trim() || program.name] as const),
+      ),
+    );
+
+    return new Map(entries);
+  }, [structure]);
 
   const sortedUsers = useMemo(() => {
     const collator = new Intl.Collator('en', { sensitivity: 'base' });
@@ -213,9 +222,6 @@ export default function AdminUsersPage() {
           </div>
 
           <div className="admin-users-head-actions">
-            <button type="button" className="admin-users-filter-chip active">
-              All
-            </button>
             <button type="button" className="admin-btn admin-users-create-btn" onClick={openCreate}>
               <Plus size={15} />
               <span>Create User</span>
@@ -267,7 +273,7 @@ export default function AdminUsersPage() {
                 <th>Role</th>
                 <th>College</th>
                 <th>Department</th>
-                <th>Program</th>
+                <th>Course</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -287,7 +293,7 @@ export default function AdminUsersPage() {
                   <td><span className={`admin-role-badge ${user.role}`}>{user.role}</span></td>
                   <td>{user.college || 'Unassigned'}</td>
                   <td className="admin-user-assignment">{user.department || 'Unassigned'}</td>
-                  <td>{user.program || 'Unassigned'}</td>
+                  <td>{programCodeById.get(user.course_id ?? user.program_id ?? '') || user.course || user.program || 'Unassigned'}</td>
                   <td>
                     <span className={`admin-status-badge ${user.is_active ? 'approved' : 'rejected'}`}>
                       {user.is_active ? 'Active' : 'Inactive'}
@@ -311,12 +317,12 @@ export default function AdminUsersPage() {
                             student_id: user.student_id ?? '',
                             college_id: user.college_id ?? '',
                             department_id: user.department_id ?? '',
-                            program_id: user.program_id ?? '',
+                            program_id: user.course_id ?? user.program_id ?? '',
                             section_id: user.section_id ?? '',
                             section: user.section ?? '',
                             department: user.department ?? '',
                             college: user.college ?? '',
-                            program: user.program ?? '',
+                            program: user.course ?? user.program ?? '',
                             faculty_role: user.faculty_role ?? '',
                             rank: user.rank ?? '',
                             year_level: user.year_level ?? '',
@@ -584,13 +590,17 @@ export default function AdminUsersPage() {
                   {isStudent ? (
                     <>
                       <label className="admin-field admin-modal-field">
-                        <span>Program <em>*</em></span>
+                        <span>Course <em>*</em></span>
                         <select
                           value={form.program_id}
                           onChange={(event) => setForm((current: any) => ({ ...current, program_id: event.target.value, section_id: '' }))}
                         >
-                          <option value="">Select program</option>
-                          {(selectedDepartment?.programs ?? []).map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}
+                          <option value="">Select course</option>
+                          {(selectedDepartment?.programs ?? []).map((program) => (
+                            <option key={program.id} value={program.id}>
+                              {program.code?.trim() || program.name}
+                            </option>
+                          ))}
                         </select>
                       </label>
 
