@@ -286,7 +286,7 @@ export default function SharedThesisDetailsPage({
                     <div className="thesis-details-manuscript-actions">
                       <button
                         type="button"
-                        className="student-submissions-secondary thesis-details-download-button"
+                        className="thesis-details-quick-button thesis-details-quick-button-primary thesis-details-download-button"
                         onClick={() => void handleViewManuscript()}
                         disabled={openingManuscript || downloadingWatermarkedManuscript}
                       >
@@ -296,7 +296,7 @@ export default function SharedThesisDetailsPage({
                       {canDownloadManuscript ? (
                         <button
                           type="button"
-                          className="student-submissions-secondary thesis-details-download-button"
+                          className="thesis-details-quick-button thesis-details-download-button"
                           onClick={() => void handleDownloadManuscript()}
                           disabled={openingManuscript || downloadingWatermarkedManuscript}
                         >

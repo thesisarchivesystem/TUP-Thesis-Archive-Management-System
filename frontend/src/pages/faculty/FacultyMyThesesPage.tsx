@@ -324,7 +324,7 @@ export default function FacultyMyThesesPage() {
         items={visibleItems}
         emptyMessage="No submissions found for this filter."
         summaryTitle="Submission Summary"
-        summaryDescription="Snapshot of your faculty researchworkflow"
+        summaryDescription="Snapshot of your research workflow"
         summaryCards={summaryCards}
         getStatusLabel={getStatusLabel}
         getStatusBadgeClass={getStatusBadgeClass}

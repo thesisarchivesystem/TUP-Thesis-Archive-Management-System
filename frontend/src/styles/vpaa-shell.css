@@ -3266,7 +3266,7 @@
 
 .student-submissions-shell {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .student-submissions-topbar {
@@ -3285,8 +3285,8 @@
 .student-submission-actions button,
 .student-submissions-filter,
 .student-submissions-sort {
-  border-radius: 14px;
-  padding: 8px 12px;
+  border-radius: 16px;
+  padding: 10px 15px;
   font: inherit;
   font-size: 13px;
   transition:
@@ -3300,16 +3300,25 @@
 .student-submissions-secondary,
 .student-submission-actions button,
 .student-submissions-sort {
-  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.12);
-  background: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, var(--maroon) 18%);
+  background: color-mix(in srgb, var(--bg-card) 96%, transparent);
   color: var(--text-primary);
+  box-shadow: 0 8px 18px rgba(var(--book-theme-accent-rgb), 0.04);
 }
 
 .student-submissions-primary {
   border: 0;
-  background: var(--maroon);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--maroon) 76%, white 24%) 0%,
+    color-mix(in srgb, var(--maroon-dark) 88%, var(--maroon) 12%) 100%
+  );
   color: #fff;
   font-weight: 700;
+  box-shadow: 0 16px 30px rgba(var(--book-theme-accent-rgb), 0.24);
 }
 
 .student-submissions-secondary:hover,
@@ -3323,29 +3332,33 @@
 
 .student-submissions-primary:hover {
   transform: translateY(-2px);
-  background: var(--maroon-dark);
-  box-shadow: 0 14px 28px rgba(var(--book-theme-accent-rgb), 0.22);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--maroon) 82%, white 18%) 0%,
+    color-mix(in srgb, var(--maroon-dark) 92%, var(--maroon) 8%) 100%
+  );
+  box-shadow: 0 18px 32px rgba(var(--book-theme-accent-rgb), 0.32);
 }
 
 .student-submissions-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .student-submissions-stat-card {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
-  min-height: 110px;
-  padding: 14px 16px 14px 18px;
+  min-height: 88px;
+  padding: 14px 18px;
   border-radius: 22px;
-  border: 1px solid rgba(166, 126, 118, 0.38);
+  border: 1px solid rgba(219, 202, 198, 0.9);
   background:
-    radial-gradient(circle at 100% 100%, rgba(232, 224, 220, 0.72) 0, rgba(232, 224, 220, 0.72) 20px, transparent 21px),
-    linear-gradient(180deg, #ffffff, #ffffff);
+    radial-gradient(circle at top right, rgba(var(--book-theme-accent-rgb), 0.08), transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, white 2%), color-mix(in srgb, var(--bg-card-alt) 88%, var(--bg-card) 12%));
   overflow: hidden;
   transition:
     transform 200ms ease,
@@ -3356,44 +3369,56 @@
 
 .student-submissions-stat-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(var(--book-theme-accent-rgb), 0.2);
-  box-shadow: 0 14px 28px rgba(var(--book-theme-accent-rgb), 0.1);
+  border-color: rgba(210, 171, 201, 0.88);
+  border-color: color-mix(in srgb, var(--maroon) 24%, var(--border));
+  box-shadow: 0 16px 28px rgba(var(--book-theme-accent-rgb), 0.12);
 }
 
 .student-submissions-stat-card:hover .student-submissions-stat-icon {
   transform: translateY(-1px);
 }
 
+.student-submissions-stat-copy {
+  display: grid;
+  gap: 6px;
+}
+
 .student-submissions-stat-card span {
   display: block;
+  color: #7b6371;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.15;
 }
 
 .student-submissions-stat-card strong {
   display: block;
-  margin-top: 12px;
   font-family: 'DM Serif Display', serif;
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1;
   color: var(--text-primary);
 }
 
 .student-submissions-stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  margin-top: 20px;
-  margin-right: 4px;
+  margin-right: 0;
   line-height: 0;
   position: relative;
   font-size: 0 !important;
-  box-shadow: none;
+  color: #ab58bf;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.16) 78%, var(--bg-card) 22%),
+    color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.08) 72%, var(--bg-card) 28%)
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: var(--maroon);
   transition: transform 180ms ease;
 }
 
@@ -3408,7 +3433,7 @@
 
 .student-submissions-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.72fr) minmax(340px, 390px);
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 372px);
   gap: 20px;
   align-items: start;
   overflow: visible;
@@ -3416,16 +3441,19 @@
 
 .student-submissions-main {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
+  align-content: start;
 }
 
 .student-submissions-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
   flex-wrap: wrap;
+  min-height: 56px;
+  padding: 0;
 }
 
 .student-submissions-panel-note {
@@ -3449,15 +3477,19 @@
 .student-submissions-filters {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  flex: 1 1 0;
 }
 
 .student-submissions-filter {
-  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.1);
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--text-primary);
+  border: 1px solid rgba(224, 205, 212, 0.82);
+  border-color: color-mix(in srgb, var(--border) 82%, var(--maroon) 18%);
+  background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 82%, var(--maroon) 18%);
   cursor: pointer;
+  box-shadow: 0 8px 18px rgba(122, 79, 96, 0.04);
+  box-shadow: 0 8px 18px rgba(var(--book-theme-accent-rgb), 0.04);
 }
 
 .student-submissions-filter:hover {
@@ -3468,22 +3500,35 @@
 }
 
 .student-submissions-filter.active {
-  border-color: rgba(var(--book-theme-accent-rgb), 0.18);
-  background: rgba(var(--book-theme-accent-rgb), 0.08);
+  border-color: color-mix(in srgb, var(--maroon) 34%, var(--border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.12) 78%, var(--bg-card) 22%),
+    color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.08) 72%, var(--bg-card) 28%)
+  );
   color: var(--maroon);
 }
 
 .student-submissions-list {
   display: grid;
   gap: 14px;
+  align-content: start;
 }
 
 .student-submission-list-card {
-  padding: 20px 24px;
+  position: relative;
+  padding: 18px 20px 16px;
   display: grid;
-  gap: 18px;
+  gap: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(225, 210, 208, 0.95);
+  border-color: color-mix(in srgb, var(--border) 84%, var(--maroon) 16%);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(252, 249, 245, 0.97));
+    radial-gradient(circle at top right, rgba(var(--book-theme-accent-rgb), 0.08), transparent 28%),
+    radial-gradient(circle at left center, rgba(var(--book-theme-accent-rgb), 0.03), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 99%, white 1%), color-mix(in srgb, var(--bg-card-alt) 90%, var(--bg-card) 10%));
+  box-shadow: 0 14px 26px rgba(var(--book-theme-accent-rgb), 0.06);
+  overflow: hidden;
   transition:
     transform 220ms ease,
     box-shadow 220ms ease,
@@ -3493,15 +3538,19 @@
 
 .student-submission-list-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(var(--book-theme-accent-rgb), 0.14);
-  box-shadow: 0 16px 28px rgba(var(--book-theme-accent-rgb), 0.08);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.18);
+  box-shadow: 0 18px 34px rgba(var(--book-theme-accent-rgb), 0.1);
 }
 
 .student-submission-list-card-approved {
-  padding: 18px 20px 18px;
-  gap: 16px;
-  border-radius: 20px;
-  box-shadow: 0 14px 28px rgba(124, 68, 54, 0.07);
+  box-shadow: 0 16px 32px rgba(var(--book-theme-accent-rgb), 0.08);
+}
+
+.student-submission-list-card-archived {
+  background:
+    radial-gradient(circle at top right, rgba(var(--book-theme-accent-rgb), 0.1), transparent 28%),
+    radial-gradient(circle at left center, rgba(var(--book-theme-accent-rgb), 0.04), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, rgba(var(--book-theme-accent-rgb), 0.02) 2%), color-mix(in srgb, var(--bg-card-alt) 90%, var(--bg-card) 10%));
 }
 
 .student-submission-list-card:hover .student-submission-badge {
@@ -3513,93 +3562,124 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+}
+
+.student-submission-list-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
 }
 
 .student-submission-list-head h3 {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.38;
+  font-size: clamp(18px, 1.7vw, 22px);
+  line-height: 1.08;
   font-family: 'DM Serif Display', serif;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
 }
 
 .student-submission-list-card-approved .student-submission-list-head h3 {
-  font-size: clamp(18px, 1.8vw, 24px);
   line-height: 1.3;
   max-width: 46ch;
+}
+
+.student-submission-list-status {
+  flex: 0 0 auto;
+  align-self: flex-start;
 }
 
 .student-submission-meta-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px 18px;
-  margin-top: 8px;
+  gap: 10px 14px;
+  margin-top: 0;
 }
 
 .student-submission-meta-strip span {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 11.5px;
+  position: relative;
+}
+
+.student-submission-meta-strip span + span::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  width: 1px;
+  height: 12px;
+  background: rgba(var(--book-theme-accent-rgb), 0.16);
+  transform: translateY(-50%);
 }
 
 .student-submission-list-card-approved .student-submission-meta-strip {
-  gap: 14px 20px;
-  margin-top: 8px;
+  gap: 18px 24px;
+  margin-top: 14px;
 }
 
 .student-submission-list-card-approved .student-submission-meta-strip span {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
 .student-submission-timeline {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 0;
   align-items: start;
+  padding: 2px 4px 0;
 }
 
 .student-submission-list-card-approved .student-submission-timeline {
-  gap: 12px;
+  gap: 0;
   margin-top: 0;
 }
 
 .student-submission-timeline-step {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
+  position: relative;
+  justify-items: center;
 }
 
 .student-submission-timeline-rail {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  position: relative;
 }
 
 .student-submission-timeline-node {
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  border: 1.5px solid rgba(var(--book-theme-accent-rgb), 0.14);
-  background: rgba(255, 255, 255, 0.9);
-  color: #cabbb5;
+  border: 1.5px solid color-mix(in srgb, var(--maroon) 24%, var(--border));
+  background: color-mix(in srgb, var(--bg-card) 95%, white 5%);
+  color: color-mix(in srgb, var(--maroon) 34%, var(--text-tertiary) 66%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .student-submission-list-card-approved .student-submission-timeline-node {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-width: 1.5px;
 }
 
 .student-submission-timeline-node-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
   background: currentColor;
   display: block;
@@ -3607,9 +3687,13 @@
 
 .student-submission-timeline-line {
   height: 2px;
-  flex: 1 1 auto;
-  min-width: 22px;
-  background: rgba(var(--book-theme-accent-rgb), 0.14);
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 21px);
+  right: calc(-50% + 21px);
+  background: color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.3) 72%, var(--border) 28%);
+  margin: 0;
+  transform: translateY(-50%);
 }
 
 .student-submission-list-card-approved .student-submission-timeline-line {
@@ -3617,23 +3701,25 @@
 }
 
 .student-submission-timeline-label {
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  text-align: left;
+  font-size: 10.5px;
+  color: color-mix(in srgb, var(--text-secondary) 78%, var(--maroon) 22%);
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .student-submission-list-card-approved .student-submission-timeline-label {
-  font-size: 13px;
+  font-size: 10.5px;
 }
 
 .student-submission-timeline-step.done .student-submission-timeline-node {
-  border-color: rgba(var(--book-theme-accent-rgb), 0.26);
+  border-color: color-mix(in srgb, var(--maroon) 40%, var(--border));
   color: var(--maroon);
-  background: rgba(var(--book-theme-accent-rgb), 0.12);
+  background: color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.12) 76%, var(--bg-card) 24%);
 }
 
 .student-submission-timeline-step.done .student-submission-timeline-line {
-  background: rgba(var(--book-theme-accent-rgb), 0.3);
+  background: rgba(var(--book-theme-accent-rgb), 0.34);
 }
 
 .student-submission-timeline-step.done .student-submission-timeline-label {
@@ -3641,17 +3727,17 @@
 }
 
 .student-submission-timeline-step.current .student-submission-timeline-node {
-  border-color: rgba(var(--book-theme-accent-rgb), 0.34);
-  color: var(--maroon-dark);
-  background: rgba(var(--book-theme-accent-rgb), 0.18);
+  border-color: color-mix(in srgb, var(--maroon) 42%, var(--border));
+  color: var(--maroon);
+  background: color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.14) 76%, var(--bg-card) 24%);
 }
 
 .student-submission-timeline-step.current .student-submission-timeline-line {
-  background: rgba(var(--book-theme-accent-rgb), 0.32);
+  background: rgba(var(--book-theme-accent-rgb), 0.36);
 }
 
 .student-submission-timeline-step.current .student-submission-timeline-label {
-  color: var(--maroon-dark);
+  color: var(--maroon);
 }
 
 .student-submission-timeline-step.pending .student-submission-timeline-label {
@@ -3667,12 +3753,15 @@
 .student-submission-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 84%, white 16%);
+  justify-content: flex-start;
 }
 
 .student-submission-list-card-approved .student-submission-actions {
-  gap: 10px;
+  gap: 14px;
   margin-top: 0;
 }
 
@@ -3680,26 +3769,63 @@
 .student-submission-actions .student-submissions-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
+  width: auto;
   min-height: 40px;
-  padding-inline: 16px;
+  padding: 6px 10px 6px 8px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .student-submission-actions .student-submissions-secondary {
-  border-color: rgba(var(--book-theme-accent-rgb), 0.16);
-  background: rgba(255, 255, 255, 0.96);
+  border-color: color-mix(in srgb, var(--border) 82%, var(--maroon) 18%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 97%, white 3%), color-mix(in srgb, var(--bg-card-alt) 90%, var(--bg-card) 10%));
+  box-shadow: 0 8px 16px rgba(var(--book-theme-accent-rgb), 0.04);
 }
 
 .student-submission-list-card-approved .student-submission-actions .student-submissions-secondary {
-  min-height: 42px;
-  padding-inline: 16px;
-  border-radius: 16px;
-  font-size: 13px;
-  box-shadow: 0 8px 14px rgba(104, 61, 52, 0.04);
+  min-height: 40px;
+  padding-inline: 8px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  box-shadow: 0 8px 16px rgba(var(--book-theme-accent-rgb), 0.04);
 }
 
 .student-submission-actions .student-submissions-primary {
-  border-radius: 14px;
+  border-radius: 12px;
+}
+
+.student-submissions-action-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--maroon);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.14) 76%, var(--bg-card) 24%),
+    color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.08) 70%, var(--bg-card) 30%)
+  );
+  box-sizing: border-box;
+}
+
+.student-submission-actions .student-submissions-primary .student-submissions-action-icon {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.student-submission-actions .student-submissions-secondary > svg,
+.student-submission-actions .student-submissions-primary > svg {
+  flex: 0 0 auto;
 }
 
 .student-submission-card {
@@ -3991,32 +4117,45 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: 10.5px;
   font-weight: 700;
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
+    border-color 180ms ease,
     background-color 180ms ease;
 }
 
 .student-submission-badge.review {
   background: rgba(var(--book-theme-accent-rgb), 0.08);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.14);
   color: var(--maroon);
 }
 
 .student-submission-badge.revisions {
   background: rgba(var(--book-theme-accent-rgb), 0.14);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.18);
   color: var(--maroon-dark);
 }
 
 .student-submission-badge.approved {
-  background: rgba(var(--book-theme-accent-rgb), 0.18);
+  background: rgba(var(--book-theme-accent-rgb), 0.12);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.16);
   color: var(--maroon-dark);
 }
 
 .student-submission-badge.draft {
   background: rgba(var(--book-theme-accent-rgb), 0.12);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.16);
+  color: var(--maroon);
+}
+
+.student-submission-badge.archived {
+  background: color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.12) 82%, var(--bg-card) 18%);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.18);
   color: var(--maroon);
 }
 
@@ -4238,17 +4377,125 @@
 }
 
 .student-submissions-side {
-  padding: 20px 18px;
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-  align-self: start;
-  position: relative;
-  top: auto;
-  transition:
-    transform 220ms ease,
-    box-shadow 220ms ease,
-    border-color 220ms ease;
+  padding: 0;
+  gap: 0;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, var(--maroon) 16%);
+  background:
+    radial-gradient(circle at top left, rgba(var(--book-theme-accent-rgb), 0.08), transparent 26%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 99%, white 1%), color-mix(in srgb, var(--bg-card-alt) 90%, var(--bg-card) 10%));
+}
+
+.student-submissions-summary-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--maroon);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.16) 78%, var(--bg-card) 22%),
+    color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.08) 72%, var(--bg-card) 28%)
+  );
+}
+
+.student-submissions-summary-box small {
+  display: block;
+  margin-top: 0;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--text-secondary) 82%, var(--maroon) 18%);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-submissions-summary-box strong {
+  margin-top: 0;
+}
+
+@media (max-width: 1100px) {
+  .student-submissions-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-submissions-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .student-submission-meta-strip span + span::before {
+    display: none;
+  }
+
+  .student-submissions-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .student-submission-list-card {
+    padding: 14px 12px;
+  }
+
+  .student-submission-list-head {
+    gap: 16px;
+    flex-direction: column;
+  }
+
+  .student-submission-list-head h3 {
+    font-size: 17px;
+  }
+
+  .student-submission-timeline {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 0;
+  }
+
+  .student-submission-timeline-step {
+    justify-items: stretch;
+  }
+
+  .student-submission-timeline-rail {
+    justify-content: flex-start;
+    min-height: 34px;
+  }
+
+  .student-submission-timeline-line {
+    position: static;
+    flex: 1 1 auto;
+    min-width: 22px;
+    margin-inline: 6px 0;
+    transform: none;
+  }
+
+  .student-submission-timeline-label {
+    text-align: left;
+  }
+
+  .student-submissions-list .student-submission-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .student-submission-actions .student-submissions-secondary,
+  .student-submission-actions .student-submissions-primary,
+  .student-submissions-primary {
+    width: 100%;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .student-submissions-summary-grid {
+    padding: 0 16px 16px;
+  }
+
+  .student-submissions-summary-box {
+    min-height: 146px;
+  }
 }
 
 .student-submissions-side.thesis-details-side-card {
@@ -4433,6 +4680,9 @@
 .submission-accent-panel .student-submissions-summary-box {
   min-height: 136px;
   padding: 18px 20px 16px;
+  display: grid;
+  align-content: start;
+  gap: 16px;
   border-radius: 0;
   background: transparent;
   border: 0;
@@ -4443,6 +4693,27 @@
 
 .submission-accent-panel .student-submissions-summary-head > div:first-child {
   min-width: 0;
+  flex: 0 0 auto;
+}
+
+.student-submissions-summary-box-head {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  min-width: 0;
+  min-height: 40px;
+}
+
+.student-submissions-summary-box-head .student-submissions-summary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 999px;
   flex: 0 0 auto;
 }
 
@@ -4469,10 +4740,10 @@
 }
 
 .submission-accent-panel .student-submissions-summary-box strong {
-  margin-top: 10px;
+  margin-top: 0;
   font-family: inherit;
-  font-size: 28px;
-  line-height: 1.1;
+  font-size: 24px;
+  line-height: 1;
   color: var(--text-primary);
   font-weight: 700;
 }
@@ -4965,6 +5236,7 @@
 .thesis-details-download-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   flex-shrink: 0;
   min-height: 38px;
@@ -4979,16 +5251,6 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 2px;
-}
-
-.thesis-details-manuscript-actions .student-submissions-secondary:first-child {
-  background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-  color: #fff;
-  border-color: transparent;
-}
-
-.thesis-details-manuscript-actions .student-submissions-secondary:first-child svg {
-  color: currentColor;
 }
 
 .student-submission-meta-row {
@@ -5360,6 +5622,41 @@
   color: var(--maroon);
   font-size: 12px;
   font-weight: 700;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.thesis-details-quick-button:hover,
+.thesis-details-quick-button:focus-visible {
+  outline: none;
+  transform: translateY(-2px);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.18);
+  background: rgba(var(--book-theme-accent-rgb), 0.05);
+  box-shadow: 0 10px 20px rgba(var(--book-theme-accent-rgb), 0.07);
+}
+
+.thesis-details-quick-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.thesis-details-quick-button-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
+  color: #fff;
+}
+
+.thesis-details-quick-button-primary:hover,
+.thesis-details-quick-button-primary:focus-visible {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
+  box-shadow: 0 14px 28px rgba(var(--book-theme-accent-rgb), 0.22);
 }
 
 .thesis-details-quick-button svg {
