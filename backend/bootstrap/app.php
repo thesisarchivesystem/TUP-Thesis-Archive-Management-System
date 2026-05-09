@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(HandleCors::class);
 
         $middleware->alias([
+            'active.user' => \App\Http\Middleware\EnsureActiveUser::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
     })

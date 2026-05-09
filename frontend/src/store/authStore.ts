@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { User } from '../types/user.types';
+import type { User, UserRole } from '../types/user.types';
 
 type StoredAuthState = {
   user: User | null;
@@ -7,14 +7,35 @@ type StoredAuthState = {
   rememberMe: boolean;
 };
 
+type ForcedLogoutNotice = {
+  title: string;
+  message: string;
+  redirectPath: string;
+};
+
 interface AuthState extends StoredAuthState {
+  forcedLogoutNotice: ForcedLogoutNotice | null;
   setAuth: (user: User, token: string, rememberMe?: boolean) => void;
   updateUser: (updates: Partial<User>) => void;
+  showForcedLogoutNotice: (message?: string) => void;
   logout: () => void;
 }
 
 const LOCAL_STORAGE_KEY = 'tams-auth';
 const SESSION_STORAGE_KEY = 'tams-auth-session';
+const DEFAULT_FORCED_LOGOUT_MESSAGE = 'Your account has been disabled, so this browser session will be logged out.';
+
+export function getLoginPathForRole(role?: UserRole | null) {
+  if (role === 'admin') {
+    return '/admin/login';
+  }
+
+  if (role === 'student') {
+    return '/sign-in/student';
+  }
+
+  return '/sign-in/faculty';
+}
 
 function parseStoredValue(value: string | null): { user: User | null; token: string | null } | null {
   if (!value) return null;
@@ -82,9 +103,10 @@ const initialAuthState = readStoredAuth();
 
 export const useAuthStore = create<AuthState>()((set) => ({
   ...initialAuthState,
+  forcedLogoutNotice: null,
   setAuth: (user, token, rememberMe = false) => {
     persistAuth(user, token, rememberMe);
-    set({ user, token, rememberMe });
+    set({ user, token, rememberMe, forcedLogoutNotice: null });
   },
   updateUser: (updates) => {
     set((state) => {
@@ -98,8 +120,23 @@ export const useAuthStore = create<AuthState>()((set) => ({
       return { user: nextUser };
     });
   },
+  showForcedLogoutNotice: (message) => {
+    set((state) => {
+      if (!state.user || state.forcedLogoutNotice) {
+        return state;
+      }
+
+      return {
+        forcedLogoutNotice: {
+          title: 'Account Disabled',
+          message: message?.trim() || DEFAULT_FORCED_LOGOUT_MESSAGE,
+          redirectPath: getLoginPathForRole(state.user.role),
+        },
+      };
+    });
+  },
   logout: () => {
     clearStoredAuth();
-    set({ user: null, token: null, rememberMe: false });
+    set({ user: null, token: null, rememberMe: false, forcedLogoutNotice: null });
   },
 }));

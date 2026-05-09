@@ -1,14 +1,8 @@
-import { Check, ChevronDown, Clock3, Copy, FileText, MoreVertical, NotebookPen, UserPlus2 } from 'lucide-react';
+import { Check, ChevronDown, Clock3, FileText, NotebookPen, UserPlus2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import { adminService, type AdminDashboardResponse } from '../../services/adminService';
-
-type ThesisActionMenuState = {
-  id: string;
-  anchorTop: number;
-  anchorLeft: number;
-} | null;
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -16,9 +10,6 @@ export default function AdminDashboardPage() {
   const initialYear = Number(searchParams.get('year')) || new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(initialYear);
   const [openYearMenu, setOpenYearMenu] = useState<'submissions' | 'courses' | null>(null);
-  const [openActionMenu, setOpenActionMenu] = useState<ThesisActionMenuState>(null);
-  const [activeSubmission, setActiveSubmission] = useState<AdminDashboardResponse['recent_uploads'][number] | null>(null);
-  const [copiedSubmissionId, setCopiedSubmissionId] = useState<string | null>(null);
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,21 +46,6 @@ export default function AdminDashboardPage() {
       active = false;
     };
   }, [selectedYear]);
-
-  useEffect(() => {
-    if (!openActionMenu) return;
-
-    const handleClose = () => setOpenActionMenu(null);
-    window.addEventListener('click', handleClose);
-    return () => window.removeEventListener('click', handleClose);
-  }, [openActionMenu]);
-
-  useEffect(() => {
-    if (!copiedSubmissionId) return;
-
-    const timeout = window.setTimeout(() => setCopiedSubmissionId(null), 1800);
-    return () => window.clearTimeout(timeout);
-  }, [copiedSubmissionId]);
 
   const searchTerm = searchParams.get('search')?.trim().toLowerCase() ?? '';
 
@@ -141,7 +117,6 @@ export default function AdminDashboardPage() {
       className="admin-page"
       onClick={() => {
         setOpenYearMenu(null);
-        setOpenActionMenu(null);
       }}
     >
       <div className="admin-page-intro">
@@ -288,7 +263,6 @@ export default function AdminDashboardPage() {
                 <th>Department</th>
                 <th>Status</th>
                 <th>Date Submitted</th>
-                <th />
               </tr>
             </thead>
             <tbody>
@@ -303,27 +277,10 @@ export default function AdminDashboardPage() {
                     </span>
                   </td>
                   <td>{item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
-                  <td className="admin-table-action-cell">
-                    <button
-                      type="button"
-                      className="admin-kebab"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        setOpenActionMenu({
-                          id: item.id,
-                          anchorTop: rect.bottom + window.scrollY + 6,
-                          anchorLeft: rect.left + window.scrollX - 120,
-                        });
-                      }}
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                  </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="admin-table-empty">
+                  <td colSpan={5} className="admin-table-empty">
                     No submissions matched your current search.
                   </td>
                 </tr>
@@ -361,84 +318,6 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {openActionMenu ? (
-        <div
-          className="admin-context-menu"
-          style={{ top: openActionMenu.anchorTop, left: openActionMenu.anchorLeft }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          {(() => {
-            const currentSubmission = data.recent_uploads.find((item) => item.id === openActionMenu.id);
-            if (!currentSubmission) return null;
-
-            return (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveSubmission(currentSubmission);
-                    setOpenActionMenu(null);
-                  }}
-                >
-                  View details
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(currentSubmission.title);
-                    setCopiedSubmissionId(currentSubmission.id);
-                    setOpenActionMenu(null);
-                  }}
-                >
-                  <Copy size={14} />
-                  <span>{copiedSubmissionId === currentSubmission.id ? 'Copied title' : 'Copy title'}</span>
-                </button>
-              </>
-            );
-          })()}
-        </div>
-      ) : null}
-
-      {activeSubmission ? (
-        <div className="admin-modal-backdrop" onClick={() => setActiveSubmission(null)}>
-          <div className="admin-modal-card" onClick={(event) => event.stopPropagation()}>
-            <div className="admin-panel-head">
-              <h3>Submission Details</h3>
-              <button type="button" className="admin-view-all" onClick={() => setActiveSubmission(null)}>Close</button>
-            </div>
-            <div className="admin-detail-grid">
-              <div>
-                <span>Title</span>
-                <strong>{activeSubmission.title}</strong>
-              </div>
-              <div>
-                <span>Author</span>
-                <strong>{activeSubmission.author}</strong>
-              </div>
-              <div>
-                <span>Department</span>
-                <strong>{activeSubmission.department || 'Unassigned Department'}</strong>
-              </div>
-              <div>
-                <span>Status</span>
-                <strong>{activeSubmission.status.replace(/_/g, ' ')}</strong>
-              </div>
-              <div>
-                <span>Category</span>
-                <strong>{activeSubmission.category || 'Unassigned Category'}</strong>
-              </div>
-              <div>
-                <span>Program</span>
-                <strong>{activeSubmission.program || 'Unassigned Program'}</strong>
-              </div>
-              <div>
-                <span>Date Submitted</span>
-                <strong>{activeSubmission.created_at ? new Date(activeSubmission.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

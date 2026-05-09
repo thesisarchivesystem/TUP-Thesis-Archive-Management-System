@@ -109,6 +109,10 @@
   gap: 14px;
 }
 
+.confirm-dialog-actions-single {
+  justify-content: flex-end;
+}
+
 .confirm-dialog-button {
   min-width: 110px;
   min-height: 52px;
@@ -143,6 +147,11 @@
   background: rgba(var(--book-theme-accent-rgb, 139, 35, 50), 0.08);
   color: var(--text-primary, #4a1d2a);
   box-shadow: none;
+}
+
+.confirm-dialog-note {
+  color: rgba(95, 75, 73, 0.85);
+  font-size: 0.8rem;
 }
 
 @media (max-width: 640px) {

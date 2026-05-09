@@ -5,7 +5,7 @@ import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import type { AdminStructureCollege } from '../../services/adminService';
 import { academicStructureService } from '../../services/academicStructureService';
 import { facultyAdviseesService, type FacultyAdviseeRecord, type FacultyAdviseesResponse, type StudentAccountPayload } from '../../services/facultyAdviseesService';
-import { findProgramInDepartment, getProgramDisplayValue, resolveProgramDisplayValue } from '../../utils/programs';
+import { findProgramInDepartment, getDepartmentProgramOptions, getProgramDisplayValue, resolveProgramDisplayValue } from '../../utils/programs';
 
 const generateTemporaryPassword = () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
@@ -158,7 +158,7 @@ export default function FacultyAdviseesPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editShellOpen, setEditShellOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [programFilter, setProgramFilter] = useState('All Programs');
+  const [programFilter, setProgramFilter] = useState('All Courses');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -235,7 +235,7 @@ export default function FacultyAdviseesPage() {
   const summary = adviseesData?.summary;
 
   const programOptions = useMemo(
-    () => ['All Programs', ...Array.from(new Set([
+    () => ['All Courses', ...Array.from(new Set([
       ...structure.flatMap((college) => college.departments.flatMap((department) => department.programs.map((program) => getProgramDisplayValue(program)))),
       ...advisees.map((item) => item.program).filter(Boolean),
     ])).sort((left, right) => left.localeCompare(right))],
@@ -248,15 +248,17 @@ export default function FacultyAdviseesPage() {
   );
 
   const createCollegeName = createStructureMatch.college?.name || '';
-  const createSectionOptions = useMemo(
-    () => createStructureMatch.program?.sections
-      .map((section) => section.name)
-      .sort((left, right) => left.localeCompare(right)) ?? [],
-    [createStructureMatch.program],
+  const createProgramOptions = useMemo(
+    () => getDepartmentProgramOptions(createStructureMatch.department),
+    [createStructureMatch.department],
   );
   const editStructureMatch = useMemo(
     () => findStructureMatch(structure, editForm.department, editForm.program),
     [editForm.department, editForm.program, structure],
+  );
+  const editProgramOptions = useMemo(
+    () => getDepartmentProgramOptions(editStructureMatch.department),
+    [editStructureMatch.department],
   );
 
   const statusOptions = useMemo(() => {
@@ -275,7 +277,7 @@ export default function FacultyAdviseesPage() {
       statusMeta.label,
     ].join(' ').toLowerCase().includes(normalizedSearch);
 
-    const matchesProgram = programFilter === 'All Programs' || advisee.program === programFilter;
+    const matchesProgram = programFilter === 'All Courses' || advisee.program === programFilter;
     const matchesStatus = statusFilter === 'All Statuses' || statusMeta.label === statusFilter;
 
     return matchesSearch && matchesProgram && matchesStatus;
@@ -577,7 +579,7 @@ export default function FacultyAdviseesPage() {
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th>Program</th>
+                  <th>Course</th>
                   <th>Department</th>
                   <th>Year Level</th>
                   <th>Last Update</th>
@@ -768,14 +770,14 @@ export default function FacultyAdviseesPage() {
                       <input value={form.department} readOnly required />
                     </label>
                     <label className="form-field">
-                      Program
+                      Course
                       <select
                         value={form.program}
                         onChange={(event) => setForm({ ...form, program: event.target.value, section: '' })}
                         required
                       >
-                        <option value="">Select program</option>
-                        {programOptions.filter((option) => option !== 'All Programs').map((option) => <option key={option} value={option}>{option}</option>)}
+                        <option value="">Select course</option>
+                        {createProgramOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                       </select>
                     </label>
                     <label className="form-field">
@@ -786,14 +788,11 @@ export default function FacultyAdviseesPage() {
                     </label>
                     <label className="form-field">
                       Section
-                      <select
+                      <input
                         value={form.section ?? ''}
                         onChange={(event) => setForm({ ...form, section: event.target.value })}
-                        disabled={!form.program || !createSectionOptions.length}
-                      >
-                        <option value="">{form.program ? 'Select section' : 'Select program first'}</option>
-                        {createSectionOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                      </select>
+                        placeholder="Enter section"
+                      />
                     </label>
                   </div>
                 </section>
@@ -866,10 +865,10 @@ export default function FacultyAdviseesPage() {
                         </select>
                       </label>
                       <label className="form-field">
-                        Program
+                        Course
                         <select value={editForm.program} onChange={(event) => setEditForm({ ...editForm, program: event.target.value })} required>
-                          <option value="">Select program</option>
-                          {programOptions.filter((option) => option !== 'All Programs').map((option) => <option key={option} value={option}>{option}</option>)}
+                          <option value="">Select course</option>
+                          {editProgramOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                         </select>
                       </label>
                       <label className="form-field">
