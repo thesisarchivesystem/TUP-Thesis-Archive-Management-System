@@ -5,11 +5,26 @@ export interface SupportTicketPayload {
   email: string;
   category: string;
   message: string;
+  attachment?: File | null;
 }
 
 export const supportTicketService = {
   async createTicket(payload: SupportTicketPayload) {
-    const { data } = await api.post('/support-tickets', payload);
+    const formData = new FormData();
+    formData.append('full_name', payload.full_name);
+    formData.append('email', payload.email);
+    formData.append('category', payload.category);
+    formData.append('message', payload.message);
+
+    if (payload.attachment) {
+      formData.append('attachment', payload.attachment);
+    }
+
+    const { data } = await api.post('/support-tickets', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return data;
   },
 };

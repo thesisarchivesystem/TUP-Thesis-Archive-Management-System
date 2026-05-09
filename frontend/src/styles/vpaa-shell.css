@@ -6390,6 +6390,438 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   box-shadow: none;
 }
 
+.admin-ticket-page {
+  --ticket-ink: #17110f;
+  --ticket-muted: #805f59;
+  --ticket-line: rgba(117, 73, 64, 0.13);
+  --ticket-pink: #bd45b7;
+  --ticket-shadow: 0 28px 90px rgba(84, 58, 45, 0.11);
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-ticket-layout {
+  display: block;
+}
+
+.admin-ticket-panel {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 18px 20px;
+  border: 1px solid rgba(139, 35, 50, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 26px rgba(55, 27, 27, 0.05);
+  backdrop-filter: blur(18px);
+}
+
+.admin-ticket-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  margin-bottom: 0;
+}
+
+.admin-ticket-title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fdf0fb 0%, #f5e8f4 100%);
+  color: var(--ticket-pink);
+}
+
+.admin-ticket-panel-head h1 {
+  margin: 0;
+  color: var(--ticket-ink);
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.admin-ticket-panel-head h3 {
+  margin: 0;
+  color: var(--ticket-ink);
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+
+.admin-ticket-toolbar {
+  display: grid;
+  grid-template-columns: 100px minmax(260px, 1fr) 160px 160px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.admin-ticket-select,
+.admin-ticket-search {
+  position: relative;
+  min-height: 38px;
+  border: 1px solid var(--ticket-line);
+  border-radius: 12px;
+  background: #fffdfa;
+  box-shadow: none;
+}
+
+.admin-ticket-select {
+  display: flex;
+  align-items: center;
+}
+
+.admin-ticket-select select,
+.admin-ticket-search input {
+  width: 100%;
+  height: 100%;
+  min-height: 38px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ticket-ink);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.admin-ticket-select select {
+  padding: 0 38px 0 12px;
+  appearance: none;
+}
+
+.admin-ticket-select svg {
+  position: absolute;
+  right: 12px;
+  color: #866964;
+  pointer-events: none;
+}
+
+.admin-ticket-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.admin-ticket-search svg {
+  flex: 0 0 auto;
+  color: #876965;
+}
+
+.admin-ticket-search input::placeholder {
+  color: #6e87a0;
+  opacity: 0.95;
+}
+
+.admin-ticket-table-wrap {
+  overflow-x: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-ticket-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  color: var(--ticket-ink);
+  font-size: 0.82rem;
+  table-layout: fixed;
+}
+
+.admin-ticket-table thead th {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--ticket-line);
+  color: var(--ticket-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-ticket-table tbody tr {
+  cursor: default;
+  transition: background 160ms ease;
+}
+
+.admin-ticket-table tbody tr:hover,
+.admin-ticket-table tbody tr.active {
+  background: rgba(253, 247, 242, 0.68);
+}
+
+.admin-ticket-table tbody td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--ticket-line);
+  color: var(--ticket-ink);
+  font-weight: 400;
+  vertical-align: top;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.admin-ticket-table th:first-child,
+.admin-ticket-table td:first-child {
+  padding-left: 16px;
+}
+
+.admin-ticket-table th:nth-child(1),
+.admin-ticket-table td:nth-child(1) {
+  width: 19%;
+}
+
+.admin-ticket-table th:nth-child(2),
+.admin-ticket-table td:nth-child(2) {
+  width: 18%;
+}
+
+.admin-ticket-table th:nth-child(3),
+.admin-ticket-table td:nth-child(3) {
+  width: 23%;
+}
+
+.admin-ticket-table th:nth-child(4),
+.admin-ticket-table td:nth-child(4) {
+  width: 10%;
+}
+
+.admin-ticket-table th:nth-child(5),
+.admin-ticket-table td:nth-child(5) {
+  width: 10%;
+}
+
+.admin-ticket-table th:nth-child(6),
+.admin-ticket-table td:nth-child(6) {
+  width: 12%;
+}
+
+.admin-ticket-table th:nth-child(7),
+.admin-ticket-table td:nth-child(7) {
+  width: 8%;
+}
+
+.admin-ticket-table th:nth-child(5),
+.admin-ticket-table td:nth-child(5),
+.admin-ticket-table th:nth-child(6),
+.admin-ticket-table td:nth-child(6),
+.admin-ticket-table th:nth-child(7),
+.admin-ticket-table td:nth-child(7) {
+  text-align: center;
+}
+
+.admin-ticket-badge {
+  min-width: 74px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.admin-ticket-badge.priority-high {
+  background: linear-gradient(180deg, #ffe3e1 0%, #ffeceb 100%);
+  color: #ff1e1e;
+}
+
+.admin-ticket-badge.priority-medium {
+  background: linear-gradient(180deg, #ffeddf 0%, #fff4ea 100%);
+  color: #ff7900;
+}
+
+.admin-ticket-badge.priority-low {
+  background: linear-gradient(180deg, #e2f3e6 0%, #edf8ef 100%);
+  color: #007b25;
+}
+
+.admin-ticket-badge.status-open {
+  background: linear-gradient(180deg, #dcf3e2 0%, #e7f8ea 100%);
+  color: #007b25;
+}
+
+.admin-ticket-badge.status-in_progress {
+  min-width: 102px;
+  background: linear-gradient(180deg, #e8f1ff 0%, #edf4ff 100%);
+  color: #0054ff;
+}
+
+.admin-ticket-badge.status-resolved,
+.admin-ticket-badge.status-closed {
+  min-width: 88px;
+  background: linear-gradient(180deg, #dcf3e2 0%, #e7f8ea 100%);
+  color: #007b25;
+}
+
+.admin-ticket-badge.status-closed {
+  color: #5d6f61;
+}
+
+.admin-ticket-badge.status-waiting_for_user {
+  min-width: 132px;
+  background: linear-gradient(180deg, #f4e8fb 0%, #f8effd 100%);
+  color: #8324d9;
+}
+
+.admin-ticket-view-btn {
+  min-width: 62px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--ticket-line);
+  border-radius: 12px;
+  background: #fffdfa;
+  color: var(--ticket-ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.admin-ticket-view-btn:hover,
+.admin-ticket-view-btn:focus-visible {
+  border-color: rgba(189, 69, 183, 0.28);
+  box-shadow: 0 12px 24px rgba(189, 69, 183, 0.09);
+  transform: none;
+}
+
+.admin-ticket-empty {
+  height: 96px;
+  color: #725e5a;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.admin-ticket-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.admin-ticket-footer p {
+  margin: 0;
+  color: #6e5b58;
+  font-size: 0.8rem;
+}
+
+.admin-ticket-pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-ticket-page-btn,
+.admin-ticket-pagination-ellipsis {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ticket-ink);
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.admin-ticket-page-btn {
+  border: 1px solid rgba(139, 35, 50, 0.08);
+  background: #fffdfa;
+  cursor: pointer;
+}
+
+.admin-ticket-page-btn.active {
+  border-color: rgba(205, 46, 46, 0.18);
+  background: rgba(205, 46, 46, 0.12);
+  color: #c42121;
+  box-shadow: none;
+}
+
+.admin-ticket-page-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-ticket-pagination-ellipsis {
+  width: 26px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+@media (max-width: 1280px) {
+  .admin-ticket-toolbar {
+    grid-template-columns: 100px minmax(240px, 1fr) 160px 160px;
+  }
+}
+
+@media (max-width: 980px) {
+  .admin-ticket-page {
+    padding: 0;
+  }
+
+  .admin-ticket-panel {
+    padding: 18px 20px;
+  }
+
+  .admin-ticket-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-ticket-search {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .admin-ticket-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-ticket-pagination {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-ticket-panel {
+    gap: 16px;
+    min-height: auto;
+    padding: 18px 16px;
+  }
+
+  .admin-ticket-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-ticket-search {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .admin-ticket-select,
+  .admin-ticket-search,
+  .admin-ticket-select select,
+  .admin-ticket-search input {
+    min-height: 42px;
+  }
+
+  .admin-ticket-page-btn,
+  .admin-ticket-pagination-ellipsis {
+    width: 36px;
+    height: 36px;
+  }
+}
+
 .faculty-shared-files-toggle:hover,
 .faculty-shared-files-toggle:focus-visible {
   background: transparent;
@@ -7657,7 +8089,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 
 .vpaa-about-reference-summary {
   padding-top: 4px;
-  border-top: 3px solid color-mix(in srgb, var(--maroon) 86%, #d6a56d 14%);
+  border-top: 3px solid color-mix(in srgb, var(--maroon) 86%, rgba(var(--book-theme-accent-rgb), 0.5) 14%);
 }
 
 .vpaa-about-reference-label {
@@ -7714,33 +8146,33 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 }
 
 .vpaa-about-reference-tags span.student {
-  color: #bf5a12;
-  background: rgba(240, 142, 52, 0.16);
-  border-color: rgba(224, 121, 28, 0.24);
+  color: color-mix(in srgb, var(--maroon) 72%, var(--text-primary) 28%);
+  background: rgba(var(--book-theme-accent-rgb), 0.1);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.22);
 }
 
 .vpaa-about-reference-tags span.faculty {
-  color: #b23c7f;
-  background: rgba(234, 142, 189, 0.16);
-  border-color: rgba(210, 93, 154, 0.24);
+  color: color-mix(in srgb, var(--maroon) 82%, var(--text-primary) 18%);
+  background: rgba(var(--book-theme-accent-rgb), 0.08);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.18);
 }
 
 .vpaa-about-reference-tags span.library {
-  color: #6f45c7;
-  background: rgba(152, 121, 232, 0.16);
-  border-color: rgba(122, 88, 214, 0.24);
+  color: color-mix(in srgb, var(--maroon) 64%, var(--text-primary) 36%);
+  background: rgba(var(--book-theme-accent-rgb), 0.06);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.14);
 }
 
 .vpaa-about-reference-protect {
   padding: 18px 18px 20px;
-  background: linear-gradient(180deg, #8c2232 0%, #7e1d2d 55%, #701726 100%);
-  color: #fff7f5;
+  background: linear-gradient(180deg, var(--maroon) 0%, color-mix(in srgb, var(--maroon-dark) 88%, var(--maroon) 12%) 55%, var(--maroon-dark) 100%);
+  color: color-mix(in srgb, white 92%, var(--bg-card) 8%);
   display: grid;
   gap: 16px;
 }
 
 .vpaa-about-reference-protect .vpaa-about-reference-label {
-  color: rgba(255, 243, 240, 0.62);
+  color: color-mix(in srgb, white 60%, rgba(var(--book-theme-accent-rgb), 0.35) 40%);
 }
 
 .vpaa-about-reference-protect ul {
@@ -7755,7 +8187,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  color: rgba(255, 247, 245, 0.96);
+  color: color-mix(in srgb, white 94%, var(--bg-card) 6%);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -7769,15 +8201,15 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   justify-content: center;
   margin-top: 1px;
   flex-shrink: 0;
-  color: #f6dde2;
+  color: color-mix(in srgb, white 82%, rgba(var(--book-theme-accent-rgb), 0.32) 18%);
   background: rgba(255, 255, 255, 0.12);
 }
 
 .vpaa-about-reference-callout {
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, rgba(var(--book-theme-accent-rgb), 0.22) 44%, rgba(255, 255, 255, 0.08) 56%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .vpaa-about-reference-callout strong {
@@ -7790,7 +8222,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   margin: 6px 0 0;
   font-size: 12px;
   line-height: 1.55;
-  color: rgba(255, 247, 245, 0.85);
+  color: color-mix(in srgb, white 82%, rgba(var(--book-theme-accent-rgb), 0.18) 18%);
 }
 
 .vpaa-about-reference-workflow {
@@ -7842,7 +8274,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, #9e3041 0%, #7f1d2e 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--maroon) 90%, white 10%) 0%, var(--maroon-dark) 100%);
   color: #fff;
   font-size: 12px;
   font-weight: 800;
@@ -7905,21 +8337,21 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 }
 
 .vpaa-about-reference-user-badge.student {
-  color: #bf5a12;
-  background: rgba(240, 142, 52, 0.14);
-  border: 1px solid rgba(224, 121, 28, 0.2);
+  color: color-mix(in srgb, var(--maroon) 72%, var(--text-primary) 28%);
+  background: rgba(var(--book-theme-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.2);
 }
 
 .vpaa-about-reference-user-badge.faculty {
-  color: #b23c7f;
-  background: rgba(234, 142, 189, 0.14);
-  border: 1px solid rgba(210, 93, 154, 0.2);
+  color: color-mix(in srgb, var(--maroon) 82%, var(--text-primary) 18%);
+  background: rgba(var(--book-theme-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.16);
 }
 
 .vpaa-about-reference-user-badge.library {
-  color: #6f45c7;
-  background: rgba(152, 121, 232, 0.14);
-  border: 1px solid rgba(122, 88, 214, 0.2);
+  color: color-mix(in srgb, var(--maroon) 64%, var(--text-primary) 36%);
+  background: rgba(var(--book-theme-accent-rgb), 0.06);
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.14);
 }
 
 .vpaa-about-reference-user-item strong {
@@ -8138,6 +8570,112 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 
 .vpaa-support-reference-form small {
   text-align: center;
+}
+
+.vpaa-support-upload-input {
+  display: none;
+}
+
+.vpaa-support-upload-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1.5px dashed color-mix(in srgb, var(--input-border) 78%, var(--maroon) 22%);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-input) 92%, rgba(var(--book-theme-accent-rgb), 0.04) 8%), var(--bg-input));
+  box-shadow: inset 0 0 0 1px rgba(var(--book-theme-accent-rgb), 0.05);
+}
+
+.vpaa-support-upload-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, var(--maroon) 18%);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 94%, rgba(var(--book-theme-accent-rgb), 0.05) 6%), color-mix(in srgb, var(--bg-card) 88%, rgba(var(--book-theme-accent-rgb), 0.08) 12%));
+  color: color-mix(in srgb, var(--text-primary) 82%, var(--maroon) 18%);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.vpaa-support-upload-trigger:hover,
+.vpaa-support-upload-trigger:focus-visible {
+  border-color: rgba(var(--book-theme-accent-rgb), 0.28);
+  background:
+    linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.08), rgba(var(--book-theme-accent-rgb), 0.04));
+  box-shadow: 0 0 0 3px rgba(var(--book-theme-accent-rgb), 0.08);
+  color: var(--maroon);
+  outline: none;
+}
+
+.vpaa-support-upload-card small {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  text-align: left;
+}
+
+.vpaa-support-upload-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-card) 90%, rgba(var(--book-theme-accent-rgb), 0.06) 10%);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, var(--maroon) 12%);
+}
+
+.vpaa-support-upload-preview div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vpaa-support-upload-preview strong,
+.vpaa-support-upload-preview span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vpaa-support-upload-preview strong {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.vpaa-support-upload-preview span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.vpaa-support-upload-preview button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.12);
+  border-radius: 999px;
+  background: rgba(var(--book-theme-accent-rgb), 0.08);
+  color: var(--maroon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.vpaa-support-upload-preview button:hover,
+.vpaa-support-upload-preview button:focus-visible {
+  background: rgba(var(--book-theme-accent-rgb), 0.14);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.24);
+  color: color-mix(in srgb, var(--maroon) 82%, white 18%);
+  outline: none;
 }
 
 .vpaa-terms-reference-layout {
