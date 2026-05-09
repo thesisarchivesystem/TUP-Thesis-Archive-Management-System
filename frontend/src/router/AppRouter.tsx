@@ -86,33 +86,114 @@ function AuthSync() {
   const token = useAuthStore((state) => state.token);
   const rememberMe = useAuthStore((state) => state.rememberMe);
   const setAuth = useAuthStore((state) => state.setAuth);
+  const forcedLogoutNotice = useAuthStore((state) => state.forcedLogoutNotice);
+  const showForcedLogoutNotice = useAuthStore((state) => state.showForcedLogoutNotice);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || forcedLogoutNotice) return;
 
     let active = true;
+    let intervalId: number | null = null;
 
-    void authService.getCurrentUser()
-      .then((response) => {
-        if (!active || !response?.user) return;
-        setAuth(response.user, token, rememberMe);
-      })
-      .catch(() => {
-        // Let the API interceptor/logout flow handle invalid sessions.
-      });
+    const syncCurrentUser = () => {
+      void authService.getCurrentUser()
+        .then((response) => {
+          if (!active || !response?.user) return;
+
+          if (response.user.is_active === false) {
+            showForcedLogoutNotice();
+            return;
+          }
+
+          setAuth(response.user, token, rememberMe);
+        })
+        .catch((error: any) => {
+          if (!active) return;
+
+          if (error.response?.status === 403 && error.response?.data?.code === 'account_disabled') {
+            showForcedLogoutNotice(error.response?.data?.message);
+          }
+        });
+    };
+
+    syncCurrentUser();
+    intervalId = window.setInterval(syncCurrentUser, 15000);
 
     return () => {
       active = false;
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
     };
-  }, [rememberMe, setAuth, token]);
+  }, [forcedLogoutNotice, rememberMe, setAuth, showForcedLogoutNotice, token]);
 
   return null;
+}
+
+function ForcedLogoutDialog() {
+  const logout = useAuthStore((state) => state.logout);
+  const forcedLogoutNotice = useAuthStore((state) => state.forcedLogoutNotice);
+
+  useEffect(() => {
+    if (!forcedLogoutNotice) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      logout();
+      window.location.replace(forcedLogoutNotice.redirectPath);
+    }, 3200);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [forcedLogoutNotice, logout]);
+
+  if (!forcedLogoutNotice) {
+    return null;
+  }
+
+  const handleImmediateLogout = () => {
+    logout();
+    window.location.replace(forcedLogoutNotice.redirectPath);
+  };
+
+  return (
+    <div className="confirm-dialog-overlay" role="presentation">
+      <div
+        className="confirm-dialog-card confirm-dialog-card-forced"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="forced-logout-title"
+      >
+        <div className="confirm-dialog-body">
+          <h2 id="forced-logout-title" className="confirm-dialog-title">{forcedLogoutNotice.title}</h2>
+          <div className="confirm-dialog-message">
+            {forcedLogoutNotice.message.split('\n').map((line, index) => (
+              <p key={`${line}-${index}`}>{line || '\u00A0'}</p>
+            ))}
+            <p className="confirm-dialog-note">You will be signed out of this browser in a few seconds.</p>
+          </div>
+        </div>
+        <div className="confirm-dialog-actions confirm-dialog-actions-single">
+          <button
+            type="button"
+            className="confirm-dialog-button confirm-dialog-button-confirm"
+            onClick={handleImmediateLogout}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <AuthSync />
+      <ForcedLogoutDialog />
       <Routes>
         {/* Public */}
         <Route path="/" element={<Homepage />} />

@@ -1,11 +1,12 @@
 import { ChevronDown, Eye, EyeOff, GraduationCap, Plus, Search, User, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { adminService, type AdminManagedUser, type AdminStructureCollege } from '../../services/adminService';
 
 const FEEDBACK_DISMISS_DELAY = 4000;
 
 type AdminUserRole = 'faculty' | 'student';
-type AdminUserSort = 'name_asc' | 'name_desc' | 'college_asc';
+type AdminUserSort = 'name_asc' | 'name_desc';
 
 type AdminUserForm = {
   role: AdminUserRole;
@@ -63,6 +64,7 @@ const toInitials = (name: string) =>
     .toUpperCase();
 
 export default function AdminUsersPage() {
+  const { confirm } = useConfirmDialog();
   const [users, setUsers] = useState<AdminManagedUser[]>([]);
   const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [roleFilter, setRoleFilter] = useState<AdminUserRole | ''>('');
@@ -76,6 +78,7 @@ export default function AdminUsersPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null);
 
   const selectedCollege = useMemo(
     () => structure.find((college) => college.id === form.college_id),
@@ -85,11 +88,6 @@ export default function AdminUsersPage() {
     () => selectedCollege?.departments.find((department) => department.id === form.department_id),
     [form.department_id, selectedCollege],
   );
-  const selectedProgram = useMemo(
-    () => selectedDepartment?.programs.find((program) => program.id === form.program_id),
-    [form.program_id, selectedDepartment],
-  );
-
   const programCodeById = useMemo(() => {
     const entries = structure.flatMap((college) =>
       college.departments.flatMap((department) =>
@@ -108,8 +106,6 @@ export default function AdminUsersPage() {
       switch (sortBy) {
         case 'name_desc':
           return collator.compare(right.name, left.name);
-        case 'college_asc':
-          return collator.compare(left.college || 'Unassigned', right.college || 'Unassigned');
         case 'name_asc':
         default:
           return collator.compare(left.name, right.name);
@@ -168,18 +164,11 @@ export default function AdminUsersPage() {
       ...form,
       year_level: form.year_level ? Number(form.year_level) : null,
     };
-    const statusChanged = editingId
-      ? users.find((user) => user.id === editingId)?.is_active !== payload.is_active
-      : false;
 
     try {
       if (editingId) {
         await adminService.updateUser(editingId, payload);
-        setSuccessMessage(
-          statusChanged
-            ? `User status updated to ${payload.is_active ? 'enabled' : 'disabled'} and changes were saved successfully.`
-            : 'User changes were saved successfully.',
-        );
+        setSuccessMessage('User changes were saved successfully.');
       } else {
         await adminService.createUser(payload);
         setSuccessMessage('User account created successfully.');
@@ -238,6 +227,42 @@ export default function AdminUsersPage() {
     setFormOpen(true);
   };
 
+  const toggleUserStatus = async (user: AdminManagedUser) => {
+    const nextIsActive = !user.is_active;
+
+    if (!nextIsActive) {
+      const confirmed = await confirm({
+        title: 'Disable Account',
+        message: `Are you sure you want to disable ${user.name}'s account?\n\nIf the user is currently logged in, they will be signed out of the browser shortly after this change.`,
+        confirmLabel: 'OK',
+        cancelLabel: 'Cancel',
+        tone: 'danger',
+      });
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+    setTogglingUserId(user.id);
+
+    try {
+      const updatedUser = await adminService.updateUserStatus(user.id, nextIsActive);
+      setUsers((current) => current.map((entry) => (entry.id === user.id ? updatedUser : entry)));
+      setSuccessMessage(`User ${updatedUser.is_active ? 'enabled' : 'disabled'} successfully.`);
+
+      if (editingId === user.id) {
+        setForm((current) => ({ ...current, is_active: updatedUser.is_active }));
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update user status.');
+    } finally {
+      setTogglingUserId(null);
+    }
+  };
+
   const isStudent = form.role === 'student';
   const modalVerb = editingId ? 'Edit' : 'Create';
   const modalRoleLabel = isStudent ? 'Student' : 'Faculty';
@@ -293,7 +318,6 @@ export default function AdminUsersPage() {
             <select value={sortBy} onChange={(event) => setSortBy(event.target.value as AdminUserSort)}>
               <option value="name_asc">Name A-Z</option>
               <option value="name_desc">Name Z-A</option>
-              <option value="college_asc">College A-Z</option>
             </select>
             <ChevronDown size={16} />
           </label>
@@ -317,7 +341,7 @@ export default function AdminUsersPage() {
                 <th>College</th>
                 <th>Department</th>
                 <th>Course</th>
-                <th>Status</th>
+                <th>Enabled</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -337,10 +361,16 @@ export default function AdminUsersPage() {
                   <td>{user.college || 'Unassigned'}</td>
                   <td className="admin-user-assignment">{user.department || 'Unassigned'}</td>
                   <td>{programCodeById.get(user.course_id ?? user.program_id ?? '') || user.course || user.program || 'Unassigned'}</td>
-                  <td>
-                    <span className={`admin-status-badge ${user.is_active ? 'approved' : 'rejected'}`}>
-                      {user.is_active ? 'Active' : 'Inactive'}
-                    </span>
+                  <td className="admin-user-enabled-cell">
+                    <button
+                      type="button"
+                      className={`admin-status-switch ${user.is_active ? 'active' : ''}`}
+                      onClick={() => void toggleUserStatus(user)}
+                      aria-label={`Toggle ${user.name} account status`}
+                      disabled={togglingUserId === user.id}
+                    >
+                      <span />
+                    </button>
                   </td>
                   <td>
                     <div className="admin-row-actions">
@@ -614,7 +644,7 @@ export default function AdminUsersPage() {
                         <span>Course <em>*</em></span>
                         <select
                           value={form.program_id}
-                          onChange={(event) => setForm((current) => ({ ...current, program_id: event.target.value, section_id: '' }))}
+                          onChange={(event) => setForm((current) => ({ ...current, program_id: event.target.value, section_id: '', section: '' }))}
                         >
                           <option value="">Select course</option>
                           {(selectedDepartment?.programs ?? []).map((program) => (
@@ -627,34 +657,18 @@ export default function AdminUsersPage() {
 
                       <label className="admin-field admin-modal-field">
                         <span>Section <em>*</em></span>
-                        <select value={form.section_id} onChange={(event) => setForm((current) => ({ ...current, section_id: event.target.value }))}>
-                          <option value="">Select section</option>
-                          {(selectedProgram?.sections ?? []).map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
-                        </select>
+                        <input
+                          type="text"
+                          value={form.section}
+                          onChange={(event) => setForm((current) => ({ ...current, section_id: '', section: event.target.value }))}
+                          placeholder="Enter section"
+                        />
                       </label>
                     </>
                   ) : null}
                 </div>
               </section>
 
-              <section className="admin-user-form-section">
-                <div className="admin-user-section-head">
-                  <span>Account Status</span>
-                </div>
-                <div className="admin-user-status-row">
-                  <span className={form.is_active ? 'muted' : ''}>Disabled</span>
-                  <button
-                    type="button"
-                    className={`admin-status-switch ${form.is_active ? 'active' : ''}`}
-                    onClick={() => setForm((current) => ({ ...current, is_active: !current.is_active }))}
-                    aria-label="Toggle account status"
-                  >
-                    <span />
-                  </button>
-                  <span className={form.is_active ? '' : 'muted'}>Enabled</span>
-                </div>
-                <p className="admin-user-status-note">Disabled users cannot log in or access the system.</p>
-              </section>
             </div>
 
             <div className="admin-actions">

@@ -25,7 +25,7 @@ const MAX_GET_CACHE_ENTRIES = 80;
 const getResponseCache = new Map<string, CachedResponse>();
 const pendingGetRequests = new Map<string, Promise<AxiosResponse>>();
 
-const uncachedGetPrefixes = ['/ably/token', '/messages', '/notifications'];
+const uncachedGetPrefixes = ['/auth/me', '/ably/token', '/messages', '/notifications'];
 const uncachedGetSuffixes = ['/manuscript'];
 
 const clearGetResponseCache = () => {
@@ -141,7 +141,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
+    if (error.response?.status === 403 && error.response?.data?.code === 'account_disabled') {
+      clearGetResponseCache();
+      useAuthStore.getState().showForcedLogoutNotice(error.response?.data?.message);
+    }
+
     if (error.response?.status === 401) {
+      if (useAuthStore.getState().forcedLogoutNotice) {
+        return Promise.reject(error);
+      }
+
       clearGetResponseCache();
       useAuthStore.getState().logout();
       window.location.href = '/';
