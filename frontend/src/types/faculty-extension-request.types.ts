@@ -11,6 +11,8 @@ export interface FacultyExtensionRequest {
     id: string;
     title: string;
     status: string;
+    abstract?: string | null;
+    authors?: string[] | null;
     revision_due_at?: string | null;
   };
   student?: {

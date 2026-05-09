@@ -367,14 +367,6 @@ class ThesisController extends Controller
                         'status' => $request->status,
                     ],
                 );
-
-                $this->notifications->notify(
-                    $student,
-                    'thesis.archived',
-                    'Thesis is now archived',
-                    $thesis->title,
-                    ['thesis_id' => $thesis->id],
-                );
             }
         }
 
@@ -406,10 +398,6 @@ class ThesisController extends Controller
         // ── Log activity ─────────────────────────────────────────
         }
         $this->logger->log($request->user(), $eventName, 'thesis', $thesis->id);
-
-        if ($request->status === 'approved') {
-            $this->logger->log($request->user(), 'thesis.archived', 'thesis', $thesis->id);
-        }
 
         return response()->json(['data' => $this->transformThesisWithArchiveMetadata($thesis)]);
     }
@@ -473,6 +461,17 @@ class ThesisController extends Controller
         $this->logger->log($request->user(), 'thesis.archived', 'thesis', $thesis->id, [
             'title' => $thesis->title,
         ]);
+
+        $student = $thesis->submitter()->first();
+        if ($student) {
+            $this->notifications->notify(
+                $student,
+                'thesis.archived',
+                'Thesis is now archived',
+                $thesis->title,
+                ['thesis_id' => $thesis->id],
+            );
+        }
 
         $this->notifications->notify(
             $request->user(),

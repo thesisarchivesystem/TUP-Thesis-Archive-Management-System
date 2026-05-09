@@ -9,6 +9,8 @@ const notificationTypesByRole: Record<UserRole, NotificationType[]> = {
     'thesis.certificate_ready',
     'thesis.rejected',
     'thesis.archived',
+    'extension.approved',
+    'extension.rejected',
   ],
   faculty: [
     'new_message',

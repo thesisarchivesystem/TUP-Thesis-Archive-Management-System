@@ -64,6 +64,7 @@ type UploadFieldErrors = Partial<Record<
 
 const MAX_CATEGORY_SELECTIONS = 5;
 const FIXED_SCHOOL_YEAR_OPTIONS = ['2022', '2023', '2024', '2025', '2026'];
+const FEEDBACK_DISMISS_DELAY = 3000;
 
 const getNameInitials = (name?: string | null) =>
   (name ?? '')
@@ -129,6 +130,7 @@ export default function FacultyAddThesisPage() {
   const [submitting, setSubmitting] = useState<'draft' | 'submit' | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pendingSubmitRedirect, setPendingSubmitRedirect] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<UploadFieldErrors>({});
   const [manuscriptFile, setManuscriptFile] = useState<File | null>(null);
   const [supplementaryFiles, setSupplementaryFiles] = useState<File[]>([]);
@@ -301,13 +303,58 @@ export default function FacultyAddThesisPage() {
   useEffect(() => {
     if (!success && !error) return;
 
-    if (feedbackRef.current) {
-      feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      return;
+    const frameId = window.requestAnimationFrame(() => {
+      const feedbackElement = feedbackRef.current;
+      const scrollContainer = feedbackElement?.closest('.vpaa-content-workspace, .vpaa-content, .vpaa-main');
+
+      if (scrollContainer instanceof HTMLElement) {
+        scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        feedbackElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      if (feedbackElement) {
+        feedbackElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [success, error]);
+
+  useEffect(() => {
+    if (!success || !success.toLowerCase().includes('draft')) {
+      return undefined;
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [success, error]);
+    const timeout = window.setTimeout(() => {
+      setSuccess('');
+    }, FEEDBACK_DISMISS_DELAY);
+
+    return () => window.clearTimeout(timeout);
+  }, [success]);
+
+  useEffect(() => {
+    if (!pendingSubmitRedirect) {
+      return undefined;
+    }
+
+    const hideTimeout = window.setTimeout(() => {
+      setSuccess('');
+    }, FEEDBACK_DISMISS_DELAY);
+
+    const redirectTimeout = window.setTimeout(() => {
+      setPendingSubmitRedirect(false);
+      navigate('/faculty/my-submissions', { replace: true });
+    }, FEEDBACK_DISMISS_DELAY + 180);
+
+    return () => {
+      window.clearTimeout(hideTimeout);
+      window.clearTimeout(redirectTimeout);
+    };
+  }, [navigate, pendingSubmitRedirect]);
 
   const resetForm = () => {
     setForm({
@@ -413,18 +460,11 @@ export default function FacultyAddThesisPage() {
 
       const successMessage = mode === 'submit' ? 'Thesis submitted and stored in the database.' : 'Thesis draft stored in the database.';
       setSuccess(successMessage);
+      setPendingSubmitRedirect(mode === 'submit');
       setDraftId(null);
       resetForm();
-
-      if (mode === 'submit') {
-        window.setTimeout(() => {
-          navigate('/faculty/my-submissions', {
-            replace: true,
-            state: { successMessage },
-          });
-        }, 900);
-      }
     } catch (err) {
+      setPendingSubmitRedirect(false);
       setError(extractApiErrorMessage(err, 'Unable to save the thesis entry.'));
     } finally {
       setSubmitting(null);

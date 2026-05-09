@@ -32,11 +32,18 @@ export function getNotificationNavigationTarget(
   if (
     role === 'student'
     && thesisId
-    && ['thesis.uploaded', 'thesis.approved', 'thesis.certificate_ready', 'thesis.rejected', 'thesis.archived', 'extension.approved', 'extension.rejected']
+    && ['thesis.uploaded', 'thesis.approved', 'thesis.certificate_ready', 'thesis.rejected', 'thesis.archived']
       .includes(notification.type)
   ) {
     return {
       path: `/student/my-submissions/${encodeURIComponent(thesisId)}`,
+    };
+  }
+
+  if (role === 'student' && thesisId && ['extension.approved', 'extension.rejected'].includes(notification.type)) {
+    return {
+      path: `/student/extension-request?thesis=${encodeURIComponent(thesisId)}`,
+      state: extensionRequestId ? { extensionRequestId } : undefined,
     };
   }
 

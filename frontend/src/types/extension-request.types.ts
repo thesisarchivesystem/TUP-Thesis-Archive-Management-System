@@ -8,7 +8,7 @@ export interface ExtensionRequest {
   faculty_id: string;
   requested_deadline: string;
   reason: string;
-  status: string;
+  status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   thesis?: Thesis;
   student?: User;

@@ -21,7 +21,7 @@ class ExtensionRequestController extends Controller
         $validated = $request->validate([
             'thesis_id' => 'required|uuid|exists:theses,id',
             'requested_deadline' => 'required|date|after:today',
-            'reason' => 'required|string|min:10|max:5000',
+            'reason' => 'required|string|max:5000',
         ]);
 
         $user = $request->user();
@@ -33,6 +33,17 @@ class ExtensionRequestController extends Controller
 
         if (!$thesis->adviser_id) {
             return response()->json(['error' => 'This thesis has no assigned faculty adviser yet.'], 422);
+        }
+
+        $existingPendingRequest = ExtensionRequest::query()
+            ->where('thesis_id', $thesis->id)
+            ->where('student_id', $user->id)
+            ->where('status', 'pending')
+            ->latest('created_at')
+            ->first();
+
+        if ($existingPendingRequest) {
+            return response()->json(['error' => 'You already have a pending extension request for this thesis.'], 422);
         }
 
         $extensionRequest = ExtensionRequest::create([
@@ -69,12 +80,35 @@ class ExtensionRequestController extends Controller
         ], 201);
     }
 
+    public function showForStudentByThesis(Request $request, string $thesisId): JsonResponse
+    {
+        $thesis = Thesis::query()
+            ->where('id', $thesisId)
+            ->where('submitted_by', $request->user()->id)
+            ->firstOrFail();
+
+        $extensionRequest = ExtensionRequest::query()
+            ->where('student_id', $request->user()->id)
+            ->where('thesis_id', $thesis->id)
+            ->with([
+                'thesis:id,title,status,submitted_by,adviser_id,abstract,authors,revision_due_at',
+                'student:id,name,email',
+                'faculty:id,name,email',
+            ])
+            ->latest('created_at')
+            ->first();
+
+        return response()->json([
+            'data' => $extensionRequest,
+        ]);
+    }
+
     public function indexForFaculty(Request $request): JsonResponse
     {
         $requests = ExtensionRequest::query()
             ->where('faculty_id', $request->user()->id)
             ->with([
-                'thesis:id,title,status,submitted_by,adviser_id',
+                'thesis:id,title,status,submitted_by,adviser_id,abstract,authors,revision_due_at',
                 'student:id,name,email',
                 'faculty:id,name,email',
             ])
@@ -89,7 +123,7 @@ class ExtensionRequestController extends Controller
         $extensionRequest = ExtensionRequest::query()
             ->where('faculty_id', $request->user()->id)
             ->with([
-                'thesis:id,title,status,submitted_by,adviser_id,revision_due_at',
+                'thesis:id,title,status,submitted_by,adviser_id,abstract,authors,revision_due_at',
                 'student:id,name,email',
                 'faculty:id,name,email',
             ])
@@ -109,7 +143,7 @@ class ExtensionRequestController extends Controller
         $extensionRequest = ExtensionRequest::query()
             ->where('faculty_id', $request->user()->id)
             ->with([
-                'thesis:id,title,status,submitted_by,adviser_id,revision_due_at',
+                'thesis:id,title,status,submitted_by,adviser_id,abstract,authors,revision_due_at',
                 'student:id,name,email',
                 'faculty:id,name,email',
             ])
@@ -154,7 +188,7 @@ class ExtensionRequestController extends Controller
         }
 
         $extensionRequest->refresh()->load([
-            'thesis:id,title,status,submitted_by,adviser_id,revision_due_at',
+            'thesis:id,title,status,submitted_by,adviser_id,abstract,authors,revision_due_at',
             'student:id,name,email',
             'faculty:id,name,email',
         ]);

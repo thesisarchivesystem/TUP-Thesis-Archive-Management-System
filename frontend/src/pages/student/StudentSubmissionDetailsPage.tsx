@@ -22,6 +22,7 @@ import { thesisService } from '../../services/thesisService';
 import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
 import type { Thesis } from '../../types/thesis.types';
 import { createFavoriteThesis } from '../../utils/favoriteThesis';
+import { buildApa7ThesisCitation } from '../../utils/thesisCitation';
 import { createWatermarkedThesisPdfBlob, getWatermarkedPdfFileName } from '../../utils/watermarkedPdf';
 
 const formatDateTime = (value?: string) => {
@@ -121,15 +122,6 @@ const buildProgressSteps = (submission?: Thesis | null) => {
   ] as const;
 };
 
-const buildCitation = (submission: Thesis, authorLabel: string) => {
-  const year = submission.school_year || submission.approved_at?.slice(0, 4) || submission.created_at?.slice(0, 4) || 'n.d.';
-  const categoryNames = submission.categories?.length
-    ? submission.categories.map((category) => category.name).join(', ')
-    : submission.category?.name || '';
-  const categorySuffix = categoryNames ? ` ${categoryNames}.` : '';
-  return `${authorLabel} (${year}). ${submission.title}.${categorySuffix} ${submission.department}.`;
-};
-
 type LocationState = {
   submission?: Thesis;
   focus?: 'feedback';
@@ -198,6 +190,18 @@ export default function StudentSubmissionDetailsPage() {
 
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [isLoading, locationState?.focus, submission]);
+
+  useEffect(() => {
+    if (!success) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setSuccess('');
+    }, 5000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [success]);
 
   const authorLabel = useMemo(() => {
     if (!submission) return 'Student';
@@ -297,11 +301,11 @@ export default function StudentSubmissionDetailsPage() {
   const handleCopyCitation = async () => {
     if (!submission) return;
 
-    const citation = buildCitation(submission, authorLabel);
+    const citation = buildApa7ThesisCitation(submission, window.location.href);
 
     try {
       await navigator.clipboard.writeText(citation);
-      setSuccess('Citation copied to clipboard.');
+      setSuccess('APA 7 citation copied to clipboard.');
       setError('');
     } catch {
       setError('Unable to copy the citation right now.');

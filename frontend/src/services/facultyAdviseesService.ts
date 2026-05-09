@@ -18,6 +18,7 @@ export interface FacultyAdviseeRecord {
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
+  college?: string | null;
   program: string;
   department: string;
   year_level?: number | null;

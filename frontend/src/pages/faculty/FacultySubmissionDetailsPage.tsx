@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CalendarDays, FileBadge2, FileText, FolderOpen, GraduationCap, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileBadge2, FileText, FolderOpen, GraduationCap, MessageSquareText, UserRound } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { thesisService } from '../../services/thesisService';
@@ -50,6 +50,7 @@ export default function FacultySubmissionDetailsPage() {
   const [reviewComment, setReviewComment] = useState('');
   const [revisionDueAt, setRevisionDueAt] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [submittingReviewAction, setSubmittingReviewAction] = useState<'approved' | 'rejected' | null>(null);
   const [reviewCommentError, setReviewCommentError] = useState('');
   const [revisionDueAtError, setRevisionDueAtError] = useState('');
   const reviewCommentRef = useRef<HTMLTextAreaElement | null>(null);
@@ -170,6 +171,7 @@ export default function FacultySubmissionDetailsPage() {
     setRevisionDueAtError('');
 
     setIsSubmittingReview(true);
+    setSubmittingReviewAction(status);
     setError('');
     setSuccess('');
 
@@ -203,6 +205,7 @@ export default function FacultySubmissionDetailsPage() {
       setError(err instanceof Error ? err.message : 'Unable to submit the review right now.');
     } finally {
       setIsSubmittingReview(false);
+      setSubmittingReviewAction(null);
     }
   };
 
@@ -210,14 +213,21 @@ export default function FacultySubmissionDetailsPage() {
     <FacultyLayout
       title="Submission Details"
       description="Review the thesis record, submission context, and manuscript from one page."
+      hidePageIntro
     >
+      <div className="faculty-submission-details-topbar">
+        <Link to="/faculty/manage-thesis/review" className="faculty-submission-back-link">
+          <ArrowLeft size={16} />
+          <span>Back to Review Queue</span>
+        </Link>
+      </div>
+
+      <div className="vpaa-page-intro faculty-submission-details-page-intro">
+        <h1>Submission Details</h1>
+        <p>Review the thesis record, submission context, and manuscript from one page.</p>
+      </div>
+
       <div className="faculty-submission-details-shell">
-        <div className="faculty-submission-details-topbar">
-          <Link to="/faculty/manage-thesis/review" className="faculty-submission-back-link">
-            <ArrowLeft size={16} />
-            <span>Back to Review Queue</span>
-          </Link>
-        </div>
 
         {error ? <div className="vpaa-banner-error">{error}</div> : null}
         {success ? <div className="vpaa-banner-success">{success}</div> : null}
@@ -231,11 +241,7 @@ export default function FacultySubmissionDetailsPage() {
             <section className="vpaa-card faculty-submission-hero-card">
               <div className="faculty-submission-hero-header">
                 <div className="faculty-submission-title-block">
-                  <span className="faculty-submission-eyebrow">Faculty Review Record</span>
                   <h2>{submission.title}</h2>
-                  <p className="faculty-submission-hero-copy">
-                    A complete submission snapshot for thesis screening, context review, and manuscript access.
-                  </p>
                 </div>
                 <span className={`faculty-submission-status-pill status-${submission.status}`}>
                   {getStatusLabel(submission.status)}
@@ -249,23 +255,19 @@ export default function FacultySubmissionDetailsPage() {
                 <span><UserRound size={14} /> {authorLabel}</span>
               </div>
 
-              <div className="faculty-submission-metrics">
-                <article>
-                  <span>School Year</span>
-                  <strong>{submission.school_year || 'Not available'}</strong>
-                </article>
-                <article>
-                  <span>Category</span>
-                  <strong>{submission.category?.name || 'Not assigned'}</strong>
-                </article>
-                <article>
-                  <span>Adviser</span>
-                  <strong>{submission.adviser?.name || 'Not assigned yet'}</strong>
-                </article>
+              <div className="faculty-submission-meta-chips faculty-submission-meta-chips-secondary">
+                <span><CalendarDays size={14} /> {submission.school_year || 'School year not available'}</span>
+                <span><FileText size={14} /> {submission.category?.name || 'Category not assigned'}</span>
               </div>
 
               <div className="faculty-submission-section">
-                <h3>Abstract</h3>
+                <span className="faculty-submission-section-line" aria-hidden="true" />
+                <div className="faculty-submission-section-heading">
+                  <span className="faculty-submission-section-icon">
+                    <FileText size={16} />
+                  </span>
+                  <h3>Abstract</h3>
+                </div>
                 <p>{submission.abstract || 'No abstract provided for this submission.'}</p>
               </div>
 
@@ -304,77 +306,85 @@ export default function FacultySubmissionDetailsPage() {
                   <FileText size={16} />
                   <span>{openingManuscript ? 'Opening...' : 'View Manuscript'}</span>
                 </button>
+              </section>
 
-                <div className="faculty-submission-review-panel">
-                  <div className="faculty-submission-review-head">
-                    <div>
-                      <span className="faculty-submission-eyebrow">Faculty Decision</span>
-                      <h3>Review or Comment</h3>
+              <section className="vpaa-card faculty-submission-review-panel">
+                <div className="faculty-submission-review-head">
+                  <h3>Faculty Decision</h3>
+                  <span className="faculty-submission-review-icon">
+                    <MessageSquareText size={18} />
+                  </span>
+                </div>
+
+                <div className="faculty-submission-review-field">
+                  <label className="faculty-submission-review-label" htmlFor="faculty-review-comment">
+                    <MessageSquareText size={14} />
+                    <span>Review or Comment</span>
+                  </label>
+                  <textarea
+                    id="faculty-review-comment"
+                    ref={reviewCommentRef}
+                    className="faculty-submission-review-textarea"
+                    aria-invalid={reviewCommentError ? 'true' : 'false'}
+                    value={reviewComment}
+                    onChange={(event) => {
+                      setReviewComment(event.target.value);
+                      if (event.target.value.trim()) {
+                        setReviewCommentError('');
+                      }
+                    }}
+                    placeholder="Add faculty comments, revision notes, or approval remarks here..."
+                    rows={5}
+                  />
+                  {reviewCommentError ? (
+                    <div className="faculty-submission-review-warning" role="alert">
+                      <span className="faculty-submission-review-warning-icon">!</span>
+                      <span>{reviewCommentError}</span>
                     </div>
-                  </div>
-                  <div className="faculty-submission-review-field">
-                    <textarea
-                      ref={reviewCommentRef}
-                      className="faculty-submission-review-textarea"
-                      aria-invalid={reviewCommentError ? 'true' : 'false'}
-                      value={reviewComment}
+                  ) : null}
+                </div>
+
+                <div className="faculty-submission-review-field">
+                  <label className={`student-upload-field${revisionDueAtError ? ' has-error' : ''}`}>
+                    <span><CalendarDays size={14} /> Revision Due Date</span>
+                    <input
+                      ref={revisionDueAtRef}
+                      type="date"
+                      aria-invalid={revisionDueAtError ? 'true' : 'false'}
+                      value={revisionDueAt}
                       onChange={(event) => {
-                        setReviewComment(event.target.value);
-                        if (event.target.value.trim()) {
-                          setReviewCommentError('');
+                        setRevisionDueAt(event.target.value);
+                        if (event.target.value) {
+                          setRevisionDueAtError('');
                         }
                       }}
-                      placeholder="Add faculty comments, revision notes, or approval remarks here..."
-                      rows={5}
                     />
-                    {reviewCommentError ? (
-                      <div className="faculty-submission-review-warning" role="alert">
-                        <span className="faculty-submission-review-warning-icon">!</span>
-                        <span>{reviewCommentError}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="faculty-submission-review-field">
-                    <label className={`student-upload-field${revisionDueAtError ? ' has-error' : ''}`}>
-                      <span><CalendarDays size={14} /> Revision Due Date</span>
-                      <input
-                        ref={revisionDueAtRef}
-                        type="date"
-                        aria-invalid={revisionDueAtError ? 'true' : 'false'}
-                        value={revisionDueAt}
-                        onChange={(event) => {
-                          setRevisionDueAt(event.target.value);
-                          if (event.target.value) {
-                            setRevisionDueAtError('');
-                          }
-                        }}
-                      />
-                    </label>
-                    {revisionDueAtError ? (
-                      <div className="faculty-submission-review-warning" role="alert">
-                        <span className="faculty-submission-review-warning-icon">!</span>
-                        <span>{revisionDueAtError}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="faculty-submission-review-actions">
-                    <button
-                      type="button"
-                      className="faculty-submission-review-button reject"
-                      onClick={() => void handleReviewAction('rejected')}
-                      disabled={isSubmittingReview}
-                    >
-                      {isSubmittingReview ? 'Saving...' : 'Reject'}
-                    </button>
-                    <button
-                      type="button"
-                      className="faculty-submission-review-button approve"
-                      onClick={() => void handleReviewAction('approved')}
-                      disabled={isSubmittingReview}
-                    >
-                      {isSubmittingReview ? 'Saving...' : 'Approve'}
-                    </button>
-                  </div>
+                  </label>
+                  {revisionDueAtError ? (
+                    <div className="faculty-submission-review-warning" role="alert">
+                      <span className="faculty-submission-review-warning-icon">!</span>
+                      <span>{revisionDueAtError}</span>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="faculty-submission-review-actions">
+                  <button
+                    type="button"
+                    className="faculty-submission-review-button reject"
+                    onClick={() => void handleReviewAction('rejected')}
+                    disabled={isSubmittingReview}
+                  >
+                    {submittingReviewAction === 'rejected' ? 'Saving...' : 'Reject'}
+                  </button>
+                  <button
+                    type="button"
+                    className="faculty-submission-review-button approve"
+                    onClick={() => void handleReviewAction('approved')}
+                    disabled={isSubmittingReview}
+                  >
+                    {submittingReviewAction === 'approved' ? 'Saving...' : 'Approve'}
+                  </button>
                 </div>
               </section>
             </aside>

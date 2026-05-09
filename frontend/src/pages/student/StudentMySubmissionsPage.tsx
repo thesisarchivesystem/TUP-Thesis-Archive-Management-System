@@ -130,7 +130,7 @@ export default function StudentMySubmissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [certificateBusyId, setCertificateBusyId] = useState<string | null>(null);
+  const [certificateBusyState, setCertificateBusyState] = useState<{ id: string; action: 'view' | 'download' } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleViewDetails = (item: Thesis) => {
@@ -230,7 +230,7 @@ export default function StudentMySubmissionsPage() {
     previewWindow.document.body.innerHTML = '<p style="font-family: Arial, sans-serif; padding: 24px;">Opening certificate...</p>';
 
     setError(null);
-    setCertificateBusyId(item.id);
+    setCertificateBusyState({ id: item.id, action: 'view' });
 
     try {
       const certificateBlob = await createThesisCertificatePdfBlob(item);
@@ -244,7 +244,7 @@ export default function StudentMySubmissionsPage() {
       }</p>`;
       setError(err instanceof Error ? err.message : 'Unable to open the certificate right now.');
     } finally {
-      setCertificateBusyId(null);
+      setCertificateBusyState(null);
     }
   };
 
@@ -255,7 +255,7 @@ export default function StudentMySubmissionsPage() {
     }
 
     setError(null);
-    setCertificateBusyId(item.id);
+    setCertificateBusyState({ id: item.id, action: 'download' });
 
     try {
       const certificateBlob = await createThesisCertificatePdfBlob(item);
@@ -271,7 +271,7 @@ export default function StudentMySubmissionsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to download the certificate right now.');
     } finally {
-      setCertificateBusyId(null);
+      setCertificateBusyState(null);
     }
   };
 
@@ -480,19 +480,19 @@ export default function StudentMySubmissionsPage() {
                   type="button"
                   className="student-submissions-secondary"
                   onClick={() => void handleViewCertificate(item)}
-                  disabled={certificateBusyId === item.id}
+                  disabled={certificateBusyState?.id === item.id}
                 >
                   <span className="student-submissions-action-icon"><FileText size={15} /></span>
-                  {certificateBusyId === item.id ? 'Preparing...' : 'View Certificate'}
+                  {certificateBusyState?.id === item.id && certificateBusyState.action === 'view' ? 'Preparing...' : 'View Certificate'}
                 </button>
                 <button
                   type="button"
                   className="student-submissions-secondary"
                   onClick={() => void handleDownloadCertificate(item)}
-                  disabled={certificateBusyId === item.id}
+                  disabled={certificateBusyState?.id === item.id}
                 >
                   <span className="student-submissions-action-icon"><FileCheck2 size={15} /></span>
-                  {certificateBusyId === item.id ? 'Preparing...' : 'Download Certificate'}
+                  {certificateBusyState?.id === item.id && certificateBusyState.action === 'download' ? 'Preparing...' : 'Download Certificate'}
                 </button>
                 <button
                   type="button"

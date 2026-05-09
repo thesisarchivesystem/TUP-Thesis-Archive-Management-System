@@ -14,6 +14,11 @@ export const extensionRequestService = {
     return data;
   },
 
+  async getForStudentByThesis(thesisId: string) {
+    const { data } = await api.get<{ data?: ExtensionRequest | null }>(`/student/extension-requests/thesis/${thesisId}`);
+    return data.data ?? null;
+  },
+
   async listForFaculty() {
     const { data } = await api.get<{ data?: FacultyExtensionRequest[] }>('/faculty/extension-requests');
     return data;
