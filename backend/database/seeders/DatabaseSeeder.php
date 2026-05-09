@@ -11,7 +11,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CategorySeeder::class,
             DailyQuoteSeeder::class,
-            VpaaSeeder::class,
         ]);
     }
 }

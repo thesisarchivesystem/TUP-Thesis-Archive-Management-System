@@ -51,7 +51,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
-            'user'  => $user->loadMissing(['student', 'faculty', 'vpaaProfile']),
+            'user'  => $user->loadMissing(['student', 'faculty']),
             'token' => $token,
         ]);
     }
@@ -91,7 +91,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['user' => $request->user()->loadMissing(['student', 'faculty', 'vpaaProfile'])]);
+        return response()->json(['user' => $request->user()->loadMissing(['student', 'faculty'])]);
     }
 
     public function forgotPassword(Request $request): JsonResponse

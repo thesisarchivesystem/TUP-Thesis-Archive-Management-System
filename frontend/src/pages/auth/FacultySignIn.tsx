@@ -45,7 +45,6 @@ export default function FacultySignIn() {
       identifierPlaceholder="e.g. faculty@tup.edu.ph"
       roleSwitchLinks={[
         { label: 'Student', to: '/sign-in/student' },
-        { label: 'VPAA', to: '/sign-in/vpaa' },
       ]}
       accent={{
         successBgLight: 'rgba(214,106,154,0.12)',

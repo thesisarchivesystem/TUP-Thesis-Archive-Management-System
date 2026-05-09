@@ -36,7 +36,7 @@ type DisplayCategory = {
 type SharedDashboardThesisCollectionViewProps = {
   emptyMessage: string;
   fetchItems: () => Promise<DashboardThesis[]>;
-  role: 'student' | 'faculty' | 'vpaa';
+  role: 'student' | 'faculty';
   section: 'recently-added' | 'top-searches' | 'all';
 };
 

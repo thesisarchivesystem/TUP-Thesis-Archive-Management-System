@@ -1,4 +1,4 @@
-export type UserRole = 'vpaa' | 'faculty' | 'student' | 'admin';
+export type UserRole = 'faculty' | 'student' | 'admin';
 
 export interface User {
   id: string;
@@ -11,21 +11,6 @@ export interface User {
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
-  vpaaProfile?: VpaaProfile;
-}
-
-export interface VpaaProfile {
-  id: string;
-  employee_id: string;
-  email: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  office?: string | null;
-  area_of_oversight?: string | null;
-  full_name: string;
-  role_title?: string | null;
-  office_hours?: string | null;
-  updated_at?: string | null;
 }
 
 export interface FacultyProfile {

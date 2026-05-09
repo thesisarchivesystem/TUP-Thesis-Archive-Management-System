@@ -25,7 +25,7 @@ class AblyTokenController extends Controller
         ];
 
         // Faculty and students can also publish typing events
-        if (in_array($user->role, ['faculty', 'student', 'vpaa'], true)) {
+        if (in_array($user->role, ['faculty', 'student'], true)) {
             $capabilities['private:conversation.*'][] = 'publish';
             $capabilities['private:conversation.*'][] = 'presence';
         }

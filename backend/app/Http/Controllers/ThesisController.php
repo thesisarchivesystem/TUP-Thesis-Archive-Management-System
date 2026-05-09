@@ -126,7 +126,7 @@ class ThesisController extends Controller
         $user = auth()->user();
 
         $canAccessUnarchivedApproved = $user
-            && ($user->id === $thesis->submitted_by || $user->id === $thesis->adviser_id || $user->role === 'vpaa');
+            && ($user->id === $thesis->submitted_by || $user->id === $thesis->adviser_id);
 
         if (($thesis->status !== 'approved' || !$thesis->is_archived) && !$canAccessUnarchivedApproved) {
             return response()->json(['error' => 'You are not allowed to access this thesis.'], 403);
@@ -280,12 +280,11 @@ class ThesisController extends Controller
 
         $isOwner = $user->id === $thesis->submitted_by;
         $isAdviser = $thesis->adviser_id && $user->id === $thesis->adviser_id;
-        $isVpaa = $user->role === 'vpaa';
         $isArchivedApproved = $thesis->status === 'approved' && $thesis->is_archived;
         $isFaculty = $user->role === 'faculty' && $isArchivedApproved;
         $isStudent = $user->role === 'student' && $isArchivedApproved;
 
-        if (!$isOwner && !$isAdviser && !$isVpaa && !$isFaculty && !$isStudent) {
+        if (!$isOwner && !$isAdviser && !$isFaculty && !$isStudent) {
             return response()->json(['error' => 'You are not allowed to access this manuscript.'], 403);
         }
 

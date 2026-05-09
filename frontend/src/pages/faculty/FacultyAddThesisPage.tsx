@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, UserRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpenText,
+  ClipboardList,
+  FileText,
+  FolderOpen,
+  GraduationCap,
+  Layers3,
+  LibraryBig,
+  Send,
+  ShieldCheck,
+  Upload,
+  UserRound,
+} from 'lucide-react';
 import axios from 'axios';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { AdminStructureCollege } from '../../services/adminService';
 import { academicStructureService } from '../../services/academicStructureService';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
@@ -15,22 +28,27 @@ import type { Thesis } from '../../types/thesis.types';
 const facultyGuideItems = [
   {
     title: 'Submission Checklist',
+    icon: ShieldCheck,
     body: 'Prepare the endorsement, plagiarism report, final manuscript, title page, and appendices before publishing a faculty-added thesis.',
   },
   {
     title: 'Metadata Accuracy',
+    icon: ShieldCheck,
     body: 'Confirm the thesis title, department, program, categories, authors, and adviser details so the archive record stays searchable and complete.',
   },
   {
     title: 'File Readiness',
+    icon: ShieldCheck,
     body: 'Upload the final PDF manuscript and include any supplementary files that support the archived thesis record.',
   },
   {
     title: 'Publication Status',
+    icon: ShieldCheck,
     body: 'Faculty-added theses are stored directly in the archive and are automatically approved once submitted from this module.',
   },
   {
     title: 'Support & Guidelines',
+    icon: ShieldCheck,
     body: 'Coordinate with the archive office or visit the support section if you need help with publication requirements or document standards.',
   },
 ];
@@ -436,6 +454,7 @@ export default function FacultyAddThesisPage() {
     <FacultyLayout
       title="Add Thesis"
       description="Submit a thesis entry with complete metadata, abstract, and required documents for review."
+      hidePageIntro
     >
       <div ref={feedbackRef}>
         {error ? <div className="vpaa-banner-error">{error}</div> : null}
@@ -443,10 +462,22 @@ export default function FacultyAddThesisPage() {
       </div>
 
       <div className="student-upload-shell">
+        <div className="student-upload-topbar">
+          <Link to="/faculty/dashboard" className="app-back-link">
+            <ArrowLeft size={16} />
+            <span>Back to VPAA Dashboard</span>
+          </Link>
+        </div>
+
         <section className="student-upload-main vpaa-card">
           <div className="student-upload-section-copy">
-            <h2><BookOpenText size={22} /> Thesis Details</h2>
-            <p>Provide accurate information so the thesis is discoverable and publication-ready in the archive.</p>
+            <div className="student-upload-title-badge">
+              <BookOpenText size={24} />
+            </div>
+            <div>
+              <h2>Thesis Details</h2>
+              <p>Provide accurate information so the thesis is discoverable and publication-ready in the archive.</p>
+            </div>
           </div>
 
           <form className="student-upload-form" onSubmit={(event) => event.preventDefault()}>
@@ -638,55 +669,79 @@ export default function FacultyAddThesisPage() {
 
             <div className={`student-upload-field full${fieldErrors.manuscript ? ' has-error' : ''}`}>
               <span><FolderOpen size={14} /> Upload Files</span>
+              <div className="student-upload-file-stack">
+                <div className="student-upload-file-row">
+                  <div className="student-upload-file-meta">
+                    <div className="student-upload-file-icon">
+                      <FileText size={18} />
+                    </div>
+                    <div className="student-upload-file-copy">
+                      <strong>Upload PDF <span>(Required)</span></strong>
+                      <small>Upload the final manuscript in PDF format.</small>
+                    </div>
+                  </div>
+                  <div className="student-upload-file-side">
+                    <div className="student-upload-file-label">{manuscriptFile?.name || 'No file chosen'}</div>
+                    <div className="student-upload-file-actions">
+                      <label className="student-upload-file-btn">
+                        <input
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          hidden
+                          onChange={(event) => {
+                            setManuscriptFile(event.target.files?.[0] ?? null);
+                            setFieldErrors((current) => ({ ...current, manuscript: undefined }));
+                          }}
+                        />
+                        <Upload size={14} />
+                        <span>Choose PDF</span>
+                      </label>
+                      {manuscriptFile ? (
+                        <button type="button" className="student-upload-file-remove" onClick={() => {
+                          setManuscriptFile(null);
+                          if (manuscriptInputRef.current) manuscriptInputRef.current.value = '';
+                        }} aria-label="Remove selected PDF">
+                          x
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
 
-              <div className="student-upload-file-row">
-                <div className="student-upload-file-label">{manuscriptFile?.name || 'No file chosen'}</div>
-                <div className="student-upload-file-actions">
-                  <label className="student-upload-file-btn">
-                    <input
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      hidden
-                      onChange={(event) => {
-                        setManuscriptFile(event.target.files?.[0] ?? null);
-                        setFieldErrors((current) => ({ ...current, manuscript: undefined }));
-                      }}
-                    />
-                    Select PDF
-                  </label>
-                  {manuscriptFile ? (
-                    <button type="button" className="student-upload-file-remove" onClick={() => {
-                      setManuscriptFile(null);
-                      if (manuscriptInputRef.current) manuscriptInputRef.current.value = '';
-                    }} aria-label="Remove selected PDF">
-                      x
-                    </button>
-                  ) : null}
+                <div className="student-upload-file-row">
+                  <div className="student-upload-file-meta">
+                    <div className="student-upload-file-icon">
+                      <FolderOpen size={18} />
+                    </div>
+                    <div className="student-upload-file-copy">
+                      <strong>Supplementary Files <span>(Optional)</span></strong>
+                      <small>Upload supporting documents, datasets, or appendices.</small>
+                    </div>
+                  </div>
+                  <div className="student-upload-file-side">
+                    <div className="student-upload-file-label">
+                      {supplementaryFiles.length ? supplementaryFiles.map((file) => file.name).join(', ') : 'No files chosen'}
+                    </div>
+                    <div className="student-upload-file-actions">
+                      <label className="student-upload-file-btn">
+                        <input type="file" multiple hidden onChange={(event) => setSupplementaryFiles(Array.from(event.target.files ?? []))} />
+                        <Upload size={14} />
+                        <span>Add Files</span>
+                      </label>
+                      {supplementaryFiles.length ? (
+                        <button type="button" className="student-upload-file-remove" onClick={() => {
+                          setSupplementaryFiles([]);
+                          if (supplementaryInputRef.current) supplementaryInputRef.current.value = '';
+                        }} aria-label="Remove supplementary files">
+                          x
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </div>
               {fieldErrors.manuscript ? <small className="student-upload-field-error">{fieldErrors.manuscript}</small> : null}
-
-              <div className="student-upload-file-row">
-                <div className="student-upload-file-label">
-                  {supplementaryFiles.length ? supplementaryFiles.map((file) => file.name).join(', ') : 'No files chosen'}
-                </div>
-                <div className="student-upload-file-actions">
-                  <label className="student-upload-file-btn">
-                    <input type="file" multiple hidden onChange={(event) => setSupplementaryFiles(Array.from(event.target.files ?? []))} />
-                    Supplementary Files
-                  </label>
-                  {supplementaryFiles.length ? (
-                    <button type="button" className="student-upload-file-remove" onClick={() => {
-                      setSupplementaryFiles([]);
-                      if (supplementaryInputRef.current) supplementaryInputRef.current.value = '';
-                    }} aria-label="Remove supplementary files">
-                      x
-                    </button>
-                  ) : null}
-                </div>
-              </div>
             </div>
-
             <label className={`student-upload-check${fieldErrors.confirmations ? ' has-error' : ''}`}>
               <input type="checkbox" checked={form.confirmOriginal} onChange={(event) => {
                 setFieldErrors((current) => ({ ...current, confirmations: undefined }));
@@ -706,6 +761,7 @@ export default function FacultyAddThesisPage() {
 
             <div className="student-upload-actions">
               <button type="button" className="student-upload-secondary" onClick={() => void handleSave('draft')} disabled={submitting !== null}>
+                <FileText size={16} />
                 {submitting === 'draft' ? 'Saving...' : 'Save Draft'}
               </button>
               <button
@@ -714,47 +770,60 @@ export default function FacultyAddThesisPage() {
                 onClick={() => void handleSave('submit')}
                 disabled={submitting !== null || !form.confirmOriginal || !form.allowReview}
               >
+                <Send size={16} />
                 {submitting === 'submit' ? 'Submitting...' : 'Submit Thesis'}
               </button>
             </div>
           </form>
         </section>
 
-        <aside className="student-upload-side vpaa-card thesis-details-side-card submission-accent-panel">
-          <div className="student-upload-section-copy thesis-details-side-head">
-            <div>
-              <h2>Submission Checklist &amp; Status</h2>
-              <p>Review the checklist, publication behavior, and archive reminders before finalizing a faculty thesis entry.</p>
+        <aside className="student-upload-side">
+          <section className="vpaa-card thesis-details-side-card submission-accent-panel student-upload-side-card">
+            <div className="student-upload-section-copy thesis-details-side-head">
+              <div>
+                <h2>Submission Checklist &amp; Status</h2>
+                <p>Review the checklist, publication behavior, and archive reminders before finalizing a faculty thesis entry.</p>
+              </div>
             </div>
-          </div>
 
-          <div className="student-upload-chip-row">
-            {facultyGuideItems.map((item) => (
-              <span key={item.title} className="student-upload-chip">{item.title}</span>
-            ))}
-          </div>
-
-          <div className="student-upload-status">
-            <h3>Checklist &amp; Record Quality</h3>
-            <ul>
-              {facultyGuideItems.slice(0, 3).map((item) => (
-                <li key={item.title}>
-                  <strong>{item.title}.</strong> {item.body}
-                </li>
+            <div className="student-upload-chip-row">
+              {facultyGuideItems.map((item) => (
+                <span key={item.title} className="student-upload-chip">{item.title}</span>
               ))}
-            </ul>
-          </div>
+            </div>
+          </section>
 
-          <div className="student-upload-status">
-            <h3>Publication &amp; Support</h3>
-            <ul>
-              {facultyGuideItems.slice(3).map((item) => (
-                <li key={item.title}>
-                  <strong>{item.title}.</strong> {item.body}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <section className="vpaa-card thesis-details-side-card submission-accent-panel student-upload-side-card student-upload-status-card">
+            <div className="student-upload-status">
+              <h3><ShieldCheck size={18} /> Checklist &amp; Record Quality</h3>
+              <ul>
+                {facultyGuideItems.slice(0, 3).map((item) => (
+                  <li key={item.title}>
+                    <span className="student-upload-status-icon"><item.icon size={16} /></span>
+                    <div>
+                      <strong>{item.title}.</strong> {item.body}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section className="vpaa-card thesis-details-side-card submission-accent-panel student-upload-side-card student-upload-status-card">
+            <div className="student-upload-status">
+              <h3><ClipboardList size={18} /> Publication &amp; Support</h3>
+              <ul>
+                {facultyGuideItems.slice(3).map((item) => (
+                  <li key={item.title}>
+                    <span className="student-upload-status-icon"><item.icon size={16} /></span>
+                    <div>
+                      <strong>{item.title}.</strong> {item.body}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
         </aside>
       </div>
     </FacultyLayout>

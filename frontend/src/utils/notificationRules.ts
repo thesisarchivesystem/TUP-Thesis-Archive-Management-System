@@ -19,12 +19,6 @@ const notificationTypesByRole: Record<UserRole, NotificationType[]> = {
     'extension.requested',
     'department.file_shared',
   ],
-  vpaa: [
-    'new_message',
-    'faculty.created',
-    'faculty.updated',
-    'faculty.role_changed',
-  ],
   admin: [],
 };
 
