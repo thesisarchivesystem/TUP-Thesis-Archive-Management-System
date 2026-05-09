@@ -77,6 +77,7 @@ class AdminController extends Controller
                 'status' => $thesis->status,
                 'department' => $thesis->department,
                 'program' => $thesis->program,
+                'course' => $thesis->course,
                 'created_at' => optional($thesis->created_at)?->toISOString(),
             ]);
 
@@ -344,17 +345,19 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:categories,name'],
+            'slug' => ['required', 'string', 'max:255', 'unique:categories,slug'],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        $isActive = $this->normalizeBooleanInput($validated['is_active'] ?? null, true);
 
         $category = Category::create([
             'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
+            'slug' => Str::slug($validated['slug']),
             'description' => $validated['description'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
-            'is_active' => $validated['is_active'] ?? true,
+            'is_active' => $isActive,
         ]);
 
         return response()->json(['data' => $category], 201);
@@ -365,27 +368,55 @@ class AdminController extends Controller
         $category = Category::query()->findOrFail($id);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')->ignore($category->id)],
+            'slug' => ['required', 'string', 'max:255', Rule::unique('categories', 'slug')->ignore($category->id)],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        $isActive = $this->normalizeBooleanInput($validated['is_active'] ?? null, (bool) $category->is_active);
 
-        $category->update([
-            'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
-            'description' => $validated['description'] ?? null,
-            'sort_order' => $validated['sort_order'] ?? $category->sort_order,
-            'is_active' => $validated['is_active'] ?? $category->is_active,
-        ]);
+        Category::query()
+            ->whereKey($category->id)
+            ->update([
+                'name' => $validated['name'],
+                'slug' => Str::slug($validated['slug']),
+                'description' => $validated['description'] ?? null,
+                'sort_order' => $validated['sort_order'] ?? $category->sort_order,
+                'is_active' => DB::raw($isActive ? 'true' : 'false'),
+                'updated_at' => now(),
+            ]);
 
         return response()->json(['data' => $category->fresh()]);
     }
 
-    public function structure(): JsonResponse
+    public function structure(Request $request): JsonResponse
     {
+        $this->bootstrapAcademicStructure();
+
+        $isAdminRoute = $request->is('api/admin/*');
+
         $colleges = College::query()
+            ->when(!$isAdminRoute, fn ($query) => $query->whereRaw('is_active = true'))
             ->with([
-                'departments.programs.sections',
+                'departments' => function ($departmentQuery) use ($isAdminRoute) {
+                    $departmentQuery
+                        ->when(!$isAdminRoute, fn ($query) => $query->whereRaw('is_active = true'))
+                        ->with([
+                            'programs' => function ($programQuery) use ($isAdminRoute) {
+                                $programQuery
+                                    ->when(!$isAdminRoute, fn ($query) => $query->whereRaw('is_active = true'))
+                                    ->with([
+                                        'sections' => function ($sectionQuery) use ($isAdminRoute) {
+                                            $sectionQuery
+                                                ->when(!$isAdminRoute, fn ($query) => $query->whereRaw('is_active = true'))
+                                                ->orderBy('name');
+                                        },
+                                    ])
+                                    ->orderBy('name');
+                            },
+                        ])
+                        ->orderBy('name');
+                },
             ])
             ->orderBy('name')
             ->get();
@@ -526,11 +557,13 @@ class AdminController extends Controller
             'college_id' => ['nullable', 'uuid', 'exists:colleges,id'],
             'department_id' => ['nullable', 'uuid', 'exists:departments,id'],
             'program_id' => ['nullable', 'uuid', 'exists:programs,id'],
+            'course_id' => ['nullable', 'uuid', 'exists:programs,id'],
             'section_id' => ['nullable', 'uuid', 'exists:sections,id'],
             'section' => ['nullable', 'string', 'max:255'],
             'department' => ['nullable', 'string', 'max:255'],
             'college' => ['nullable', 'string', 'max:255'],
             'program' => ['nullable', 'string', 'max:255'],
+            'course' => ['nullable', 'string', 'max:255'],
             'faculty_role' => ['nullable', 'string', 'max:255'],
             'rank' => ['nullable', 'string', 'max:255'],
             'year_level' => ['nullable', 'integer', 'min:1', 'max:10'],
@@ -564,7 +597,8 @@ class AdminController extends Controller
         if ($user->role === 'student') {
             $department = $this->resolveDepartmentName($validated['department_id'] ?? null, $validated['department'] ?? null);
             $college = $this->resolveCollegeName($validated['college_id'] ?? null, $validated['college'] ?? null, $validated['department_id'] ?? null);
-            $program = $this->resolveProgramName($validated['program_id'] ?? null, $validated['program'] ?? null);
+            $programId = $validated['course_id'] ?? $validated['program_id'] ?? null;
+            $program = $this->resolveProgramName($programId, $validated['course'] ?? $validated['program'] ?? null);
             $section = $this->resolveSectionName($validated['section_id'] ?? null, $validated['section'] ?? null);
 
             StudentProfile::updateOrCreate(
@@ -573,10 +607,12 @@ class AdminController extends Controller
                     'student_id' => $validated['student_id'] ?? $this->generateStudentId(),
                     'college_id' => $validated['college_id'] ?? null,
                     'department_id' => $validated['department_id'] ?? null,
-                    'program_id' => $validated['program_id'] ?? null,
+                    'program_id' => $programId,
+                    'course_id' => $programId,
                     'section_id' => $validated['section_id'] ?? null,
                     'department' => $department,
                     'program' => $program,
+                    'course' => $program,
                     'section' => $section,
                     'year_level' => $validated['year_level'] ?? null,
                     'created_by' => $actorId,
@@ -609,6 +645,8 @@ class AdminController extends Controller
             'department' => $faculty?->department ?? $student?->department,
             'program_id' => $student?->program_id,
             'program' => $student?->program,
+            'course_id' => $student?->course_id,
+            'course' => $student?->course,
             'section_id' => $student?->section_id,
             'section' => $student?->section,
             'year_level' => $student?->year_level,
@@ -690,5 +728,122 @@ class AdminController extends Controller
         }
 
         return $fallback ?: null;
+    }
+
+    private function bootstrapAcademicStructure(): void
+    {
+        if (College::query()->exists()) {
+            return;
+        }
+
+        $collegeCodeMap = [
+            'COLLEGE OF ARCHITECTURE AND FINE ARTS' => 'CAFA',
+            'COLLEGE OF ENGINEERING' => 'COE',
+            'COLLEGE OF INDUSTRIAL EDUCATION' => 'CIE',
+            'COLLEGE OF INDUSTRIAL TECHNOLOGY' => 'CIT',
+            'COLLEGE OF LIBERAL ARTS' => 'CLA',
+            'COLLEGE OF SCIENCE' => 'COS',
+        ];
+
+        $programMap = [
+            'Architecture Department' => [
+                ['name' => 'BS Architecture', 'code' => 'BSArch'],
+            ],
+            'Fine Arts Department' => [
+                ['name' => 'BFA', 'code' => 'BFA'],
+            ],
+            'Graphics Department' => [
+                ['name' => 'BS Graphics Technology', 'code' => 'BSGT'],
+            ],
+            'Mathematics Department' => [
+                ['name' => 'Bachelor of Science in Mathematics', 'code' => 'BSMath'],
+            ],
+            'Computer Studies Department' => [
+                ['name' => 'Bachelor of Science in Computer Science', 'code' => 'BSCS'],
+                ['name' => 'Bachelor of Science in Information Technology', 'code' => 'BSIT'],
+                ['name' => 'Bachelor of Science in Information Systems', 'code' => 'BSIS'],
+            ],
+            'Mechanical Engineering' => [
+                ['name' => 'Bachelor of Science in Mechanical Engineering', 'code' => 'BSME'],
+            ],
+            'Civil Engineering' => [
+                ['name' => 'Bachelor of Science in Civil Engineering', 'code' => 'BSCE'],
+            ],
+            'Electrical Engineering' => [
+                ['name' => 'Bachelor of Science in Electrical Engineering', 'code' => 'BSEE'],
+            ],
+            'Electronics Communication Engineering' => [
+                ['name' => 'Bachelor of Science in Electronics Engineering', 'code' => 'BSECE'],
+            ],
+            'Hospitality Management Department' => [
+                ['name' => 'Bachelor of Science in Hospitality Management', 'code' => 'BSHM'],
+            ],
+        ];
+
+        $departmentCollegeMap = collect(config('academic.department_college_map', []))
+            ->mapWithKeys(fn ($college, $department) => [trim((string) $department) => trim((string) $college)])
+            ->filter(fn ($college, $department) => $department !== '' && $college !== '');
+
+        $collegeNames = collect(config('academic.colleges', []))
+            ->map(fn ($college) => trim((string) $college))
+            ->filter()
+            ->merge($departmentCollegeMap->values())
+            ->unique()
+            ->values();
+
+        DB::transaction(function () use ($collegeCodeMap, $collegeNames, $departmentCollegeMap, $programMap) {
+            $colleges = $collegeNames->mapWithKeys(function (string $collegeName) use ($collegeCodeMap) {
+                $college = College::query()->firstOrCreate(
+                    ['name' => $collegeName],
+                    [
+                        'code' => $collegeCodeMap[$collegeName] ?? $this->makeAcademicCode($collegeName),
+                        'is_active' => 'true',
+                    ],
+                );
+
+                return [$collegeName => $college];
+            });
+
+            $departmentCollegeMap->each(function (string $collegeName, string $departmentName) use ($colleges, $programMap) {
+                $college = $colleges->get($collegeName);
+                if (!$college) {
+                    return;
+                }
+
+                $department = Department::query()->firstOrCreate(
+                    [
+                        'college_id' => $college->id,
+                        'name' => $departmentName,
+                    ],
+                    [
+                        'code' => $this->makeAcademicCode($departmentName),
+                        'is_active' => 'true',
+                    ],
+                );
+
+                foreach ($programMap[$departmentName] ?? [] as $programData) {
+                    Program::query()->firstOrCreate(
+                        [
+                            'department_id' => $department->id,
+                            'name' => $programData['name'],
+                        ],
+                        [
+                            'code' => $programData['code'],
+                            'is_active' => 'true',
+                        ],
+                    );
+                }
+            });
+        });
+    }
+
+    private function makeAcademicCode(string $name): string
+    {
+        $words = collect(preg_split('/\s+/', trim($name)) ?: [])
+            ->filter()
+            ->reject(fn (string $word) => in_array(strtolower($word), ['of', 'and', 'the', 'in'], true))
+            ->map(fn (string $word) => strtoupper(substr($word, 0, 1)));
+
+        return $words->take(4)->implode('');
     }
 }

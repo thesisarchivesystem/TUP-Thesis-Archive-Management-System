@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { BookOpenText, ClipboardList, FileText, FolderOpen, GraduationCap, Layers3, LibraryBig, UserRound } from 'lucide-react';
 import axios from 'axios';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import type { AdminStructureCollege } from '../../services/adminService';
+import { academicStructureService } from '../../services/academicStructureService';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { categoryService, type CategoryOption } from '../../services/categoryService';
 import { facultyAdviseesService } from '../../services/facultyAdviseesService';
@@ -39,7 +41,6 @@ type UploadFieldErrors = Partial<Record<
 >>;
 
 const MAX_CATEGORY_SELECTIONS = 5;
-const COMPUTER_STUDIES_PROGRAMS = ['BSCS', 'BSIT', 'BSIS'];
 const FIXED_SCHOOL_YEAR_OPTIONS = ['2022', '2023', '2024', '2025', '2026'];
 
 const getNameInitials = (name?: string | null) =>
@@ -103,6 +104,7 @@ export default function FacultyAddThesisPage() {
   const draftQueryId = searchParams.get('draft');
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [advisers, setAdvisers] = useState<StudentAdviserOption[]>([]);
+  const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [availableColleges, setAvailableColleges] = useState<string[]>([]);
   const [departmentsByCollege, setDepartmentsByCollege] = useState<Record<string, string[]>>({});
   const [defaultCollege, setDefaultCollege] = useState('');
@@ -125,6 +127,8 @@ export default function FacultyAddThesisPage() {
   const supplementaryInputRef = useRef<HTMLInputElement | null>(null);
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const availableDepartments = departmentsByCollege[form.college] ?? [];
+  const selectedCollegeStructure = structure.find((college) => college.name === form.college);
+  const selectedDepartmentStructure = selectedCollegeStructure?.departments.find((department) => department.name === form.department);
   const selectedAdviser = advisers.find((adviser) => adviser.id === form.adviserId) ?? null;
   const filteredAdvisers = advisers.filter((adviser) => {
     const query = adviserSearch.trim().toLowerCase();
@@ -138,6 +142,16 @@ export default function FacultyAddThesisPage() {
     ].join(' ').toLowerCase().includes(query);
   });
   const showAdviserResults = adviserSearch.trim().length > 0 && (!selectedAdviser || adviserSearch.trim() !== selectedAdviser.name);
+
+  useEffect(() => {
+    void academicStructureService.list()
+      .then((records) => {
+        setStructure(records);
+      })
+      .catch(() => {
+        setStructure([]);
+      });
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -156,20 +170,19 @@ export default function FacultyAddThesisPage() {
           .map((item) => normalizeProgramLabel(item.program))
           .filter(Boolean);
         const fallbackYear = '2026';
-        const isComputerStudiesDepartment = (libraryResponse.department ?? '').trim().toLowerCase() === 'computer studies department';
-        const preferredPrograms = isComputerStudiesDepartment ? COMPUTER_STUDIES_PROGRAMS : [];
+        const structurePrograms = selectedDepartmentStructure?.programs.map((program) => program.name) ?? [];
 
         setAvailableColleges(libraryResponse.share_options?.colleges ?? []);
         setDepartmentsByCollege(libraryResponse.share_options?.departments_by_college ?? {});
         setDefaultCollege(libraryResponse.college || '');
         setDefaultDepartment(libraryResponse.department || '');
-        setProgramOptions(Array.from(new Set([...preferredPrograms, ...adviseePrograms, ...libraryPrograms])).sort());
+        setProgramOptions(Array.from(new Set([...structurePrograms, ...adviseePrograms, ...libraryPrograms])).sort());
         setSchoolYearOptions(FIXED_SCHOOL_YEAR_OPTIONS);
         setForm((current) => ({
           ...current,
           college: current.college || libraryResponse.college || '',
           department: current.department || libraryResponse.department || '',
-          program: current.program || preferredPrograms[0] || adviseePrograms[0] || libraryPrograms[0] || '',
+          program: current.program || structurePrograms[0] || adviseePrograms[0] || libraryPrograms[0] || '',
           schoolYear: current.schoolYear || fallbackYear,
         }));
       })
@@ -181,7 +194,7 @@ export default function FacultyAddThesisPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selectedDepartmentStructure]);
 
   useEffect(() => {
     let isMounted = true;

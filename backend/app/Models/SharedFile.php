@@ -22,6 +22,7 @@ class SharedFile extends Model
         'keywords',
         'authors',
         'program',
+        'course',
         'department',
         'college',
         'school_year',
@@ -43,6 +44,28 @@ class SharedFile extends Model
         'is_draft' => 'boolean',
         'shared_at' => 'datetime',
     ];
+
+    public function getProgramAttribute(?string $value): ?string
+    {
+        return $value ?? $this->attributes['course'] ?? null;
+    }
+
+    public function setProgramAttribute(?string $value): void
+    {
+        $this->attributes['program'] = $value;
+        $this->attributes['course'] = $value;
+    }
+
+    public function getCourseAttribute(?string $value): ?string
+    {
+        return $value ?? $this->attributes['program'] ?? null;
+    }
+
+    public function setCourseAttribute(?string $value): void
+    {
+        $this->attributes['course'] = $value;
+        $this->attributes['program'] = $value;
+    }
 
     public function uploader(): BelongsTo
     {

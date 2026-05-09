@@ -80,6 +80,7 @@ import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import AdminStructurePage from '../pages/admin/AdminStructurePage';
 import AdminCategoriesPage from '../pages/admin/AdminCategoriesPage';
 import AdminRecentSubmissionsPage from '../pages/admin/AdminRecentSubmissionsPage';
+import AdminThesisDetailsPage from '../pages/admin/AdminThesisDetailsPage';
 import AdminRecentActivityPage from '../pages/admin/AdminRecentActivityPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
@@ -224,6 +225,8 @@ export default function AppRouter() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="submissions" element={<AdminRecentSubmissionsPage />} />
+            <Route path="thesis/:id" element={<AdminThesisDetailsPage />} />
+            <Route path="theses/:id" element={<AdminThesisDetailsPage />} />
             <Route path="activity" element={<AdminRecentActivityPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="structure" element={<AdminStructurePage />} />

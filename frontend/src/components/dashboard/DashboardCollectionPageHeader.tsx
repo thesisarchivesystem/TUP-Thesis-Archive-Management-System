@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type DashboardCollectionPageHeaderProps = {
-  role: 'student' | 'faculty' | 'vpaa';
+  role: 'student' | 'faculty' | 'vpaa' | 'admin';
   title: string;
   description: string;
 };
@@ -13,7 +13,13 @@ export default function DashboardCollectionPageHeader({
   description,
 }: DashboardCollectionPageHeaderProps) {
   const dashboardPath = `/${role}/dashboard`;
-  const dashboardLabel = role === 'student' ? 'Student Dashboard' : role === 'faculty' ? 'Faculty Dashboard' : 'VPAA Dashboard';
+  const dashboardLabel = role === 'student'
+    ? 'Student Dashboard'
+    : role === 'faculty'
+      ? 'Faculty Dashboard'
+      : role === 'admin'
+        ? 'Admin Dashboard'
+        : 'VPAA Dashboard';
 
   return (
     <div className="vpaa-page-intro">

@@ -18,6 +18,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class StudentController extends Controller
 {
@@ -122,9 +124,23 @@ class StudentController extends Controller
 
         $recentTheses = $this->recentDashboardTheses();
 
-        $topSearches = $this->resolveTopSearches();
+        try {
+            $topSearches = $this->resolveTopSearches();
+        } catch (\Throwable $exception) {
+            Log::warning('Student dashboard top searches failed to load.', [
+                'message' => $exception->getMessage(),
+            ]);
+            $topSearches = [];
+        }
 
-        $quote = $this->dailyQuoteService->getTodayQuote();
+        try {
+            $quote = $this->dailyQuoteService->getTodayQuote();
+        } catch (\Throwable $exception) {
+            Log::warning('Student dashboard daily quote failed to load.', [
+                'message' => $exception->getMessage(),
+            ]);
+            $quote = null;
+        }
 
         return response()->json([
             'stats' => [
@@ -280,6 +296,10 @@ class StudentController extends Controller
 
     private function resolveTopSearches()
     {
+        if (!Schema::hasTable('search_logs')) {
+            return [];
+        }
+
         return Cache::remember('dashboard:top-searches:v2', self::DASHBOARD_THESIS_CACHE_SECONDS, function () {
             $topThesisIds = SearchLog::query()
                 ->whereNotNull('thesis_id')

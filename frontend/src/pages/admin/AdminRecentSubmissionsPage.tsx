@@ -1,37 +1,64 @@
-import { ArrowLeft, Copy, MoreVertical } from 'lucide-react';
+import { ChevronDown, FileText, Plus, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
-import { adminService, type AdminDashboardResponse } from '../../services/adminService';
+import { adminService, type AdminDashboardResponse, type AdminStructureCollege } from '../../services/adminService';
 
-type ThesisActionMenuState = {
-  id: string;
-  anchorTop: number;
-  anchorLeft: number;
-} | null;
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
+
+const statusLabel = (status: string) =>
+  status
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const statusToneClass = (status: string) => {
+  const normalized = status.toLowerCase();
+
+  if (normalized === 'approved') return 'approved';
+  if (normalized === 'archived') return 'archived';
+  if (normalized === 'under_review' || normalized === 'pending') return 'under_review';
+  if (normalized === 'revision_needed' || normalized === 'rejected') return 'revision_needed';
+  return 'pending';
+};
+
+const extractYear = (createdAt?: string | null) => {
+  if (!createdAt) return 'N/A';
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return String(date.getFullYear());
+};
+
+type AdminThesisRecord = AdminDashboardResponse['recent_uploads'][number];
 
 export default function AdminRecentSubmissionsPage() {
-  const [searchParams] = useSearchParams();
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
+  const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openActionMenu, setOpenActionMenu] = useState<ThesisActionMenuState>(null);
-  const [activeSubmission, setActiveSubmission] = useState<AdminDashboardResponse['recent_uploads'][number] | null>(null);
-  const [copiedSubmissionId, setCopiedSubmissionId] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [collegeFilter, setCollegeFilter] = useState('');
+  const [programFilter, setProgramFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
 
-    void adminService.getDashboard({ recent_uploads_limit: 50 })
-      .then((response) => {
+    void Promise.all([
+      adminService.getDashboard({ recent_uploads_limit: 50 }),
+      adminService.listStructure(),
+    ])
+      .then(([response, structureResponse]) => {
         if (!active) return;
         setData(response);
+        setStructure(structureResponse);
       })
       .catch((err) => {
         if (!active) return;
-        setError(err.response?.data?.message || 'Failed to load recent submissions.');
+        setError(err.response?.data?.message || 'Failed to load thesis records.');
       })
       .finally(() => {
         if (!active) return;
@@ -43,192 +70,260 @@ export default function AdminRecentSubmissionsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!openActionMenu) return;
+  const uploads = data?.recent_uploads ?? [];
 
-    const handleClose = () => setOpenActionMenu(null);
-    window.addEventListener('click', handleClose);
-    return () => window.removeEventListener('click', handleClose);
-  }, [openActionMenu]);
+  const colleges = useMemo(
+    () => structure.map((college) => college.name),
+    [structure],
+  );
 
-  useEffect(() => {
-    if (!copiedSubmissionId) return;
+  const programsByCollege = useMemo(() => {
+    return new Map(
+      structure.map((college) => [
+        college.name,
+        college.departments.flatMap((department) =>
+          department.programs.map((program) => program.code?.trim() || program.name),
+        ),
+      ] as const),
+    );
+  }, [structure]);
 
-    const timeout = window.setTimeout(() => setCopiedSubmissionId(null), 1800);
-    return () => window.clearTimeout(timeout);
-  }, [copiedSubmissionId]);
+  const visiblePrograms = useMemo(() => {
+    if (!collegeFilter) return [];
+    return programsByCollege.get(collegeFilter) ?? [];
+  }, [collegeFilter, programsByCollege]);
 
-  const searchTerm = searchParams.get('search')?.trim().toLowerCase() ?? '';
+  const collegeByDepartment = useMemo(() => {
+    const entries = structure.flatMap((college) =>
+      college.departments.map((department) => [department.name, college.name] as const),
+    );
+
+    return new Map(entries);
+  }, [structure]);
+
+  const programDisplayByName = useMemo(() => {
+    const entries = structure.flatMap((college) =>
+      college.departments.flatMap((department) =>
+        department.programs.flatMap((program) => {
+          const display = program.code?.trim() || program.name;
+          return [
+            [program.name, display] as const,
+            [display, display] as const,
+          ];
+        }),
+      ),
+    );
+
+    return new Map(entries);
+  }, [structure]);
 
   const filteredUploads = useMemo(() => {
-    if (!data) return [];
-    if (!searchTerm) return data.recent_uploads;
+    const query = search.trim().toLowerCase();
 
-    return data.recent_uploads.filter((item) => {
-      const haystack = [item.title, item.author, item.department, item.program, item.category, item.status]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
+    return uploads.filter((item) => {
+      const resolvedCollege = item.department ? (collegeByDepartment.get(item.department) || 'College of Science') : '';
+      const resolvedProgram = item.program ? (programDisplayByName.get(item.program) || item.program) : '';
+      const matchesSearch = !query || [
+        item.title,
+        item.author,
+        item.department,
+        resolvedProgram,
+        item.category,
+        item.status,
+      ].filter(Boolean).join(' ').toLowerCase().includes(query);
+      const matchesCollege = !collegeFilter || resolvedCollege === collegeFilter;
+      const matchesProgram = !programFilter || resolvedProgram === programFilter;
+      const matchesStatus = statusFilter === 'all' || item.status.toLowerCase() === statusFilter;
 
-      return haystack.includes(searchTerm);
+      return matchesSearch && matchesCollege && matchesProgram && matchesStatus;
     });
-  }, [data, searchTerm]);
+  }, [collegeByDepartment, collegeFilter, programDisplayByName, programFilter, search, statusFilter, uploads]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize, search, collegeFilter, programFilter, statusFilter, filteredUploads.length]);
+
+  useEffect(() => {
+    setProgramFilter('');
+  }, [collegeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUploads.length / pageSize));
+  const paginatedUploads = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredUploads.slice(start, start + pageSize);
+  }, [currentPage, filteredUploads, pageSize]);
+
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 3) return Array.from({ length: totalPages }, (_, index) => index + 1);
+    if (currentPage <= 2) return [1, 2, 3];
+    if (currentPage >= totalPages - 1) return [totalPages - 2, totalPages - 1, totalPages];
+    return [currentPage - 1, currentPage, currentPage + 1];
+  }, [currentPage, totalPages]);
+
+  const pageLabel = filteredUploads.length
+    ? `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, filteredUploads.length)} of ${filteredUploads.length} theses`
+    : 'Showing 0 to 0 of 0 theses';
 
   if (error) return <div className="admin-alert">{error}</div>;
-  if (loading || !data) return <SectionLoadingScreen label="Loading recent submissions..." />;
+  if (loading || !data) return <SectionLoadingScreen label="Loading thesis management..." />;
 
   return (
-    <div className="admin-page" onClick={() => setOpenActionMenu(null)}>
-      <div className="admin-page-intro">
+    <div className="admin-page admin-thesis-page">
+      <div className="admin-page-intro admin-thesis-intro">
         <div>
-          <Link
-            to="/admin/dashboard"
-            className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-[var(--maroon)] no-underline transition hover:translate-x-[-2px]"
-          >
-            <ArrowLeft size={16} />
-            <span>Back to Admin Dashboard</span>
-          </Link>
-          <h1>Recent <em>Submissions</em></h1>
-          <p>Review the latest thesis records uploaded into the archive.</p>
+          <h1>Thesis Management</h1>
+          <p>Manage submitted theses, records, and archive details.</p>
         </div>
       </div>
 
-      <section className="admin-panel">
-        <div className="admin-panel-head">
-          <h3>All Recent Submissions</h3>
+      <section className="admin-panel admin-thesis-list-panel">
+        <div className="admin-panel-head admin-thesis-list-head">
+          <div className="admin-thesis-list-title">
+            <span className="admin-thesis-list-icon"><FileText size={16} /></span>
+            <h3>Thesis List</h3>
+          </div>
+
+          <button type="button" className="admin-btn admin-thesis-create-btn">
+            <Plus size={15} />
+            <span>Add Thesis</span>
+          </button>
         </div>
+
+        <div className="admin-thesis-toolbar">
+          <label className="admin-users-select admin-thesis-page-size">
+            <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>
+              {PAGE_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+            <ChevronDown size={16} />
+          </label>
+
+          <label className="admin-users-search admin-thesis-search">
+            <Search size={15} />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search thesis title, author, adviser, or keywords..."
+            />
+          </label>
+
+          <label className="admin-users-select">
+            <select value={collegeFilter} onChange={(event) => setCollegeFilter(event.target.value)}>
+              <option value="">All Colleges</option>
+              {colleges.map((college) => <option key={college} value={college}>{college}</option>)}
+            </select>
+            <ChevronDown size={16} />
+          </label>
+
+          <label className="admin-users-select">
+            <select value={programFilter} onChange={(event) => setProgramFilter(event.target.value)}>
+              <option value="">All Programs</option>
+              {visiblePrograms.map((program) => <option key={program} value={program}>{program}</option>)}
+            </select>
+            <ChevronDown size={16} />
+          </label>
+
+          <label className="admin-users-select">
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="all">All Status</option>
+              <option value="approved">Approved</option>
+              <option value="under_review">Under Review</option>
+              <option value="revision_needed">Revision Needed</option>
+              <option value="archived">Archived</option>
+            </select>
+            <ChevronDown size={16} />
+          </label>
+        </div>
+
         <div className="admin-table-wrap">
-          <table className="admin-table admin-table-polished">
+          <table className="admin-table admin-thesis-table">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Department</th>
+                <th>Thesis Title</th>
+                <th>Author/s</th>
+                <th>College</th>
+                <th>Program</th>
+                <th>Year</th>
                 <th>Status</th>
-                <th>Date Submitted</th>
-                <th />
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {filteredUploads.length > 0 ? filteredUploads.map((item) => (
+              {paginatedUploads.length > 0 ? paginatedUploads.map((item: AdminThesisRecord) => (
                 <tr key={item.id}>
-                  <td className="admin-title-cell">{item.title}</td>
-                  <td>{item.author}</td>
-                  <td>{item.department || 'Unassigned Department'}</td>
-                  <td>
-                    <span className={`admin-status-badge ${item.status}`}>
-                      {item.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td>{item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
-                  <td className="admin-table-action-cell">
-                    <button
-                      type="button"
-                      className="admin-kebab"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        setOpenActionMenu({
+                  <td className="admin-thesis-title-cell">
+                    <Link
+                      to={`/admin/thesis/${encodeURIComponent(item.id)}`}
+                      state={{
+                        thesis: {
                           id: item.id,
-                          anchorTop: rect.bottom + window.scrollY + 6,
-                          anchorLeft: rect.left + window.scrollX - 120,
-                        });
+                          title: item.title,
+                          author: item.author,
+                          category: item.category ?? null,
+                          department: item.department ?? 'Computer Studies Department',
+                          program: item.program ?? null,
+                          created_at: item.created_at ?? null,
+                          status: item.status,
+                          college: item.department ? (collegeByDepartment.get(item.department) || 'College of Science') : 'College of Science',
+                        },
                       }}
                     >
-                      <MoreVertical size={16} />
-                    </button>
+                      {item.title}
+                    </Link>
+                  </td>
+                  <td>{item.author}</td>
+                  <td>{item.department ? (collegeByDepartment.get(item.department) || 'College of Science') : 'Unassigned'}</td>
+                  <td>{item.program ? (programDisplayByName.get(item.program) || item.program) : 'N/A'}</td>
+                  <td>{extractYear(item.created_at)}</td>
+                  <td>
+                    <span className={`admin-status-badge admin-thesis-status-badge ${statusToneClass(item.status)}`}>
+                      {statusLabel(item.status)}
+                    </span>
+                  </td>
+                  <td className="admin-thesis-action-cell">
+                    <button type="button" className="admin-structure-edit-btn">Edit</button>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="admin-table-empty">
-                    No submissions matched your current search.
-                  </td>
+                  <td colSpan={7} className="admin-table-empty">No thesis records matched the current filters.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </section>
 
-      {openActionMenu ? (
-        <div
-          className="admin-context-menu"
-          style={{ top: openActionMenu.anchorTop, left: openActionMenu.anchorLeft }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          {(() => {
-            const currentSubmission = data.recent_uploads.find((item) => item.id === openActionMenu.id);
-            if (!currentSubmission) return null;
-
-            return (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveSubmission(currentSubmission);
-                    setOpenActionMenu(null);
-                  }}
-                >
-                  View details
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(currentSubmission.title);
-                    setCopiedSubmissionId(currentSubmission.id);
-                    setOpenActionMenu(null);
-                  }}
-                >
-                  <Copy size={14} />
-                  <span>{copiedSubmissionId === currentSubmission.id ? 'Copied title' : 'Copy title'}</span>
-                </button>
-              </>
-            );
-          })()}
-        </div>
-      ) : null}
-
-      {activeSubmission ? (
-        <div className="admin-modal-backdrop" onClick={() => setActiveSubmission(null)}>
-          <div className="admin-modal-card" onClick={(event) => event.stopPropagation()}>
-            <div className="admin-panel-head">
-              <h3>Submission Details</h3>
-              <button type="button" className="admin-view-all" onClick={() => setActiveSubmission(null)}>Close</button>
-            </div>
-            <div className="admin-detail-grid">
-              <div>
-                <span>Title</span>
-                <strong>{activeSubmission.title}</strong>
-              </div>
-              <div>
-                <span>Author</span>
-                <strong>{activeSubmission.author}</strong>
-              </div>
-              <div>
-                <span>Department</span>
-                <strong>{activeSubmission.department || 'Unassigned Department'}</strong>
-              </div>
-              <div>
-                <span>Status</span>
-                <strong>{activeSubmission.status.replace(/_/g, ' ')}</strong>
-              </div>
-              <div>
-                <span>Category</span>
-                <strong>{activeSubmission.category || 'Unassigned Category'}</strong>
-              </div>
-              <div>
-                <span>Program</span>
-                <strong>{activeSubmission.program || 'Unassigned Program'}</strong>
-              </div>
-              <div>
-                <span>Date Submitted</span>
-                <strong>{activeSubmission.created_at ? new Date(activeSubmission.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</strong>
-              </div>
-            </div>
+        <div className="admin-users-pagination">
+          <p>{pageLabel}</p>
+          <div className="admin-users-pagination-controls">
+            <button
+              type="button"
+              className="admin-users-page-btn"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            >
+              ‹
+            </button>
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                type="button"
+                className={`admin-users-page-btn ${page === currentPage ? 'active' : ''}`}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="admin-users-page-btn"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            >
+              ›
+            </button>
           </div>
         </div>
-      ) : null}
+      </section>
     </div>
   );
 }

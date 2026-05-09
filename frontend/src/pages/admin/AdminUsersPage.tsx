@@ -1,33 +1,7 @@
-import { ChevronDown, Eye, EyeOff, GraduationCap, Plus, Search, User, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService, type AdminManagedUser, type AdminStructureCollege } from '../../services/adminService';
 
-const FEEDBACK_DISMISS_DELAY = 4000;
-
-type AdminUserForm = {
-  role: 'faculty' | 'student';
-  first_name: string;
-  last_name: string;
-  suffix: string;
-  email: string;
-  temporary_password: string;
-  faculty_id: string;
-  student_id: string;
-  college_id: string;
-  department_id: string;
-  program_id: string;
-  section_id: string;
-  section: string;
-  department: string;
-  college: string;
-  program: string;
-  faculty_role: string;
-  rank: string;
-  year_level: string | number | null;
-  is_active: boolean;
-};
-
-const emptyForm: AdminUserForm = {
+const emptyForm = {
   role: 'faculty',
   first_name: '',
   last_name: '',
@@ -55,15 +29,9 @@ export default function AdminUsersPage() {
   const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [roleFilter, setRoleFilter] = useState<'faculty' | 'student' | ''>('');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'college_asc'>('name_asc');
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [form, setForm] = useState<AdminUserForm>(emptyForm);
+  const [form, setForm] = useState<Record<string, any>>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const selectedCollege = useMemo(
     () => structure.find((college) => college.id === form.college_id),
@@ -78,41 +46,6 @@ export default function AdminUsersPage() {
     [form.program_id, selectedDepartment],
   );
 
-  const sortedUsers = useMemo(() => {
-    const collator = new Intl.Collator('en', { sensitivity: 'base' });
-    const sorted = [...users];
-
-    sorted.sort((left, right) => {
-      switch (sortBy) {
-        case 'name_desc':
-          return collator.compare(right.name, left.name);
-        case 'college_asc':
-          return collator.compare(left.college || 'Unassigned', right.college || 'Unassigned');
-        case 'name_asc':
-        default:
-          return collator.compare(left.name, right.name);
-      }
-    });
-
-    return sorted;
-  }, [sortBy, users]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / pageSize));
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedUsers.slice(start, start + pageSize);
-  }, [currentPage, pageSize, sortedUsers]);
-
-  const pageNumbers = useMemo(() => {
-    if (totalPages <= 3) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    if (currentPage <= 2) return [1, 2, 3];
-    if (currentPage >= totalPages - 1) return [totalPages - 2, totalPages - 1, totalPages];
-    return [currentPage - 1, currentPage, currentPage + 1];
-  }, [currentPage, totalPages]);
-
   const load = () =>
     Promise.all([
       adminService.listUsers(roleFilter || undefined, search || undefined),
@@ -124,525 +57,209 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     void load().catch(() => setError('Failed to load user management data.'));
-  }, [roleFilter, search]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [pageSize, roleFilter, search, sortBy, users.length]);
-
-  useEffect(() => {
-    if (!successMessage && !error) return undefined;
-
-    const timeout = window.setTimeout(() => {
-      setSuccessMessage(null);
-      setError(null);
-    }, FEEDBACK_DISMISS_DELAY);
-
-    return () => window.clearTimeout(timeout);
-  }, [error, successMessage]);
+  }, []);
 
   const submit = async () => {
-    const payload: Omit<AdminUserForm, 'year_level'> & { year_level: number | null } = {
+    const payload = {
       ...form,
       year_level: form.year_level ? Number(form.year_level) : null,
     };
-    const statusChanged = editingId
-      ? users.find((user) => user.id === editingId)?.is_active !== payload.is_active
-      : false;
 
     try {
       if (editingId) {
         await adminService.updateUser(editingId, payload);
-        setSuccessMessage(
-          statusChanged
-            ? `User status updated to ${payload.is_active ? 'enabled' : 'disabled'} and changes were saved successfully.`
-            : 'User changes were saved successfully.',
-        );
       } else {
         await adminService.createUser(payload);
-        setSuccessMessage('User account created successfully.');
       }
       setForm(emptyForm);
       setEditingId(null);
-      setFormOpen(false);
       setError(null);
       await load();
     } catch (err: any) {
-      setSuccessMessage(null);
       setError(err.response?.data?.message || 'Failed to save user.');
     }
-  };
-
-  const isStudent = form.role === 'student';
-  const modalVerb = editingId ? 'Edit' : 'Create';
-  const modalRoleLabel = isStudent ? 'Student' : 'Faculty';
-  const modalDescription = isStudent
-    ? 'Update student account details and enrollment information.'
-    : 'Update faculty account details and teaching assignment information.';
-
-  const closeFormModal = () => {
-    setFormOpen(false);
-    setShowPassword(false);
-  };
-
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(emptyForm);
-    setShowPassword(false);
-    setSuccessMessage(null);
-    setFormOpen(true);
   };
 
   return (
     <div className="admin-page">
       <div className="admin-page-intro">
         <div>
+          <span className="admin-kicker">Internal Accounts</span>
           <h1>User Management</h1>
-          <p>Create faculty and student accounts, assign academic placement, and control internal access.</p>
+          <p>Create faculty and student accounts, assign their academic placement, and control access without exposing self-registration.</p>
         </div>
       </div>
 
-      {successMessage ? <div className="admin-success">{successMessage}</div> : null}
       {error ? <div className="admin-alert">{error}</div> : null}
 
-      <section className="admin-panel admin-users-list-panel">
-        <div className="admin-panel-head admin-users-list-head">
-          <div className="admin-users-list-title">
-            <span className="admin-users-list-icon"><Users size={16} /></span>
-            <h3>User List</h3>
-          </div>
-
-          <div className="admin-users-head-actions">
-            <button type="button" className="admin-users-filter-chip active">
-              All
-            </button>
-            <button type="button" className="admin-btn admin-users-create-btn" onClick={openCreate}>
-              <Plus size={15} />
-              <span>Create User</span>
-            </button>
-          </div>
+      <section className="admin-panel">
+        <div className="admin-panel-head">
+          <h3>{editingId ? 'Edit User' : 'Create User'}</h3>
         </div>
+        <div className="admin-form-grid">
+          {[
+            ['first_name', 'First Name'],
+            ['last_name', 'Last Name'],
+            ['suffix', 'Suffix'],
+            ['email', 'Email'],
+            ['temporary_password', editingId ? 'New Password (optional)' : 'Temporary Password'],
+            ['rank', 'Rank'],
+            ['faculty_role', 'Faculty Role'],
+            ['student_id', 'Student ID'],
+            ['faculty_id', 'Faculty ID'],
+            ['section', 'Section Label'],
+            ['year_level', 'Year Level'],
+          ].map(([key, label]) => (
+            <label key={key} className="admin-field">
+              <span>{label}</span>
+              <input
+                type={key === 'temporary_password' ? 'password' : 'text'}
+                value={form[key] ?? ''}
+                onChange={(event) => setForm((current: any) => ({ ...current, [key]: event.target.value }))}
+              />
+            </label>
+          ))}
 
-        <div className="admin-users-toolbar">
-          <label className="admin-users-select admin-users-page-size">
-            <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={30}>30</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
+          <label className="admin-field">
+            <span>Role</span>
+            <select value={form.role} onChange={(event) => setForm((current: any) => ({ ...current, role: event.target.value }))}>
+              <option value="faculty">Faculty</option>
+              <option value="student">Student</option>
             </select>
-            <ChevronDown size={16} />
           </label>
 
-          <label className="admin-users-search">
-            <Search size={15} />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, ID, or email..." />
-          </label>
-
-          <label className="admin-users-select">
-            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as any)}>
-              <option value="name_asc">Name A-Z</option>
-              <option value="name_desc">Name Z-A</option>
-              <option value="college_asc">College A-Z</option>
+          <label className="admin-field">
+            <span>College</span>
+            <select
+              value={form.college_id}
+              onChange={(event) => setForm((current: any) => ({
+                ...current,
+                college_id: event.target.value,
+                department_id: '',
+                program_id: '',
+                section_id: '',
+              }))}
+            >
+              <option value="">Select college</option>
+              {structure.map((college) => <option key={college.id} value={college.id}>{college.name}</option>)}
             </select>
-            <ChevronDown size={16} />
           </label>
 
-          <label className="admin-users-select">
+          <label className="admin-field">
+            <span>Department</span>
+            <select
+              value={form.department_id}
+              onChange={(event) => setForm((current: any) => ({ ...current, department_id: event.target.value, program_id: '', section_id: '' }))}
+            >
+              <option value="">Select department</option>
+              {(selectedCollege?.departments ?? []).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+            </select>
+          </label>
+
+          <label className="admin-field">
+            <span>Program</span>
+            <select
+              value={form.program_id}
+              onChange={(event) => setForm((current: any) => ({ ...current, program_id: event.target.value, section_id: '' }))}
+            >
+              <option value="">Select program</option>
+              {(selectedDepartment?.programs ?? []).map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}
+            </select>
+          </label>
+
+          <label className="admin-field">
+            <span>Section Record</span>
+            <select value={form.section_id} onChange={(event) => setForm((current: any) => ({ ...current, section_id: event.target.value }))}>
+              <option value="">Select section</option>
+              {(selectedProgram?.sections ?? []).map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
+            </select>
+          </label>
+
+          <label className="admin-field admin-field-check">
+            <span>Active Account</span>
+            <input
+              type="checkbox"
+              checked={Boolean(form.is_active)}
+              onChange={(event) => setForm((current: any) => ({ ...current, is_active: event.target.checked }))}
+            />
+          </label>
+        </div>
+        <div className="admin-actions">
+          <button type="button" className="admin-btn admin-btn-primary" onClick={() => void submit()}>
+            {editingId ? 'Update User' : 'Create User'}
+          </button>
+          <button type="button" className="admin-btn" onClick={() => { setForm(emptyForm); setEditingId(null); }}>
+            Clear
+          </button>
+        </div>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-head">
+          <h3>User Directory</h3>
+          <div className="admin-inline-filters">
             <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as any)}>
               <option value="">All Roles</option>
               <option value="faculty">Faculty</option>
               <option value="student">Student</option>
             </select>
-            <ChevronDown size={16} />
-          </label>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email" />
+            <button type="button" className="admin-btn" onClick={() => void load()}>Filter</button>
+          </div>
         </div>
-
         <div className="admin-table-wrap">
-          <table className="admin-table admin-users-table admin-users-table-polished">
+          <table className="admin-table">
             <thead>
               <tr>
-                <th>User</th>
+                <th>Name</th>
                 <th>Role</th>
-                <th>College</th>
-                <th>Department</th>
-                <th>Program</th>
+                <th>Academic Assignment</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedUsers.length > 0 ? paginatedUsers.map((user) => (
+              {users.map((user) => (
                 <tr key={user.id}>
                   <td>
-                    <div className="admin-user-cell">
-                      <span className="admin-user-avatar-chip">{user.name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>
-                      <div>
-                        <strong>{user.name}</strong>
-                        <div>{user.email}</div>
-                      </div>
-                    </div>
+                    <strong>{user.name}</strong>
+                    <div>{user.email}</div>
                   </td>
-                  <td><span className={`admin-role-badge ${user.role}`}>{user.role}</span></td>
-                  <td>{user.college || 'Unassigned'}</td>
-                  <td className="admin-user-assignment">{user.department || 'Unassigned'}</td>
-                  <td>{user.program || 'Unassigned'}</td>
+                  <td>{user.role}</td>
+                  <td>{[user.college, user.department, user.program, user.section].filter(Boolean).join(' / ') || 'Unassigned'}</td>
+                  <td>{user.is_active ? 'Active' : 'Inactive'}</td>
                   <td>
-                    <span className={`admin-status-badge ${user.is_active ? 'approved' : 'rejected'}`}>
-                      {user.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                      <td>
-                        <div className="admin-row-actions">
-                          <button
-                            type="button"
-                            className="admin-btn"
+                    <div className="admin-row-actions">
+                      <button
+                        type="button"
+                        className="admin-btn"
                         onClick={() => {
                           setEditingId(user.id);
                           setForm({
                             ...emptyForm,
-                            role: user.role,
-                            first_name: user.first_name,
-                            last_name: user.last_name,
-                            suffix: user.suffix ?? '',
-                            email: user.email,
-                            faculty_id: user.faculty_id ?? '',
-                            student_id: user.student_id ?? '',
-                            college_id: user.college_id ?? '',
-                            department_id: user.department_id ?? '',
-                            program_id: user.program_id ?? '',
-                            section_id: user.section_id ?? '',
-                            section: user.section ?? '',
-                            department: user.department ?? '',
-                            college: user.college ?? '',
-                            program: user.program ?? '',
-                            faculty_role: user.faculty_role ?? '',
-                            rank: user.rank ?? '',
-                            year_level: user.year_level ?? '',
+                            ...user,
                             temporary_password: '',
                             is_active: user.is_active,
-                              });
-                              setShowPassword(false);
-                              setFormOpen(true);
-                            }}
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </td>
+                          });
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        onClick={() => void adminService.updateUserStatus(user.id, !user.is_active).then(load)}
+                      >
+                        {user.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              )) : (
-                <tr>
-                  <td colSpan={7} className="admin-table-empty">No users matched the current filters.</td>
-                </tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>
-
-        <div className="admin-users-pagination">
-          <p>{`Showing ${sortedUsers.length ? ((currentPage - 1) * pageSize) + 1 : 0} to ${Math.min(currentPage * pageSize, sortedUsers.length)} of ${sortedUsers.length} users`}</p>
-
-          <div className="admin-users-pagination-controls">
-            <button
-              type="button"
-              className="admin-users-page-btn"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-            >
-              ‹
-            </button>
-            {pageNumbers.map((page) => (
-              <button
-                key={page}
-                type="button"
-                className={`admin-users-page-btn ${page === currentPage ? 'active' : ''}`}
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="admin-users-page-btn"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-            >
-              ›
-            </button>
-          </div>
-        </div>
       </section>
-
-      {formOpen ? (
-        <div className="admin-modal-backdrop" onClick={closeFormModal}>
-          <div className="admin-modal-card admin-user-form-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="admin-user-modal-head">
-              <div>
-                <h3>{`${modalVerb} ${modalRoleLabel} User`}</h3>
-                <p>{modalDescription}</p>
-              </div>
-              <button type="button" className="admin-view-all" onClick={closeFormModal}>Close</button>
-            </div>
-
-            <div className="admin-user-role-toggle">
-              <button
-                type="button"
-                className={!isStudent ? 'active' : ''}
-                disabled={Boolean(editingId)}
-                onClick={() => setForm((current: any) => ({ ...current, role: 'faculty' }))}
-              >
-                <User size={16} />
-                <span>Faculty</span>
-              </button>
-              <button
-                type="button"
-                className={isStudent ? 'active' : ''}
-                disabled={Boolean(editingId)}
-                onClick={() => setForm((current: any) => ({ ...current, role: 'student' }))}
-              >
-                <GraduationCap size={16} />
-                <span>Student</span>
-              </button>
-            </div>
-            {editingId ? <p className="admin-user-role-lock-note">Role cannot be changed while editing an existing user.</p> : null}
-
-            <div className="admin-user-form-shell-stacked">
-              <section className="admin-user-form-section">
-                <div className="admin-user-section-head">
-                  <span>Basic Information</span>
-                </div>
-                <div className="admin-form-grid admin-user-form-grid">
-                  <label className="admin-field admin-modal-field">
-                    <span>First Name <em>*</em></span>
-                    <input
-                      type="text"
-                      value={form.first_name ?? ''}
-                      onChange={(event) => setForm((current: any) => ({ ...current, first_name: event.target.value }))}
-                    />
-                  </label>
-                  <label className="admin-field admin-modal-field">
-                    <span>Last Name <em>*</em></span>
-                    <input
-                      type="text"
-                      value={form.last_name ?? ''}
-                      onChange={(event) => setForm((current: any) => ({ ...current, last_name: event.target.value }))}
-                    />
-                  </label>
-                  <label className="admin-field admin-modal-field">
-                    <span>Suffix</span>
-                    <input
-                      type="text"
-                      placeholder="Enter suffix (optional)"
-                      value={form.suffix ?? ''}
-                      onChange={(event) => setForm((current: any) => ({ ...current, suffix: event.target.value }))}
-                    />
-                  </label>
-                  <label className="admin-field admin-modal-field">
-                    <span>Email <em>*</em></span>
-                    <input
-                      type="email"
-                      value={form.email ?? ''}
-                      onChange={(event) => setForm((current: any) => ({ ...current, email: event.target.value }))}
-                    />
-                  </label>
-                </div>
-              </section>
-
-              <section className="admin-user-form-section">
-                <div className="admin-user-section-head">
-                  <span>Account Information</span>
-                </div>
-                <div className="admin-form-grid admin-user-form-grid">
-                  <label className="admin-field admin-modal-field">
-                    <span>{editingId ? 'New Password (optional)' : 'Temporary Password'}</span>
-                    <div className="admin-password-field">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={form.temporary_password ?? ''}
-                        onChange={(event) => setForm((current: any) => ({ ...current, temporary_password: event.target.value }))}
-                      />
-                      <button type="button" onClick={() => setShowPassword((current) => !current)} aria-label="Toggle password visibility">
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                    {editingId ? <small>Leave blank to keep current password</small> : null}
-                  </label>
-
-                  {isStudent ? (
-                    <label className="admin-field admin-modal-field admin-modal-field-compact">
-                      <span>Student ID <em>*</em></span>
-                      <input
-                        type="text"
-                        value={form.student_id ?? ''}
-                        onChange={(event) => setForm((current: any) => ({ ...current, student_id: event.target.value }))}
-                      />
-                    </label>
-                  ) : (
-                    <label className="admin-field admin-modal-field">
-                      <span>Faculty ID <em>*</em></span>
-                      <input
-                        type="text"
-                        value={form.faculty_id ?? ''}
-                        onChange={(event) => setForm((current: any) => ({ ...current, faculty_id: event.target.value }))}
-                      />
-                    </label>
-                  )}
-                </div>
-              </section>
-
-              {isStudent ? (
-                <section className="admin-user-form-section">
-                  <div className="admin-user-section-head">
-                    <span>Student Information</span>
-                  </div>
-                  <div className="admin-form-grid admin-user-form-grid">
-                    <label className="admin-field admin-modal-field">
-                      <span>Year Level <em>*</em></span>
-                      <select
-                        value={form.year_level ?? ''}
-                        onChange={(event) => setForm((current: any) => ({ ...current, year_level: event.target.value }))}
-                      >
-                        <option value="">Select year level</option>
-                        <option value="1">1st Year</option>
-                        <option value="2">2nd Year</option>
-                        <option value="3">3rd Year</option>
-                        <option value="4">4th Year</option>
-                        <option value="5">5th Year</option>
-                      </select>
-                    </label>
-                    <label className="admin-field admin-modal-field">
-                      <span>Section Label</span>
-                      <input
-                        type="text"
-                        value={form.section ?? ''}
-                        onChange={(event) => setForm((current: any) => ({ ...current, section: event.target.value }))}
-                      />
-                    </label>
-                  </div>
-                </section>
-              ) : (
-                <section className="admin-user-form-section">
-                  <div className="admin-user-section-head">
-                    <span>Faculty Information</span>
-                  </div>
-                  <div className="admin-form-grid admin-user-form-grid">
-                    <label className="admin-field admin-modal-field">
-                      <span>Rank</span>
-                      <input
-                        type="text"
-                        value={form.rank ?? ''}
-                        onChange={(event) => setForm((current: any) => ({ ...current, rank: event.target.value }))}
-                      />
-                    </label>
-                    <label className="admin-field admin-modal-field">
-                      <span>Faculty Role</span>
-                      <input
-                        type="text"
-                        value={form.faculty_role ?? ''}
-                        onChange={(event) => setForm((current: any) => ({ ...current, faculty_role: event.target.value }))}
-                      />
-                    </label>
-                  </div>
-                </section>
-              )}
-
-              <section className="admin-user-form-section">
-                <div className="admin-user-section-head">
-                  <span>Academic Information</span>
-                </div>
-                <div className="admin-form-grid admin-user-form-grid">
-                  <label className="admin-field admin-modal-field">
-                    <span>College <em>*</em></span>
-                    <select
-                      value={form.college_id}
-                      onChange={(event) => setForm((current: any) => ({
-                        ...current,
-                        college_id: event.target.value,
-                        department_id: '',
-                        program_id: '',
-                        section_id: '',
-                      }))}
-                    >
-                      <option value="">Select college</option>
-                      {structure.map((college) => <option key={college.id} value={college.id}>{college.name}</option>)}
-                    </select>
-                  </label>
-
-                  <label className="admin-field admin-modal-field">
-                    <span>Department <em>*</em></span>
-                    <select
-                      value={form.department_id}
-                      onChange={(event) => setForm((current: any) => ({ ...current, department_id: event.target.value, program_id: '', section_id: '' }))}
-                    >
-                      <option value="">Select department</option>
-                      {(selectedCollege?.departments ?? []).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-                    </select>
-                  </label>
-
-                  {isStudent ? (
-                    <>
-                      <label className="admin-field admin-modal-field">
-                        <span>Program <em>*</em></span>
-                        <select
-                          value={form.program_id}
-                          onChange={(event) => setForm((current: any) => ({ ...current, program_id: event.target.value, section_id: '' }))}
-                        >
-                          <option value="">Select program</option>
-                          {(selectedDepartment?.programs ?? []).map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}
-                        </select>
-                      </label>
-
-                      <label className="admin-field admin-modal-field">
-                        <span>Section <em>*</em></span>
-                        <select value={form.section_id} onChange={(event) => setForm((current: any) => ({ ...current, section_id: event.target.value }))}>
-                          <option value="">Select section</option>
-                          {(selectedProgram?.sections ?? []).map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
-                        </select>
-                      </label>
-                    </>
-                  ) : (
-                    null
-                  )}
-                </div>
-              </section>
-
-              <section className="admin-user-form-section">
-                <div className="admin-user-section-head">
-                  <span>Account Status</span>
-                </div>
-                <div className="admin-user-status-row">
-                  <span className={form.is_active ? 'muted' : ''}>Disabled</span>
-                  <button
-                    type="button"
-                    className={`admin-status-switch ${form.is_active ? 'active' : ''}`}
-                    onClick={() => setForm((current: any) => ({ ...current, is_active: !current.is_active }))}
-                    aria-label="Toggle account status"
-                  >
-                    <span />
-                  </button>
-                  <span className={form.is_active ? '' : 'muted'}>Enabled</span>
-                </div>
-                <p className="admin-user-status-note">Disabled users cannot log in or access the system.</p>
-              </section>
-            </div>
-
-            <div className="admin-actions">
-              <button
-                type="button"
-                className="admin-btn"
-                onClick={closeFormModal}
-              >
-                Cancel
-              </button>
-              <button type="button" className="admin-btn admin-btn-primary" onClick={() => void submit()}>
-                {editingId ? 'Save Changes' : 'Create User'}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
