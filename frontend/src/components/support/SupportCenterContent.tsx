@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CircleHelp, Clock3, FileUp, KeyRound, LibraryBig, MailCheck, ShieldAlert } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { CircleHelp, Clock3, FileImage, FileUp, KeyRound, LibraryBig, MailCheck, ShieldAlert, X } from 'lucide-react';
 import type { UserRole } from '../../types/user.types';
 import { supportTicketService } from '../../services/supportTicketService';
 
@@ -42,6 +42,7 @@ type Props = {
 };
 
 export default function SupportCenterContent({ initialName, initialEmail, initialCategory = '', initialMessage = '' }: Props) {
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const [form, setForm] = useState({
     full_name: initialName,
     email: initialEmail,
@@ -49,6 +50,7 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
     other_category: initialCategory && !categoryOptions.includes(initialCategory) ? initialCategory : '',
     message: initialMessage,
   });
+  const [attachment, setAttachment] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -65,6 +67,12 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
 
       return { ...current, [field]: value };
     });
+    setSuccessMessage(null);
+    setErrorMessage(null);
+  };
+
+  const handleAttachmentChange = (file: File | null) => {
+    setAttachment(file);
     setSuccessMessage(null);
     setErrorMessage(null);
   };
@@ -96,6 +104,7 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
         email: form.email.trim(),
         category: normalizedCategory,
         message: form.message.trim(),
+        attachment,
       });
 
       setSuccessMessage('Your support ticket has been submitted. The archive support team has been notified.');
@@ -105,6 +114,10 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
         other_category: '',
         message: '',
       }));
+      setAttachment(null);
+      if (attachmentInputRef.current) {
+        attachmentInputRef.current.value = '';
+      }
     } catch (error: unknown) {
       const responseData =
         typeof error === 'object' &&
@@ -216,6 +229,47 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
             <label>
               <span>Describe Your Concern</span>
               <textarea className="vpaa-support-textarea" value={form.message} onChange={(event) => handleChange('message', event.target.value)} placeholder="Briefly describe the issue you're experiencing..." minLength={10} required />
+            </label>
+            <label>
+              <span>Upload Image</span>
+              <input
+                ref={attachmentInputRef}
+                className="vpaa-support-upload-input"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                onChange={(event) => handleAttachmentChange(event.target.files?.[0] ?? null)}
+              />
+              <div className="vpaa-support-upload-card">
+                <button
+                  type="button"
+                  className="vpaa-support-upload-trigger"
+                  onClick={() => attachmentInputRef.current?.click()}
+                >
+                  <FileImage size={16} />
+                  <span>{attachment ? 'Replace image' : 'Choose an image'}</span>
+                </button>
+                <small>Optional. PNG, JPG, WEBP, or GIF up to 5 MB.</small>
+                {attachment ? (
+                  <div className="vpaa-support-upload-preview">
+                    <div>
+                      <strong>{attachment.name}</strong>
+                      <span>{Math.max(1, Math.round(attachment.size / 1024))} KB</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleAttachmentChange(null);
+                        if (attachmentInputRef.current) {
+                          attachmentInputRef.current.value = '';
+                        }
+                      }}
+                      aria-label="Remove selected image"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </label>
             {successMessage ? <p className="vpaa-support-reference-success">{successMessage}</p> : null}
             {errorMessage ? <p className="vpaa-support-reference-error">{errorMessage}</p> : null}

@@ -176,6 +176,8 @@ export type AdminSupportTicketSummary = {
   subject: string;
   category: string;
   message: string;
+  attachment_url?: string | null;
+  attachment_access_url?: string | null;
   status: AdminTicketStatus;
   priority: AdminTicketPriority;
   submitted_at?: string | null;

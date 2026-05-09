@@ -7,8 +7,10 @@ use App\Models\SupportTicketReply;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class SupportTicketController extends Controller
@@ -23,10 +25,14 @@ class SupportTicketController extends Controller
             'subject' => 'nullable|string|max:255',
             'category' => 'required|string|max:255',
             'message' => 'required|string|min:10|max:5000',
+            'attachment' => 'nullable|image|max:5120',
             'priority' => ['nullable', Rule::in(['low', 'medium', 'high'])],
         ]);
 
         $user = $request->user();
+        $uploadedAttachment = $request->hasFile('attachment')
+            ? $this->uploadToSupabase($request->file('attachment'), 'support-tickets')
+            : null;
 
         $ticket = SupportTicket::create([
             'user_id' => $user->id,
@@ -36,6 +42,7 @@ class SupportTicketController extends Controller
             'subject' => trim((string) ($validated['subject'] ?? '')) ?: $validated['category'],
             'category' => $validated['category'],
             'message' => $validated['message'],
+            'attachment_url' => $uploadedAttachment['url'] ?? null,
             'priority' => $validated['priority'] ?? $this->inferPriority($validated['category']),
             'status' => 'open',
         ]);
@@ -258,6 +265,8 @@ class SupportTicketController extends Controller
             'subject' => $ticket->subject ?: $ticket->category,
             'category' => $ticket->category,
             'message' => $ticket->message,
+            'attachment_url' => $ticket->attachment_url,
+            'attachment_access_url' => $ticket->attachment_url ? $this->createSignedSupabaseUrl($ticket->attachment_url) : null,
             'status' => $ticket->status,
             'priority' => $ticket->priority ?: 'medium',
             'submitted_at' => $submittedAt?->toISOString(),
@@ -305,6 +314,88 @@ class SupportTicketController extends Controller
         }
 
         return 'low';
+    }
+
+    private function uploadToSupabase(\Illuminate\Http\UploadedFile $file, string $folder): array
+    {
+        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
+        $serviceKey = (string) config('services.supabase.service_key');
+        $bucket = (string) config('services.supabase.bucket');
+
+        if ($supabaseUrl === '' || $serviceKey === '' || $bucket === '') {
+            throw new \RuntimeException('Supabase storage is not configured.');
+        }
+
+        $path = sprintf(
+            '%s/%s/%s-%s',
+            $folder,
+            now()->format('Y/m'),
+            (string) Str::uuid(),
+            preg_replace('/[^A-Za-z0-9.\-_]/', '-', $file->getClientOriginalName())
+        );
+
+        $contentType = $file->getMimeType() ?: 'application/octet-stream';
+
+        $response = Http::withHeaders([
+            'apikey' => $serviceKey,
+            'Authorization' => 'Bearer ' . $serviceKey,
+            'x-upsert' => 'true',
+            'Content-Type' => $contentType,
+        ])->withBody(file_get_contents($file->getRealPath()), $contentType)
+            ->post("{$supabaseUrl}/storage/v1/object/{$bucket}/{$path}");
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Failed to upload support ticket attachment.');
+        }
+
+        return [
+            'name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'path' => $path,
+            'url' => "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$path}",
+        ];
+    }
+
+    private function createSignedSupabaseUrl(string $url, int $expiresIn = 3600): ?string
+    {
+        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
+        $serviceKey = (string) config('services.supabase.service_key');
+        $bucket = (string) config('services.supabase.bucket');
+
+        if ($supabaseUrl === '' || $serviceKey === '' || $bucket === '') {
+            throw new \RuntimeException('Supabase storage is not configured.');
+        }
+
+        $publicPrefix = "{$supabaseUrl}/storage/v1/object/public/{$bucket}/";
+        $privatePrefix = "{$supabaseUrl}/storage/v1/object/{$bucket}/";
+
+        if (str_starts_with($url, $publicPrefix)) {
+            $path = substr($url, strlen($publicPrefix));
+        } elseif (str_starts_with($url, $privatePrefix)) {
+            $path = substr($url, strlen($privatePrefix));
+        } else {
+            return null;
+        }
+
+        $response = Http::withHeaders([
+            'apikey' => $serviceKey,
+            'Authorization' => 'Bearer ' . $serviceKey,
+        ])->post("{$supabaseUrl}/storage/v1/object/sign/{$bucket}/{$path}", [
+            'expiresIn' => $expiresIn,
+        ]);
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        $signedPath = $response->json('signedURL');
+        if (!is_string($signedPath) || trim($signedPath) === '') {
+            return null;
+        }
+
+        return str_starts_with($signedPath, 'http')
+            ? $signedPath
+            : "{$supabaseUrl}/storage/v1{$signedPath}";
     }
 
     private function statusLabel(?string $status): string
