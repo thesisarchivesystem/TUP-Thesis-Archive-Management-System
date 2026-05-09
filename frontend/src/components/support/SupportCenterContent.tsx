@@ -98,7 +98,7 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
         message: form.message.trim(),
       });
 
-      setSuccessMessage('Your support ticket has been submitted. The VPAA support team has been notified.');
+      setSuccessMessage('Your support ticket has been submitted. The archive support team has been notified.');
       setForm((current) => ({
         ...current,
         category: '',
@@ -140,9 +140,9 @@ export default function SupportCenterContent({ initialName, initialEmail, initia
         <aside className="vpaa-support-reference-contacts">
           <h3>Quick contacts</h3>
           <div className="vpaa-support-reference-contact-list">
-            <div className="vpaa-support-reference-contact-item"><span>Help Desk</span><strong>support@tup-archive.edu</strong></div>
-            <div className="vpaa-support-reference-contact-item"><span>Library</span><strong>library@tup-archive.edu</strong></div>
-            <div className="vpaa-support-reference-contact-item"><span>Ethics</span><strong>ethics@tup-archive.edu</strong></div>
+            <div className="vpaa-support-reference-contact-item"><span>Help Desk</span><strong>support@tup.edu.ph</strong></div>
+            <div className="vpaa-support-reference-contact-item"><span>Library</span><strong>library@tup.edu.ph</strong></div>
+            <div className="vpaa-support-reference-contact-item"><span>Ethics</span><strong>ethics@tup.edu.ph</strong></div>
             <div className="vpaa-support-reference-contact-item"><span>Hours</span><strong>Mon-Fri, 8:00 AM - 6:00 PM</strong></div>
           </div>
         </aside>

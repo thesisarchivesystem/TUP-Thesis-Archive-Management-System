@@ -448,8 +448,8 @@ export default function AdminStructurePage() {
     <div className="admin-page">
       <div className="admin-page-intro">
         <div>
-          <h1>Academic Management</h1>
-          <p>Manage colleges, departments, and courses.</p>
+          <h1>Program Management</h1>
+          <p>Manage colleges, departments, and programs.</p>
         </div>
       </div>
 

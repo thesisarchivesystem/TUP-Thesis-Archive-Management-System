@@ -3,15 +3,14 @@ import { BadgeCheck, Library, SearchCheck } from 'lucide-react';
 const protectionItems = [
   'Verified authorship and academic integrity',
   'Searchable records organized by department and year',
-  'Role-based access control for students, faculty, and VPAA',
+  'Role-based access control for students and faculty',
 ];
 
 const workflowSteps = [
-  'Student submits draft',
+  'Student submits thesis',
   'Adviser reviews & comments',
-  'Panel validates thesis',
-  'Library archives final copy',
-  'Published to archive',
+  'Approved',
+  'Archived',
 ];
 
 const userGroups = [
@@ -26,12 +25,6 @@ const userGroups = [
     title: 'Faculty & Advisers',
     copy: 'Review advisee submissions, provide revision feedback, and monitor progress from proposal to defense.',
     tone: 'faculty',
-  },
-  {
-    code: 'VP',
-    title: 'VPAA',
-    copy: 'Oversee academic workflows, monitor institutional compliance, and support long-term stewardship of approved research records.',
-    tone: 'library',
   },
 ];
 
@@ -53,7 +46,6 @@ export default function AboutArchiveContent() {
             <div className="vpaa-about-reference-tags" aria-label="Supported user groups">
               <span className="student">Students</span>
               <span className="faculty">Faculty &amp; Advisers</span>
-              <span className="library">VPAA</span>
             </div>
           </div>
         </article>

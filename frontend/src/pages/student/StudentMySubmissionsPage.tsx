@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Check, Clock3, Eye, FileCheck2, FileText, MessageCircleMore, PencilLine } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import SharedSubmissionsBoard, { type SubmissionTimelineStep } from '../../components/submissions/SharedSubmissionsBoard';
 import StudentLayout from '../../components/student/StudentLayout';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { messageService } from '../../services/messageService';
@@ -51,14 +52,15 @@ const getStatusLabel = (status: ThesisStatus, isArchived?: boolean) => {
   return 'Under Review';
 };
 
-const getStatusBadgeClass = (status: ThesisStatus) => {
-  if (status === 'approved') return 'student-submission-badge approved';
-  if (status === 'rejected') return 'student-submission-badge revisions';
-  if (status === 'draft') return 'student-submission-badge draft';
+const getStatusBadgeClass = (item: Thesis) => {
+  if (item.status === 'approved' && item.is_archived) return 'student-submission-badge archived';
+  if (item.status === 'approved') return 'student-submission-badge approved';
+  if (item.status === 'rejected') return 'student-submission-badge revisions';
+  if (item.status === 'draft') return 'student-submission-badge draft';
   return 'student-submission-badge review';
 };
 
-const buildProgressSteps = (status: ThesisStatus, isArchived?: boolean) => {
+const buildProgressSteps = (status: ThesisStatus, isArchived?: boolean): SubmissionTimelineStep[] => {
   if (status === 'draft') {
     return [
       { label: 'Submitted', tone: 'pending' },
@@ -101,12 +103,6 @@ const buildProgressSteps = (status: ThesisStatus, isArchived?: boolean) => {
     { label: 'Approved', tone: 'current' },
     { label: 'Archived', tone: 'pending' },
   ];
-};
-
-const getTimelineIcon = (tone: string) => {
-  if (tone === 'done') return <Check size={16} />;
-  if (tone === 'current') return <AlertCircle size={16} />;
-  return <span className="student-submission-timeline-node-dot" />;
 };
 
 const getSubmissionActions = (item: Thesis) => {
@@ -435,6 +431,20 @@ export default function StudentMySubmissionsPage() {
     };
   }, [items]);
 
+  const statCards = [
+    { label: 'Total Submissions', value: stats.total, icon: <FileText size={18} /> },
+    { label: 'Approved', value: stats.approved, icon: <Check size={18} /> },
+    { label: 'Under Review', value: stats.underReview, icon: <Clock3 size={18} /> },
+    { label: 'Revisions Needed', value: stats.revisions, icon: <PencilLine size={18} /> },
+  ];
+
+  const summaryCards = [
+    { label: 'Turnaround Avg.', value: `${summary.turnaround} days`, icon: <Clock3 size={16} /> },
+    { label: 'Faculty Comments', value: summary.panelComments, icon: <MessageCircleMore size={16} /> },
+    { label: 'Files Uploaded', value: summary.filesUploaded, icon: <FileCheck2 size={16} /> },
+    { label: 'Pending Tasks', value: summary.pendingTasks, icon: <Eye size={16} /> },
+  ];
+
   return (
     <StudentLayout
       title="My Submissions"
@@ -442,289 +452,158 @@ export default function StudentMySubmissionsPage() {
     >
       {error ? <div className="vpaa-banner-error">{error}</div> : null}
 
-      <div className="student-submissions-shell">
-        <div className="student-submissions-stats">
-          <article className="student-submissions-stat-card vpaa-card">
-            <div>
-              <span>Total Submissions</span>
-              <strong>{loading ? '--' : stats.total}</strong>
-            </div>
-            <span className="student-submissions-stat-icon phi-maroon"><FileText size={18} /></span>
-          </article>
+      <SharedSubmissionsBoard
+        stats={statCards}
+        filters={FILTERS}
+        activeFilter={activeFilter}
+        onFilterChange={(filter) => setActiveFilter(filter as FilterKey)}
+        newSubmissionTo="/student/upload-thesis"
+        loading={loading}
+        items={visibleItems}
+        emptyMessage="No submissions found for this filter."
+        summaryTitle="Submission Summary"
+        summaryDescription="Snapshot of your research workflow"
+        summaryCards={summaryCards}
+        getStatusLabel={(item) => getStatusLabel(item.status, item.is_archived)}
+        getStatusBadgeClass={getStatusBadgeClass}
+        getMeta={(item) => ({
+          submittedLabel: `${item.status === 'draft' ? 'Draft saved' : 'Submitted'} ${formatSubmissionDate(item.submitted_at || item.created_at)}`,
+          dueLabel: item.status === 'rejected' ? `Due ${formatDueDate(item.revision_due_at)}` : 'No due date set',
+        })}
+        getTimeline={(item) => buildProgressSteps(item.status, item.is_archived)}
+        onViewDetails={handleViewDetails}
+        renderActions={(item) => (
+          <>
+            {item.status === 'approved' ? (
+              <>
+                <button
+                  type="button"
+                  className="student-submissions-secondary"
+                  onClick={() => void handleViewCertificate(item)}
+                  disabled={certificateBusyId === item.id}
+                >
+                  <span className="student-submissions-action-icon"><FileText size={15} /></span>
+                  {certificateBusyId === item.id ? 'Preparing...' : 'View Certificate'}
+                </button>
+                <button
+                  type="button"
+                  className="student-submissions-secondary"
+                  onClick={() => void handleDownloadCertificate(item)}
+                  disabled={certificateBusyId === item.id}
+                >
+                  <span className="student-submissions-action-icon"><FileCheck2 size={15} /></span>
+                  {certificateBusyId === item.id ? 'Preparing...' : 'Download Certificate'}
+                </button>
+                <button
+                  type="button"
+                  className="student-submissions-secondary"
+                  onClick={() => void handleDownloadManuscript(item)}
+                  disabled={downloadingId === item.id}
+                >
+                  <span className="student-submissions-action-icon"><FileText size={15} /></span>
+                  {downloadingId === item.id ? 'Downloading...' : 'Download PDF'}
+                </button>
+              </>
+            ) : null}
+            {(item.status === 'rejected' ? getSubmissionActions(item) : getSubmissionActions(item).slice(1)).map((action) => {
+              if (item.status === 'approved') return null;
 
-          <article className="student-submissions-stat-card vpaa-card">
-            <div>
-              <span>Approved</span>
-              <strong>{loading ? '--' : stats.approved}</strong>
-            </div>
-            <span className="student-submissions-stat-icon phi-green"><Check size={18} /></span>
-          </article>
-
-          <article className="student-submissions-stat-card vpaa-card">
-            <div>
-              <span>Under Review</span>
-              <strong>{loading ? '--' : stats.underReview}</strong>
-            </div>
-            <span className="student-submissions-stat-icon phi-blue"><Clock3 size={18} /></span>
-          </article>
-
-          <article className="student-submissions-stat-card vpaa-card">
-            <div>
-              <span>Revisions Needed</span>
-              <strong>{loading ? '--' : stats.revisions}</strong>
-            </div>
-            <span className="student-submissions-stat-icon phi-terracotta"><PencilLine size={18} /></span>
-          </article>
-        </div>
-
-        <div className="student-submissions-layout">
-          <section className="student-submissions-main">
-            <div className="student-submissions-toolbar">
-              <div className="student-submissions-filters">
-                {FILTERS.map((filter) => (
+              if (action === 'Edit Draft' || action === 'Continue Editing') {
+                return (
                   <button
-                    key={filter.key}
+                    key={action}
                     type="button"
-                    className={`student-submissions-filter${activeFilter === filter.key ? ' active' : ''}`}
-                    onClick={() => setActiveFilter(filter.key)}
+                    className="student-submissions-secondary"
+                    onClick={() => handleEditDraft(item)}
                   >
-                    {filter.label}
+                    <span className="student-submissions-action-icon"><PencilLine size={15} /></span>
+                    {action}
                   </button>
-                ))}
-              </div>
+                );
+              }
 
-              <Link to="/student/upload-thesis" className="student-submissions-primary">New Submission</Link>
-            </div>
-
-            {loading ? (
-              <div className="student-submissions-empty vpaa-card">Loading your submissions...</div>
-            ) : visibleItems.length ? (
-              <div className="student-submissions-list">
-                {visibleItems.map((item) => (
-                  <article
-                    key={item.id}
-                    className={`student-submission-list-card vpaa-card${item.status === 'approved' ? ' student-submission-list-card-approved' : ''}`}
+              if (action === 'Delete Draft') {
+                return (
+                  <button
+                    key={action}
+                    type="button"
+                    className="student-submissions-secondary"
+                    onClick={() => void handleDeleteDraft(item)}
+                    disabled={deletingId === item.id}
                   >
-                    <div className="student-submission-list-head">
-                      <div>
-                        <h3>{item.title}</h3>
-                        <div className="student-submission-meta-strip">
-                          <span><CalendarDays size={14} />{item.status === 'draft' ? 'Draft saved' : 'Submitted'} {formatSubmissionDate(item.submitted_at || item.created_at)}</span>
-                          <span><Clock3 size={14} />{item.status === 'rejected' ? `Due ${formatDueDate(item.revision_due_at)}` : 'No due date set'}</span>
-                        </div>
-                      </div>
-                      <span className={getStatusBadgeClass(item.status)}>{getStatusLabel(item.status, item.is_archived)}</span>
-                    </div>
+                    <span className="student-submissions-action-icon"><PencilLine size={15} /></span>
+                    {deletingId === item.id ? 'Deleting...' : action}
+                  </button>
+                );
+              }
 
-                    <div className="student-submission-timeline">
-                      {buildProgressSteps(item.status, item.is_archived).map((step, index, steps) => (
-                        <div key={step.label} className={`student-submission-timeline-step ${step.tone}`}>
-                          <div className="student-submission-timeline-rail">
-                            <span className="student-submission-timeline-node">
-                              {getTimelineIcon(step.tone)}
-                            </span>
-                            {index < steps.length - 1 ? <span className="student-submission-timeline-line" /> : null}
-                          </div>
-                          <span className="student-submission-timeline-label">{step.label}</span>
-                        </div>
-                      ))}
-                    </div>
+              if (action === 'Message Adviser') {
+                return (
+                  <button
+                    key={action}
+                    type="button"
+                    className="student-submissions-secondary"
+                    onClick={() => void handleMessageAdviser(item)}
+                  >
+                    <span className="student-submissions-action-icon"><MessageCircleMore size={15} /></span>
+                    {action}
+                  </button>
+                );
+              }
 
-                    <div className="student-submission-actions">
-                      <button
-                        type="button"
-                        className="student-submissions-secondary"
-                        onClick={() => handleViewDetails(item)}
-                      >
-                        <CirclePlus size={15} />
-                        View Details
-                      </button>
-                      {item.status === 'approved' ? (
-                        <>
-                          <button
-                            type="button"
-                            className="student-submissions-secondary"
-                            onClick={() => void handleViewCertificate(item)}
-                            disabled={certificateBusyId === item.id}
-                          >
-                            <FileText size={15} />
-                            {certificateBusyId === item.id ? 'Preparing...' : 'View Certificate'}
-                          </button>
-                          <button
-                            type="button"
-                            className="student-submissions-secondary"
-                            onClick={() => void handleDownloadCertificate(item)}
-                            disabled={certificateBusyId === item.id}
-                          >
-                            <FileText size={15} />
-                            {certificateBusyId === item.id ? 'Preparing...' : 'Download Certificate'}
-                          </button>
-                          <button
-                            type="button"
-                            className="student-submissions-secondary"
-                            onClick={() => void handleDownloadManuscript(item)}
-                            disabled={downloadingId === item.id}
-                          >
-                            <CirclePlus size={15} />
-                            {downloadingId === item.id ? 'Downloading...' : 'Download PDF'}
-                          </button>
-                        </>
-                      ) : null}
-                      {(item.status === 'rejected' ? getSubmissionActions(item) : getSubmissionActions(item).slice(1)).map((action) => {
-                        if (item.status === 'approved') return null;
+              if (action === 'Withdraw') {
+                return (
+                  <button
+                    key={action}
+                    type="button"
+                    className="student-submissions-secondary"
+                    onClick={() => void handleWithdrawSubmission(item)}
+                    disabled={deletingId === item.id}
+                  >
+                    <span className="student-submissions-action-icon"><Eye size={15} /></span>
+                    {deletingId === item.id ? 'Withdrawing...' : action}
+                  </button>
+                );
+              }
 
-                        if (action === 'Download PDF') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => void handleDownloadManuscript(item)}
-                              disabled={downloadingId === item.id}
-                            >
-                              <CirclePlus size={15} />
-                              {downloadingId === item.id ? 'Downloading...' : action}
-                            </button>
-                          );
-                        }
+              if (action === 'Make Revision') {
+                const isDisabled = isRevisionPastDue(item.revision_due_at);
 
-                        if (action === 'Edit Draft') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => handleEditDraft(item)}
-                            >
-                              <PencilLine size={15} />
-                              {action}
-                            </button>
-                          );
-                        }
+                return (
+                  <button
+                    key={action}
+                    type="button"
+                    className="student-submissions-secondary"
+                    onClick={() => handleMakeRevision(item)}
+                    aria-disabled={isDisabled}
+                    title={isDisabled ? 'Revision deadline has passed.' : undefined}
+                    style={isDisabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
+                  >
+                    <span className="student-submissions-action-icon"><PencilLine size={15} /></span>
+                    {action}
+                  </button>
+                );
+              }
 
-                        if (action === 'Delete Draft') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => void handleDeleteDraft(item)}
-                              disabled={deletingId === item.id}
-                            >
-                              <PencilLine size={15} />
-                              {deletingId === item.id ? 'Deleting...' : action}
-                            </button>
-                          );
-                        }
+              if (action === 'Extension Request') {
+                return (
+                  <button
+                    key={action}
+                    type="button"
+                    className="student-submissions-secondary"
+                    onClick={() => handleExtensionRequest(item)}
+                  >
+                    <span className="student-submissions-action-icon"><Clock3 size={15} /></span>
+                    {action}
+                  </button>
+                );
+              }
 
-                        if (action === 'Message Adviser') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => void handleMessageAdviser(item)}
-                            >
-                              <CirclePlus size={15} />
-                              {action}
-                            </button>
-                          );
-                        }
-
-                        if (action === 'Withdraw') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => void handleWithdrawSubmission(item)}
-                              disabled={deletingId === item.id}
-                            >
-                              <CirclePlus size={15} />
-                              {deletingId === item.id ? 'Withdrawing...' : action}
-                            </button>
-                          );
-                        }
-
-                        if (action === 'Make Revision') {
-                          const isDisabled = isRevisionPastDue(item.revision_due_at);
-
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => handleMakeRevision(item)}
-                              aria-disabled={isDisabled}
-                              title={isDisabled ? 'Revision deadline has passed.' : undefined}
-                              style={isDisabled ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
-                            >
-                              <PencilLine size={15} />
-                              {action}
-                            </button>
-                          );
-                        }
-
-                        if (action === 'Extension Request') {
-                          return (
-                            <button
-                              key={action}
-                              type="button"
-                              className="student-submissions-secondary"
-                              onClick={() => handleExtensionRequest(item)}
-                            >
-                              <Clock3 size={15} />
-                              {action}
-                            </button>
-                          );
-                        }
-
-                        return (
-                          <button key={action} type="button" className="student-submissions-secondary">
-                            <CirclePlus size={15} />
-                            {action}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="student-submissions-empty vpaa-card">No submissions found for this filter.</div>
-            )}
-          </section>
-
-          <aside className="student-submissions-side vpaa-card submission-accent-panel submissions-summary-panel">
-            <div className="student-submissions-summary-head submissions-summary-head">
-              <div>
-                <h2>Submission Summary</h2>
-                <p>Snapshot of your research workflow</p>
-              </div>
-            </div>
-
-            <div className="student-submissions-summary-grid submission-summary-grid">
-              <div className="student-submissions-summary-box">
-                <span>Turnaround Avg.</span>
-                <strong>{loading ? '--' : `${summary.turnaround} days`}</strong>
-              </div>
-              <div className="student-submissions-summary-box">
-                <span>Faculty Comments</span>
-                <strong>{loading ? '--' : summary.panelComments}</strong>
-              </div>
-              <div className="student-submissions-summary-box">
-                <span>Files Uploaded</span>
-                <strong>{loading ? '--' : summary.filesUploaded}</strong>
-              </div>
-              <div className="student-submissions-summary-box">
-                <span>Pending Tasks</span>
-                <strong>{loading ? '--' : summary.pendingTasks}</strong>
-              </div>
-            </div>
-
-          </aside>
-        </div>
-      </div>
+              return null;
+            })}
+          </>
+        )}
+      />
     </StudentLayout>
   );
 }

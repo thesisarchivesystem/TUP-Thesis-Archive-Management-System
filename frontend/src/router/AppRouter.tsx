@@ -64,6 +64,9 @@ import AdminCategoriesPage from '../pages/admin/AdminCategoriesPage';
 import AdminRecentSubmissionsPage from '../pages/admin/AdminRecentSubmissionsPage';
 import AdminThesisDetailsPage from '../pages/admin/AdminThesisDetailsPage';
 import AdminRecentActivityPage from '../pages/admin/AdminRecentActivityPage';
+import AdminAboutPage from '../pages/admin/AdminAboutPage';
+import AdminSupportPage from '../pages/admin/AdminSupportPage';
+import AdminTermsPage from '../pages/admin/AdminTermsPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -188,6 +191,9 @@ export default function AppRouter() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="structure" element={<AdminStructurePage />} />
             <Route path="categories" element={<AdminCategoriesPage />} />
+            <Route path="about" element={<AdminAboutPage />} />
+            <Route path="support" element={<AdminSupportPage />} />
+            <Route path="terms" element={<AdminTermsPage />} />
             <Route path="*" element={<Navigate to="dashboard" replace />} />
           </Route>
         </Route>

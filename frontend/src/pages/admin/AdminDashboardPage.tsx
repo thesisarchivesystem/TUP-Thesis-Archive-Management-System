@@ -15,7 +15,7 @@ export default function AdminDashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialYear = Number(searchParams.get('year')) || new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(initialYear);
-  const [openYearMenu, setOpenYearMenu] = useState<'submissions' | 'departments' | null>(null);
+  const [openYearMenu, setOpenYearMenu] = useState<'submissions' | 'courses' | null>(null);
   const [openActionMenu, setOpenActionMenu] = useState<ThesisActionMenuState>(null);
   const [activeSubmission, setActiveSubmission] = useState<AdminDashboardResponse['recent_uploads'][number] | null>(null);
   const [copiedSubmissionId, setCopiedSubmissionId] = useState<string | null>(null);
@@ -104,7 +104,8 @@ export default function AdminDashboardPage() {
   const underReview = data.dashboard_metrics.under_review;
   const revisionsNeeded = data.dashboard_metrics.revisions_needed;
   const maxMonthlyValue = Math.max(...data.monthly_submissions.map((item) => item.value), 1);
-  const maxDepartmentValue = Math.max(...data.department_uploads.map((item) => item.value), 1);
+  const courseUploads = data.course_uploads ?? data.department_uploads ?? [];
+  const maxCourseValue = Math.max(...courseUploads.map((item) => item.value), 1);
 
   const statCards = [
     { label: 'Total Theses', value: totalTheses.toLocaleString(), note: `${data.dashboard_metrics.monthly_growth_percentage >= 0 ? '+' : ''}${data.dashboard_metrics.monthly_growth_percentage}% this month`, icon: FileText, tone: 'rose' },
@@ -227,20 +228,20 @@ export default function AdminDashboardPage() {
 
         <section className="admin-panel admin-chart-panel">
           <div className="admin-panel-head">
-            <h3>Department-wise Uploads</h3>
+            <h3>Course-wise Uploads</h3>
             <div className="admin-menu-wrap">
               <button
                 type="button"
                 className="admin-filter-pill"
                 onClick={(event) => {
                   event.stopPropagation();
-                  setOpenYearMenu((current) => current === 'departments' ? null : 'departments');
+                  setOpenYearMenu((current) => current === 'courses' ? null : 'courses');
                 }}
               >
                 <span>{selectedYear}</span>
                 <ChevronDown size={14} />
               </button>
-              <div className={`admin-year-menu ${openYearMenu === 'departments' ? 'open' : ''}`}>
+              <div className={`admin-year-menu ${openYearMenu === 'courses' ? 'open' : ''}`}>
                 {data.available_years.map((year) => (
                   <button
                     key={year}
@@ -258,11 +259,11 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="admin-bar-chart">
-            {data.department_uploads.map((item) => (
+            {courseUploads.map((item) => (
               <button key={`${item.label}-${item.name}`} type="button" className="admin-bar-column" title={item.name}>
                 <strong>{item.value}</strong>
                 <div className="admin-bar-rail">
-                  <div className="admin-bar-fill" style={{ height: `${Math.max((item.value / maxDepartmentValue) * 100, 18)}%` }} />
+                  <div className="admin-bar-fill" style={{ height: `${Math.max((item.value / maxCourseValue) * 100, 18)}%` }} />
                 </div>
                 <span>{item.label}</span>
               </button>
