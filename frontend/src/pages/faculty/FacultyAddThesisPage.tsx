@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft,
   BookOpenText,
   ClipboardList,
   FileText,
@@ -14,7 +13,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import axios from 'axios';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { AdminStructureCollege } from '../../services/adminService';
 import { academicStructureService } from '../../services/academicStructureService';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
@@ -481,13 +480,6 @@ export default function FacultyAddThesisPage() {
       </div>
 
       <div className="student-upload-shell">
-        <div className="student-upload-topbar">
-          <Link to="/faculty/dashboard" className="app-back-link">
-            <ArrowLeft size={16} />
-            <span>Back to VPAA Dashboard</span>
-          </Link>
-        </div>
-
         <section className="student-upload-main vpaa-card">
           <div className="student-upload-section-copy">
             <div className="student-upload-title-badge">
