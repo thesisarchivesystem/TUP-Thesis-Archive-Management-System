@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, Paperclip } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import SectionLoadingScreen from '../SectionLoadingScreen';
 import { useAuth } from '../../hooks/useAuth';
 import { getAblyClient } from '../../hooks/useAbly';
 import { useChatChannel } from '../../hooks/useChatChannel';
@@ -211,7 +210,7 @@ export default function SharedMessagesView() {
   const [activeContactId, setActiveContactId] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(true);
-  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [, setLoadingConversations] = useState(true);
   const [startingConversationId, setStartingConversationId] = useState<string | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [syncingMessages, setSyncingMessages] = useState(false);
@@ -437,7 +436,6 @@ export default function SharedMessagesView() {
 
   const canCompose = Boolean(activeConversationId || activeRecipientId);
   const canSend = Boolean((messageInput.trim() || selectedAttachment) && activeRecipientId && !sending && !startingConversationId);
-  const initialLoading = loadingContacts || loadingConversations;
 
   const activeHeaderName = activeConversationView?.contact?.name || activeRecipient?.name || 'Select a conversation';
   const activeHeaderEmail = activeConversationView?.contact?.email || activeRecipient?.email || 'Choose a user to start chatting';
@@ -713,10 +711,7 @@ export default function SharedMessagesView() {
 
   return (
     <>
-      {initialLoading ? (
-        <SectionLoadingScreen label="Loading messages..." />
-      ) : (
-        <section className={`vpaa-messages-shell${detailsOpen ? ' details-open' : ''}`}>
+      <section className={`vpaa-messages-shell${detailsOpen ? ' details-open' : ''}`}>
           <aside className="vpaa-contacts-panel">
           <input
             className="vpaa-panel-search"
@@ -986,7 +981,6 @@ export default function SharedMessagesView() {
             </div>
           </aside>
         </section>
-      )}
 
       {error && !error.includes('status code 500') ? <div className="vpaa-message-error">{error}</div> : null}
     </>

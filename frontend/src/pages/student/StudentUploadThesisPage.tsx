@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowLeft,
   BookOpenText,
   ClipboardList,
   FileText,
@@ -14,7 +13,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import axios from 'axios';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import StudentLayout from '../../components/student/StudentLayout';
 import type { AdminStructureCollege } from '../../services/adminService';
 import { academicStructureService } from '../../services/academicStructureService';
@@ -494,13 +493,6 @@ export default function StudentUploadThesisPage() {
       {!draftLoaded ? <div className="vpaa-card">Loading thesis...</div> : null}
 
       <div className="student-upload-shell" style={{ display: draftLoaded ? undefined : 'none' }}>
-        <div className="student-upload-topbar">
-          <Link to="/student/dashboard" className="app-back-link">
-            <ArrowLeft size={16} />
-            <span>Back to VPAA Dashboard</span>
-          </Link>
-        </div>
-
         <section className="student-upload-main vpaa-card">
           <div className="student-upload-section-copy">
             <div className="student-upload-title-badge">
