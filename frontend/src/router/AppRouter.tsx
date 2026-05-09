@@ -67,6 +67,7 @@ import AdminRecentActivityPage from '../pages/admin/AdminRecentActivityPage';
 import AdminAboutPage from '../pages/admin/AdminAboutPage';
 import AdminSupportPage from '../pages/admin/AdminSupportPage';
 import AdminTermsPage from '../pages/admin/AdminTermsPage';
+import AdminTicketsPage from '../pages/admin/AdminTicketsPage';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -191,6 +192,7 @@ export default function AppRouter() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="structure" element={<AdminStructurePage />} />
             <Route path="categories" element={<AdminCategoriesPage />} />
+            <Route path="tickets" element={<AdminTicketsPage />} />
             <Route path="about" element={<AdminAboutPage />} />
             <Route path="support" element={<AdminSupportPage />} />
             <Route path="terms" element={<AdminTermsPage />} />

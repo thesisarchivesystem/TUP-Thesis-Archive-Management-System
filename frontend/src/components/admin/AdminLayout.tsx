@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, BookOpenText, Building2, CalendarDays, Clock3, FolderTree, LayoutDashboard, LogOut, Menu, MoonStar, Search, SunMedium, Users } from 'lucide-react';
+import { Bell, BookOpenText, Building2, CalendarDays, Clock3, FolderTree, LayoutDashboard, LifeBuoy, LogOut, Menu, MoonStar, Search, SunMedium, Users } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -15,6 +15,7 @@ const mainNavItems = [
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/structure', label: 'Program', icon: Building2 },
   { to: '/admin/categories', label: 'Categories', icon: FolderTree },
+  { to: '/admin/tickets', label: 'Tickets', icon: LifeBuoy },
 ];
 
 const formatTime = (date: Date) =>

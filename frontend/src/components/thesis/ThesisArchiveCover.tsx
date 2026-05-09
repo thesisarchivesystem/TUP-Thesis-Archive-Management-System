@@ -40,7 +40,7 @@ export default function ThesisArchiveCover({
   className = '',
   compact = false,
 }: ThesisArchiveCoverProps) {
-  const visibleCategories = categories.filter((category) => category?.name).slice(0, 5);
+  const visibleCategories = categories.filter((category) => category?.name).slice(0, 1);
   const authorLine = formatAuthorLine(author, authors);
   const selectedThemeId = useBookThemeStore((state) => state.themeId);
   const customColor = useBookThemeStore((state) => state.customColor);
