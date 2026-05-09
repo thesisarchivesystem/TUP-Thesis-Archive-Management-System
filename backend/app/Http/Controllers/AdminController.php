@@ -47,19 +47,27 @@ class AdminController extends Controller
             })
             ->values();
 
-        $departmentUploads = Thesis::query()
-            ->select('department')
+        $courseUploads = Thesis::query()
+            ->selectRaw("COALESCE(NULLIF(course, ''), NULLIF(program, '')) as course_name")
             ->selectRaw('COUNT(*) as total')
             ->whereYear('created_at', $selectedYear)
-            ->whereNotNull('department')
-            ->where('department', '!=', '')
-            ->groupBy('department')
+            ->where(function ($query) {
+                $query
+                    ->whereNotNull('course')
+                    ->where('course', '!=', '')
+                    ->orWhere(function ($fallbackQuery) {
+                        $fallbackQuery
+                            ->whereNotNull('program')
+                            ->where('program', '!=', '');
+                    });
+            })
+            ->groupBy(DB::raw("COALESCE(NULLIF(course, ''), NULLIF(program, ''))"))
             ->orderByDesc('total')
             ->limit(7)
             ->get()
             ->map(fn ($row) => [
-                'label' => $this->departmentShortCode((string) $row->department),
-                'name' => (string) $row->department,
+                'label' => $this->courseUploadLabel((string) $row->course_name),
+                'name' => (string) $row->course_name,
                 'value' => (int) $row->total,
             ])
             ->values();
@@ -155,7 +163,8 @@ class AdminController extends Controller
                 'available_years' => collect(range($now->year, $minYear, -1))->values(),
                 'selected_year' => $selectedYear,
                 'monthly_submissions' => $monthlySubmissions,
-                'department_uploads' => $departmentUploads,
+                'course_uploads' => $courseUploads,
+                'department_uploads' => $courseUploads,
                 'recent_uploads' => $recentUploads,
                 'recent_activity' => $recentActivity,
                 'system_statistics' => [
@@ -168,20 +177,27 @@ class AdminController extends Controller
         ]);
     }
 
-    private function departmentShortCode(string $department): string
+    private function courseUploadLabel(string $course): string
     {
-        $words = collect(preg_split('/[\s\-]+/', trim($department)) ?: [])
-            ->filter(fn (?string $word) => filled($word) && !in_array(strtolower((string) $word), ['of', 'and', 'department'], true))
-            ->values();
-
-        if ($words->isEmpty()) {
-            return str($department)->upper()->substr(0, 3)->toString();
+        $normalized = trim($course);
+        if ($normalized === '') {
+            return 'N/A';
         }
 
-        return $words
-            ->take(4)
-            ->map(fn (string $word) => strtoupper(substr($word, 0, 1)))
-            ->implode('');
+        $program = Program::query()
+            ->where('name', $normalized)
+            ->orWhere('code', $normalized)
+            ->first(['code']);
+
+        if (filled($program?->code)) {
+            return (string) $program->code;
+        }
+
+        if (preg_match('/\b(BS|MS|PhD|BA|BFA)[A-Z0-9\-]*\b/i', $normalized, $matches) === 1) {
+            return strtoupper($matches[0]);
+        }
+
+        return $normalized;
     }
 
     private function formatAdminActivityTitle(ActivityLog $log): string
@@ -351,14 +367,20 @@ class AdminController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
         $isActive = $this->normalizeBooleanInput($validated['is_active'] ?? null, true);
+        $categoryId = (string) Str::uuid();
 
-        $category = Category::create([
+        Category::query()->insert([
+            'id' => $categoryId,
             'name' => $validated['name'],
             'slug' => Str::slug($validated['slug']),
             'description' => $validated['description'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
-            'is_active' => $isActive,
+            'is_active' => DB::raw($isActive ? 'true' : 'false'),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
+
+        $category = Category::query()->findOrFail($categoryId);
 
         return response()->json(['data' => $category], 201);
     }

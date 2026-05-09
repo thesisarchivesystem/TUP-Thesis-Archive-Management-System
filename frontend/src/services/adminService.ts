@@ -15,7 +15,12 @@ export type AdminDashboardResponse = {
     month: string;
     value: number;
   }>;
-  department_uploads: Array<{
+  course_uploads: Array<{
+    label: string;
+    name: string;
+    value: number;
+  }>;
+  department_uploads?: Array<{
     label: string;
     name: string;
     value: number;

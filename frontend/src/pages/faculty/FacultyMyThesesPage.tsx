@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CalendarDays, Check, CirclePlus, Clock3, FileText, PencilLine } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Archive, Check, Clock3, FileCheck2, FileText, PencilLine } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import SharedSubmissionsBoard, { type SubmissionTimelineStep } from '../../components/submissions/SharedSubmissionsBoard';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { facultyThesisService } from '../../services/facultyThesisService';
 import { thesisService } from '../../services/thesisService';
-import type { Thesis, ThesisStatus } from '../../types/thesis.types';
+import type { Thesis } from '../../types/thesis.types';
 
 const formatSubmissionDate = (value?: string) => {
   if (!value) return 'Recently saved';
@@ -28,14 +29,15 @@ const getStatusLabel = (item: Thesis) => {
   return 'Under Review';
 };
 
-const getStatusBadgeClass = (status: ThesisStatus) => {
-  if (status === 'approved') return 'student-submission-badge approved';
-  if (status === 'rejected') return 'student-submission-badge revisions';
-  if (status === 'draft') return 'student-submission-badge draft';
+const getStatusBadgeClass = (item: Thesis) => {
+  if (item.status === 'approved' && item.is_archived) return 'student-submission-badge archived';
+  if (item.status === 'approved') return 'student-submission-badge approved';
+  if (item.status === 'rejected') return 'student-submission-badge revisions';
+  if (item.status === 'draft') return 'student-submission-badge draft';
   return 'student-submission-badge review';
 };
 
-const buildProgressSteps = (item: Thesis) => {
+const buildProgressSteps = (item: Thesis): SubmissionTimelineStep[] => {
   if (item.status === 'draft') {
     return [
       { label: 'Submitted', tone: 'pending' },
@@ -87,12 +89,6 @@ const buildProgressSteps = (item: Thesis) => {
     { label: 'Approved', tone: 'current' },
     { label: 'Archived', tone: 'pending' },
   ];
-};
-
-const getTimelineIcon = (tone: string) => {
-  if (tone === 'done') return <Check size={16} />;
-  if (tone === 'current') return <AlertCircle size={16} />;
-  return <span className="student-submission-timeline-node-dot" />;
 };
 
 type FilterKey = 'all' | 'approved' | 'under_review' | 'rejected' | 'draft';
@@ -296,6 +292,20 @@ export default function FacultyMyThesesPage() {
     };
   }, [items]);
 
+  const statCards = [
+    { label: 'Total Submissions', value: stats.total, icon: <FileText size={18} /> },
+    { label: 'Approved', value: stats.approved, icon: <Check size={18} /> },
+    { label: 'Under Review', value: items.filter((item) => item.status === 'pending' || item.status === 'under_review').length, icon: <Clock3 size={18} /> },
+    { label: 'Revisions Needed', value: items.filter((item) => item.status === 'rejected').length, icon: <PencilLine size={18} /> },
+  ];
+
+  const summaryCards = [
+    { label: 'Ready to Archive', value: summary.readyToArchive, icon: <Archive size={16} /> },
+    { label: 'Archived', value: summary.archived, icon: <Check size={16} /> },
+    { label: 'Files Uploaded', value: summary.filesUploaded, icon: <FileCheck2 size={16} /> },
+    { label: 'Pending Tasks', value: summary.pendingTasks, icon: <Clock3 size={16} /> },
+  ];
+
   return (
     <FacultyLayout
       title="My Submissions"
@@ -304,188 +314,80 @@ export default function FacultyMyThesesPage() {
       {success ? <div className="vpaa-banner-success">{success}</div> : null}
       {error ? <div className="vpaa-banner-error">{error}</div> : null}
 
-      <div className="student-submissions-shell">
-        <div className="student-submissions-stats">
-          <article className="student-submissions-stat-card vpaa-card">
-            <div>
-              <span>Total Submissions</span>
-              <strong>{loading ? '--' : stats.total}</strong>
-            </div>
-            <span className="student-submissions-stat-icon phi-maroon"><FileText size={18} /></span>
-          </article>
+      <SharedSubmissionsBoard
+        stats={statCards}
+        filters={FILTERS}
+        activeFilter={activeFilter}
+        onFilterChange={(filter) => setActiveFilter(filter as FilterKey)}
+        newSubmissionTo="/faculty/manage-thesis/add"
+        loading={loading}
+        items={visibleItems}
+        emptyMessage="No submissions found for this filter."
+        summaryTitle="Submission Summary"
+        summaryDescription="Snapshot of your faculty researchworkflow"
+        summaryCards={summaryCards}
+        getStatusLabel={getStatusLabel}
+        getStatusBadgeClass={getStatusBadgeClass}
+        getMeta={(item) => ({
+          submittedLabel: `${item.status === 'draft'
+            ? 'Draft saved'
+            : item.status === 'approved' && item.is_archived
+              ? 'Archived'
+              : 'Submitted'} ${formatSubmissionDate(item.archived_at || item.approved_at || item.submitted_at || item.created_at)}`,
+          dueLabel: item.revision_due_at ? `Due ${formatSubmissionDate(item.revision_due_at)}` : 'No due date set',
+        })}
+        getTimeline={buildProgressSteps}
+        onViewDetails={handleViewDetails}
+        renderActions={(item) => (
+          <>
+            {item.status === 'draft' ? (
+              <>
+                <button
+                  type="button"
+                  className="student-submissions-secondary"
+                  onClick={() => handleEditDraft(item)}
+                >
+                  <span className="student-submissions-action-icon"><PencilLine size={15} /></span>
+                  Edit Draft
+                </button>
+                <button
+                  type="button"
+                  className="student-submissions-secondary"
+                  onClick={() => void handleDeleteDraft(item)}
+                  disabled={deletingId === item.id}
+                >
+                  <span className="student-submissions-action-icon"><PencilLine size={15} /></span>
+                  {deletingId === item.id ? 'Deleting...' : 'Delete Draft'}
+                </button>
+              </>
+            ) : null}
 
-          <article className="student-submissions-stat-card vpaa-card">
-            <div>
-              <span>Archived</span>
-              <strong>{loading ? '--' : stats.archived}</strong>
-            </div>
-            <span className="student-submissions-stat-icon phi-green"><Check size={18} /></span>
-          </article>
+            {item.status === 'approved' ? (
+              <button
+                type="button"
+                className="student-submissions-secondary"
+                onClick={() => void handleDownloadManuscript(item)}
+                disabled={downloadingId === item.id}
+              >
+                <span className="student-submissions-action-icon"><FileText size={15} /></span>
+                {downloadingId === item.id ? 'Downloading...' : 'Download PDF'}
+              </button>
+            ) : null}
 
-          <article className="student-submissions-stat-card vpaa-card">
-            <div>
-              <span>Approved</span>
-              <strong>{loading ? '--' : stats.approved}</strong>
-            </div>
-            <span className="student-submissions-stat-icon phi-blue"><Clock3 size={18} /></span>
-          </article>
-
-          <article className="student-submissions-stat-card vpaa-card">
-            <div>
-              <span>Drafts</span>
-              <strong>{loading ? '--' : stats.drafts}</strong>
-            </div>
-            <span className="student-submissions-stat-icon phi-terracotta"><PencilLine size={18} /></span>
-          </article>
-        </div>
-
-        <div className="student-submissions-layout">
-          <section className="student-submissions-main">
-            <div className="student-submissions-toolbar">
-              <div className="student-submissions-filters">
-                {FILTERS.map((filter) => (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    className={`student-submissions-filter${activeFilter === filter.key ? ' active' : ''}`}
-                    onClick={() => setActiveFilter(filter.key)}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-
-              <Link to="/faculty/manage-thesis/add" className="student-submissions-primary">New Submission</Link>
-            </div>
-
-            {loading ? (
-              <div className="student-submissions-empty vpaa-card">Loading your submissions...</div>
-            ) : visibleItems.length ? (
-              <div className="student-submissions-list">
-                {visibleItems.map((item) => (
-                  <article key={item.id} className="student-submission-list-card vpaa-card">
-                    <div className="student-submission-list-head">
-                      <div>
-                        <h3>{item.title}</h3>
-                        <div className="student-submission-meta-strip">
-                          <span><CalendarDays size={14} />{item.status === 'draft'
-                            ? 'Draft saved'
-                            : item.status === 'approved' && item.is_archived
-                              ? 'Archived'
-                              : 'Submitted'} {formatSubmissionDate(item.archived_at || item.approved_at || item.submitted_at || item.created_at)}</span>
-                          <span><Clock3 size={14} />{item.revision_due_at ? `Due ${formatSubmissionDate(item.revision_due_at)}` : 'No due date set'}</span>
-                        </div>
-                      </div>
-                      <span className={getStatusBadgeClass(item.status)}>{getStatusLabel(item)}</span>
-                    </div>
-
-                    <div className="student-submission-timeline">
-                      {buildProgressSteps(item).map((step, index, steps) => (
-                        <div key={step.label} className={`student-submission-timeline-step ${step.tone}`}>
-                          <div className="student-submission-timeline-rail">
-                            <span className="student-submission-timeline-node">
-                              {getTimelineIcon(step.tone)}
-                            </span>
-                            {index < steps.length - 1 ? <span className="student-submission-timeline-line" /> : null}
-                          </div>
-                          <span className="student-submission-timeline-label">{step.label}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="student-submission-actions">
-                      <button
-                        type="button"
-                        className="student-submissions-secondary"
-                        onClick={() => handleViewDetails(item)}
-                      >
-                        <CirclePlus size={15} />
-                        View Details
-                      </button>
-
-                      {item.status === 'draft' ? (
-                        <>
-                          <button
-                            type="button"
-                            className="student-submissions-secondary"
-                            onClick={() => handleEditDraft(item)}
-                          >
-                            <PencilLine size={15} />
-                            Edit Draft
-                          </button>
-                          <button
-                            type="button"
-                            className="student-submissions-secondary"
-                            onClick={() => void handleDeleteDraft(item)}
-                            disabled={deletingId === item.id}
-                          >
-                            <PencilLine size={15} />
-                            {deletingId === item.id ? 'Deleting...' : 'Delete Draft'}
-                          </button>
-                        </>
-                      ) : null}
-
-                      {item.status === 'approved' ? (
-                        <button
-                          type="button"
-                          className="student-submissions-secondary"
-                          onClick={() => void handleDownloadManuscript(item)}
-                          disabled={downloadingId === item.id}
-                        >
-                          <CirclePlus size={15} />
-                          {downloadingId === item.id ? 'Downloading...' : 'Download PDF'}
-                        </button>
-                      ) : null}
-
-                      {item.status === 'approved' && !item.is_archived ? (
-                        <button
-                          type="button"
-                          className="student-submissions-primary"
-                          onClick={() => void handleArchive(item)}
-                          disabled={archivingId === item.id}
-                        >
-                          <Check size={15} />
-                          {archivingId === item.id ? 'Archiving...' : 'Archive Thesis'}
-                        </button>
-                      ) : null}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="student-submissions-empty vpaa-card">No submissions found for this filter.</div>
-            )}
-          </section>
-
-          <aside className="student-submissions-side vpaa-card submission-accent-panel submissions-summary-panel">
-            <div className="student-submissions-summary-head submissions-summary-head">
-              <div>
-                <h2>Submission Summary</h2>
-                <p>Snapshot of your faculty archive workflow</p>
-              </div>
-            </div>
-
-            <div className="student-submissions-summary-grid submission-summary-grid">
-              <div className="student-submissions-summary-box">
-                <span>Ready to Archive</span>
-                <strong>{loading ? '--' : summary.readyToArchive}</strong>
-              </div>
-              <div className="student-submissions-summary-box">
-                <span>Archived</span>
-                <strong>{loading ? '--' : summary.archived}</strong>
-              </div>
-              <div className="student-submissions-summary-box">
-                <span>Files Uploaded</span>
-                <strong>{loading ? '--' : summary.filesUploaded}</strong>
-              </div>
-              <div className="student-submissions-summary-box">
-                <span>Pending Tasks</span>
-                <strong>{loading ? '--' : summary.pendingTasks}</strong>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </div>
+            {item.status === 'approved' && !item.is_archived ? (
+              <button
+                type="button"
+                className="student-submissions-primary"
+                onClick={() => void handleArchive(item)}
+                disabled={archivingId === item.id}
+              >
+                <span className="student-submissions-action-icon"><Archive size={15} /></span>
+                {archivingId === item.id ? 'Archiving...' : 'Archive Thesis'}
+              </button>
+            ) : null}
+          </>
+        )}
+      />
     </FacultyLayout>
   );
 }

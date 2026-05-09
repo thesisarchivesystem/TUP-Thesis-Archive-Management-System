@@ -100,22 +100,6 @@ export default function TermsAndConditionsContent() {
           </article>
         ))}
       </section>
-
-      <section className="vpaa-terms-reference-footer">
-        <div className="vpaa-terms-reference-footer-copy">
-          <div className="vpaa-terms-reference-footer-icon">
-            <ShieldCheck size={16} />
-          </div>
-          <div>
-            <strong>You are currently bound by these terms</strong>
-            <p>Continued use of the Thesis Archive constitutes acceptance of all policies above. Last reviewed: February 7, 2026.</p>
-          </div>
-        </div>
-        <div className="vpaa-terms-reference-actions">
-          <button type="button" className="vpaa-terms-reference-secondary">Download PDF</button>
-          <button type="button" className="vpaa-terms-reference-primary">Contact Support</button>
-        </div>
-      </section>
     </div>
   );
 }

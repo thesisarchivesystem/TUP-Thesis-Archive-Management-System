@@ -13,7 +13,7 @@ const mainNavItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/submissions', label: 'Thesis', icon: BookOpenText },
   { to: '/admin/users', label: 'Users', icon: Users },
-  { to: '/admin/structure', label: 'Academic', icon: Building2 },
+  { to: '/admin/structure', label: 'Program', icon: Building2 },
   { to: '/admin/categories', label: 'Categories', icon: FolderTree },
 ];
 
@@ -150,9 +150,9 @@ export default function AdminLayout() {
         </nav>
 
         <div className="vpaa-sidebar-footer">
-          <NavLink to="/admin/dashboard">About</NavLink>
-          <NavLink to="/admin/dashboard">Support</NavLink>
-          <NavLink to="/admin/dashboard">Terms & Conditions</NavLink>
+          <NavLink to="/admin/about">About</NavLink>
+          <NavLink to="/admin/support">Support</NavLink>
+          <NavLink to="/admin/terms">Terms & Conditions</NavLink>
         </div>
       </aside>
 
