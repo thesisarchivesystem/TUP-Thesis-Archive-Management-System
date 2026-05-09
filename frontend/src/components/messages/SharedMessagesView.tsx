@@ -127,13 +127,13 @@ const getOtherParticipantId = (conversation: Conversation, currentUserId?: strin
 
 const formatRoleLabel = (role?: User['role']) => {
   if (!role) return 'User';
-  return role === 'vpaa' ? 'VPAA' : role.charAt(0).toUpperCase() + role.slice(1);
+  return role.charAt(0).toUpperCase() + role.slice(1);
 };
 
 const getAvatarToneClass = (role?: User['role']) => {
   if (role === 'student') return 'student';
   if (role === 'faculty') return 'faculty';
-  return 'vpaa';
+  return 'admin';
 };
 
 const getAttachmentLabel = (url?: string) => {

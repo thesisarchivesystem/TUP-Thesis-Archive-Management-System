@@ -197,7 +197,6 @@ export default function FacultyDashboard() {
               <div className="vpaa-cover-strip-label">My Favorites</div>
               <div className="vpaa-cover-strip-content">
                 <div className="vpaa-cover-strip-head">
-                  <div className="vpaa-cover-strip-title">My Favorites</div>
                   {favoriteTheses.length > 4 ? (
                     <button
                       type="button"

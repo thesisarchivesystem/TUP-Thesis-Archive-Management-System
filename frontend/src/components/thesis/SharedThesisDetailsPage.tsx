@@ -9,7 +9,7 @@ import { createWatermarkedThesisPdfBlob, getWatermarkedPdfFileName } from '../..
 import ThesisArchiveCover from './ThesisArchiveCover';
 
 type SharedThesisDetailsPageProps = {
-  role: 'vpaa' | 'faculty' | 'student' | 'admin';
+  role: 'faculty' | 'student' | 'admin';
   title: string;
   description: string;
   backTo: string;

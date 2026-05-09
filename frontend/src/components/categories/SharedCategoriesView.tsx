@@ -3,14 +3,14 @@ import { Blocks, Brain, ChevronRight, Cpu, Database, Globe, Shield, Smartphone, 
 import { Link } from 'react-router-dom';
 import SectionLoadingScreen from '../SectionLoadingScreen';
 import ThesisArchiveCover from '../thesis/ThesisArchiveCover';
-import { vpaaCategoriesService, type VpaaCategory } from '../../services/vpaaCategoriesService';
+import { archiveCategoriesService, type ArchiveCategory } from '../../services/archiveCategoriesService';
 import type { UserRole } from '../../types/user.types';
 
 const categoryIcons = [Globe, Brain, Shield, Cpu, Database, Users2, Smartphone, Blocks];
 
 const formatDocumentCount = (count: number) => `${count}+ document${count === 1 ? '' : 's'}`;
 
-const isSharedLibraryRecord = (thesis: VpaaCategory['theses'][number]) => {
+const isSharedLibraryRecord = (thesis: ArchiveCategory['theses'][number]) => {
   const normalizedType = (thesis.resource_type ?? thesis.type ?? '').trim().toLowerCase();
   const hasShareScope = Boolean((thesis.share_scope ?? '').trim());
   return hasShareScope || normalizedType === 'book';
@@ -28,8 +28,8 @@ interface SharedCategoriesViewProps {
 }
 
 export default function SharedCategoriesView({ role = null }: SharedCategoriesViewProps) {
-  const [categories, setCategories] = useState<VpaaCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<VpaaCategory | null>(null);
+  const [categories, setCategories] = useState<ArchiveCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<ArchiveCategory | null>(null);
   const [selectedSlug, setSelectedSlug] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,7 +44,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
   useEffect(() => {
     let isMounted = true;
 
-    void vpaaCategoriesService.list(role, { includeTheses: false })
+    void archiveCategoriesService.list(role === 'admin' ? null : role, { includeTheses: false })
       .then((response) => {
         if (!isMounted) return;
         setCategories(response);
@@ -73,7 +73,7 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
     let isMounted = true;
     setError('');
 
-    void vpaaCategoriesService.list(role, { slug: selectedSlug, thesisLimit: 9, includeTheses: true })
+    void archiveCategoriesService.list(role === 'admin' ? null : role, { slug: selectedSlug, thesisLimit: 9, includeTheses: true })
       .then((response) => {
         if (!isMounted) return;
         setSelectedCategory(response[0] ?? null);
@@ -117,10 +117,10 @@ export default function SharedCategoriesView({ role = null }: SharedCategoriesVi
     [visibleCategories],
   );
 
-  const thesisBasePath = role === 'vpaa' ? '/vpaa/theses' : role === 'faculty' ? '/faculty/theses' : '/student/theses';
-  const categoriesBasePath = role === 'vpaa' ? '/vpaa/categories' : role === 'faculty' ? '/faculty/categories' : '/student/categories';
+  const thesisBasePath = role === 'faculty' ? '/faculty/theses' : '/student/theses';
+  const categoriesBasePath = role === 'faculty' ? '/faculty/categories' : '/student/categories';
 
-  const thesisHref = (thesis: VpaaCategory['theses'][number]) => `${thesisBasePath}/${encodeURIComponent(thesis.id)}`;
+  const thesisHref = (thesis: ArchiveCategory['theses'][number]) => `${thesisBasePath}/${encodeURIComponent(thesis.id)}`;
 
   useEffect(() => {
     if (!selectedSlug) return;

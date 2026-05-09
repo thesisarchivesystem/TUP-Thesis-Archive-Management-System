@@ -200,7 +200,6 @@ const categories = [
 const accessRoles = [
   { label: 'Student', path: '/sign-in/student' },
   { label: 'Faculty', path: '/sign-in/faculty' },
-  { label: 'VPAA', path: '/sign-in/vpaa' },
 ];
 
 type ChatMessage = {

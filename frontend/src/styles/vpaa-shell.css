@@ -2051,9 +2051,15 @@
 
 .student-upload-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.95fr);
+  grid-template-columns: minmax(0, 1.58fr) minmax(320px, 0.95fr);
   gap: 24px;
   align-items: start;
+}
+
+.student-upload-topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
 }
 
 .student-upload-main,
@@ -2061,6 +2067,16 @@
   border-radius: 24px;
   min-width: 0;
   box-sizing: border-box;
+}
+
+.student-upload-main {
+  border: 1px solid color-mix(in srgb, var(--maroon) 10%, var(--border));
+  background:
+    radial-gradient(circle at top center, rgba(var(--book-theme-accent-rgb), 0.08), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 97%, white 3%), var(--bg-card));
+  box-shadow:
+    0 18px 40px rgba(var(--book-theme-accent-rgb), 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .student-upload-form,
@@ -2071,6 +2087,10 @@
 }
 
 .student-upload-section-copy {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
   margin-bottom: 18px;
 }
 
@@ -2082,9 +2102,8 @@
 }
 
 .student-upload-section-copy h2 {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  font-size: 18px;
+  color: color-mix(in srgb, var(--text-primary) 88%, var(--maroon) 12%);
 }
 
 .student-upload-section-copy p,
@@ -2092,6 +2111,20 @@
 .student-upload-note,
 .student-upload-field small {
   color: var(--text-secondary);
+}
+
+.student-upload-title-badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.1), rgba(var(--book-theme-accent-rgb), 0.04)),
+    var(--bg-card);
+  color: var(--maroon);
+  box-shadow: 0 12px 28px rgba(var(--book-theme-accent-rgb), 0.1);
 }
 
 .student-upload-grid {
@@ -2124,6 +2157,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  color: color-mix(in srgb, var(--text-primary) 88%, var(--maroon) 12%);
 }
 
 .student-upload-field input,
@@ -2131,28 +2165,29 @@
 .student-upload-field textarea,
 .student-upload-file-label {
   width: 100%;
-  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.14);
+  border: 1px solid color-mix(in srgb, var(--maroon) 10%, var(--border));
   border-radius: 16px;
-  background: var(--bg-card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, white 2%), var(--bg-card));
   color: var(--text-primary);
-  padding: 10px 12px;
+  padding: 12px 14px;
   font: inherit;
   font-size: 14px;
 }
 
 .student-upload-field textarea {
   resize: vertical;
-  min-height: 104px;
+  min-height: 120px;
 }
 
 .student-upload-year-select {
   appearance: auto;
   min-height: 46px;
-  border-radius: 20px !important;
-  padding: 10px 18px !important;
-  font-size: 16px !important;
+  border-radius: 16px !important;
+  padding: 12px 14px !important;
+  font-size: 14px !important;
   line-height: 1.2;
-  background: #fff;
+  background: transparent;
 }
 
 .student-upload-year-select option {
@@ -2277,10 +2312,10 @@
   min-height: 40px;
   padding: 6px 12px 6px 6px;
   border-radius: 999px;
-  border: 1px solid rgba(229, 133, 32, 0.3);
-  background: linear-gradient(180deg, #fff2dc, #ffe4b8);
-  color: #8a4708;
-  box-shadow: 0 8px 20px rgba(229, 133, 32, 0.14);
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.18);
+  background: linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.1), rgba(var(--book-theme-accent-rgb), 0.05));
+  color: var(--text-primary);
+  box-shadow: 0 8px 20px rgba(var(--book-theme-accent-rgb), 0.08);
 }
 
 .student-upload-author-avatar {
@@ -2291,7 +2326,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #f29a2f 0%, #d96812 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 76%, white 24%) 0%, color-mix(in srgb, var(--terracotta) 78%, var(--maroon) 22%) 100%);
   color: #fffdf8;
   font-size: 11px;
   font-weight: 800;
@@ -2302,7 +2337,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1.35;
-  color: #8a4708;
+  color: var(--text-primary);
 }
 
 .student-upload-adviser-chip {
@@ -2312,10 +2347,10 @@
   min-height: 40px;
   padding: 6px 12px 6px 6px;
   border-radius: 999px;
-  border: 1px solid rgba(209, 66, 148, 0.24);
-  background: linear-gradient(180deg, #fff4fb, #ffe8f6);
-  color: #b12f7c;
-  box-shadow: 0 8px 20px rgba(209, 66, 148, 0.14);
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.18);
+  background: linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.08), rgba(var(--book-theme-accent-rgb), 0.03));
+  color: var(--maroon);
+  box-shadow: 0 8px 20px rgba(var(--book-theme-accent-rgb), 0.1);
 }
 
 .student-upload-adviser-avatar {
@@ -2326,7 +2361,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #ef6bac 0%, #c81f76 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--maroon) 50%, white 50%) 0%, var(--maroon) 100%);
   color: #fff8fc;
   font-size: 11px;
   font-weight: 800;
@@ -2337,7 +2372,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1.35;
-  color: #b12f7c;
+  color: var(--maroon);
 }
 
 .student-upload-adviser-remove {
@@ -2377,9 +2412,9 @@
   gap: 12px;
   min-height: 52px;
   padding: 14px 16px;
-  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.12);
-  border-radius: 18px;
-  background: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--maroon) 10%, var(--border));
+  border-radius: 16px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, white 2%), var(--bg-card));
   cursor: pointer;
   list-style: none;
 }
@@ -2416,9 +2451,9 @@
   max-height: 220px;
   overflow-y: auto;
   padding: 14px 16px;
-  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.12);
+  border: 1px solid color-mix(in srgb, var(--maroon) 10%, var(--border));
   border-radius: 18px;
-  background: var(--bg-card);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, white 2%), var(--bg-card));
   box-shadow: 0 16px 32px rgba(34, 20, 24, 0.12);
 }
 
@@ -2501,11 +2536,100 @@
   color: var(--text-tertiary);
 }
 
+.student-upload-file-stack {
+  display: grid;
+  gap: 0;
+  border: 1px dashed rgba(var(--book-theme-accent-rgb), 0.18);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.035), rgba(var(--book-theme-accent-rgb), 0.015)),
+    color-mix(in srgb, var(--bg-card) 98%, white 2%);
+  overflow: hidden;
+}
+
 .student-upload-file-row {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
   align-items: center;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.student-upload-file-row + .student-upload-file-row {
+  border-top: 1px dashed rgba(var(--book-theme-accent-rgb), 0.14);
+}
+
+.student-upload-file-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.student-upload-file-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.1), rgba(var(--book-theme-accent-rgb), 0.04));
+  color: var(--maroon);
+  flex: 0 0 auto;
+}
+
+.student-upload-file-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-upload-file-copy strong {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.student-upload-file-copy strong span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.student-upload-file-copy small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.student-upload-file-label {
+  min-width: 160px;
+  text-align: right;
+  color: var(--text-secondary);
+  font-size: 13px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.student-upload-side {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.student-upload-side-card {
+  padding: 0;
+}
+
+.student-upload-status-card {
+  overflow: hidden;
+}
+
+.student-upload-file-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: min(100%, 420px);
 }
 
 .student-upload-file-actions {
@@ -2517,8 +2641,9 @@
 .student-upload-file-btn,
 .student-upload-primary,
 .student-upload-secondary {
-  border-radius: 16px;
-  padding: 9px 13px;
+  border-radius: 14px;
+  min-height: 46px;
+  padding: 11px 18px;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -2533,9 +2658,18 @@
 
 .student-upload-file-btn,
 .student-upload-secondary {
-  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.14);
-  background: var(--bg-card);
-  color: var(--text-primary);
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.2);
+  background: color-mix(in srgb, var(--bg-card) 98%, white 2%);
+  color: var(--maroon);
+}
+
+.student-upload-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 148px;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(var(--book-theme-accent-rgb), 0.08);
 }
 
 .student-upload-file-remove {
@@ -2558,8 +2692,11 @@
 
 .student-upload-primary {
   border: 0;
-  background: var(--maroon);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--maroon) 88%, white 12%), var(--maroon-dark));
   color: white;
+  min-width: min(100%, 336px);
+  justify-content: center;
+  box-shadow: 0 14px 30px rgba(var(--book-theme-accent-rgb), 0.18);
 }
 
 .student-upload-file-btn:hover,
@@ -2592,8 +2729,10 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-weight: 600;
-  font-size: 12px;
+  padding: 4px 0;
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--text-primary);
 }
 
 .student-upload-check input {
@@ -2610,8 +2749,30 @@
 
 .student-upload-actions {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.student-upload-actions .student-upload-secondary,
+.student-upload-actions .student-upload-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-upload-actions .student-upload-secondary {
+  border-radius: 16px;
+  min-width: 148px;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(var(--book-theme-accent-rgb), 0.06);
+}
+
+.student-upload-actions .student-upload-primary {
+  border-radius: 16px;
+  padding-left: 26px;
+  padding-right: 26px;
 }
 
 .shared-file-draft-actions {
@@ -2657,7 +2818,7 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin: 14px 16px 16px;
 }
 
 .student-upload-chip {
@@ -2672,10 +2833,11 @@
 }
 
 .student-upload-status {
-  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.1);
-  border-radius: 20px;
+  border: 0;
+  border-radius: 0;
   padding: 18px 16px;
-  margin-bottom: 18px;
+  margin-bottom: 0;
+  background: transparent;
 }
 
 .student-upload-status ul {
@@ -2683,28 +2845,42 @@
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 12px;
+  gap: 18px;
 }
 
 .student-upload-status li {
-  position: relative;
-  padding-left: 22px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding-left: 0;
   font-size: 13px;
+  line-height: 1.6;
 }
 
-.student-upload-status li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 8px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: #d1a13a;
+.student-upload-status-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.08), rgba(var(--book-theme-accent-rgb), 0.03));
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.12);
+  color: color-mix(in srgb, var(--maroon) 82%, white 18%);
+  flex: 0 0 auto;
 }
 
-.student-upload-status li.is-complete::before {
-  background: #4c9a55;
+.student-upload-status h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(var(--book-theme-accent-rgb), 0.1);
+}
+
+.student-upload-status li strong {
+  color: var(--text-primary);
 }
 
 .student-upload-note {
@@ -2724,8 +2900,10 @@
 }
 
 .theme-dark .student-upload-main,
-.theme-dark .student-upload-side {
-  background: #2b2127;
+.theme-dark .student-upload-side .thesis-details-side-card {
+  background:
+    radial-gradient(circle at top center, rgba(var(--book-theme-accent-rgb), 0.12), transparent 42%),
+    linear-gradient(180deg, #2b2127, #241c22);
   border-color: rgba(200, 160, 170, 0.12);
   box-shadow: none;
 }
@@ -2745,6 +2923,15 @@
   color: #f0e4e6;
 }
 
+.theme-dark .student-upload-file-row {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.theme-dark .student-upload-file-label {
+  background: transparent;
+  color: #c8b2b7;
+}
+
 .theme-dark .student-upload-field input::placeholder,
 .theme-dark .student-upload-field textarea::placeholder {
   color: #8e757a;
@@ -2761,10 +2948,26 @@
   background: rgba(var(--book-theme-accent-rgb), 0.18);
 }
 
+.theme-dark .student-upload-author-pill,
 .theme-dark .student-upload-adviser-chip {
   border-color: rgba(200, 160, 170, 0.14);
   background: rgba(47, 36, 43, 0.96);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .student-upload-author-name {
+  color: #f0e4e6;
+}
+
+.theme-dark .student-upload-title-badge,
+.theme-dark .student-upload-file-icon,
+.theme-dark .student-upload-status-icon {
+  background: linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.18), rgba(var(--book-theme-accent-rgb), 0.08));
+}
+
+.theme-dark .student-upload-status-icon {
+  color: color-mix(in srgb, var(--maroon) 34%, white 66%);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.2);
 }
 
 .theme-dark .student-upload-adviser-remove {
@@ -2812,6 +3015,13 @@
 .theme-dark .student-upload-chip {
   background: rgba(var(--book-theme-accent-rgb), 0.12);
   color: color-mix(in srgb, var(--maroon) 42%, white 58%);
+}
+
+.theme-dark .student-upload-file-stack {
+  background:
+    linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.08), rgba(var(--book-theme-accent-rgb), 0.03)),
+    #2f242b;
+  border-color: rgba(200, 160, 170, 0.16);
 }
 
 .theme-dark .student-upload-file-remove {
@@ -4394,6 +4604,14 @@
   overflow: hidden;
 }
 
+.student-upload-status-card .student-upload-status {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 18px 16px;
+  overflow: visible;
+}
+
 .submission-accent-panel .student-upload-status h3 {
   margin: 0 0 10px;
   font-family: 'DM Serif Display', serif;
@@ -5349,6 +5567,11 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   background: rgba(42, 32, 40, 0.9);
   border-color: rgba(200, 160, 170, 0.12);
   box-shadow: none;
+}
+
+.theme-dark .student-upload-status-card .student-upload-status {
+  background: transparent;
+  border-color: transparent;
 }
 
 .theme-dark .submission-accent-panel .student-upload-chip {
@@ -11043,6 +11266,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   .vpaa-hero-row,
   .faculty-submission-details-grid,
   .student-submissions-layout,
+  .student-upload-shell,
   .student-recent-layout,
   .vpaa-messages-shell,
   .vpaa-category-browser,
@@ -11056,6 +11280,16 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   .student-submissions-side {
     position: static;
     top: auto;
+  }
+
+  .student-upload-file-row,
+  .student-upload-file-side {
+    grid-template-columns: 1fr;
+  }
+
+  .student-upload-file-side {
+    display: grid;
+    min-width: 0;
   }
 }
 
@@ -11236,6 +11470,31 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   .student-submission-hero-title-row {
     flex-direction: column;
     align-items: stretch;
+  }
+  .student-upload-section-copy {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+  .student-upload-title-badge {
+    width: 48px;
+    height: 48px;
+  }
+  .student-upload-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-upload-file-meta {
+    align-items: flex-start;
+  }
+  .student-upload-actions,
+  .student-upload-file-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .student-upload-primary,
+  .student-upload-secondary,
+  .student-upload-file-btn {
+    width: 100%;
+    justify-content: center;
   }
   .thesis-favorite-button {
     align-self: flex-start;

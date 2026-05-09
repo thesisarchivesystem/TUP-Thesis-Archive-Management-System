@@ -66,12 +66,6 @@ class NotificationController extends Controller
                 'student.created',
                 'student.updated',
             ],
-            'vpaa' => [
-                'new_message',
-                'faculty.created',
-                'faculty.updated',
-                'faculty.role_changed',
-            ],
             default => ['new_message'],
         };
     }

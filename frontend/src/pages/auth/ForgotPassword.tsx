@@ -681,7 +681,7 @@ export default function ForgotPassword() {
                   <MailIcon />
                 </div>
               </div>
-              <div className="forgot-hint">The email must already belong to your student, faculty, or VPAA account in this system.</div>
+              <div className="forgot-hint">The email must already belong to your student, faculty, or admin account in this system.</div>
             </div>
 
             <button className="forgot-submit" type="submit" disabled={!identifier.trim() || isSubmitting}>
@@ -693,7 +693,7 @@ export default function ForgotPassword() {
             <div className="forgot-divider">Sign Back In</div>
             <p className="forgot-signin-copy">Remembered your password?</p>
             <div className="forgot-signin-links">
-              Sign in as <Link to="/sign-in/student">Student</Link>, <Link to="/sign-in/faculty">Faculty</Link>, or <Link to="/sign-in/vpaa">VPAA</Link>
+              Sign in as <Link to="/sign-in/student">Student</Link> or <Link to="/sign-in/faculty">Faculty</Link>
             </div>
           </div>
 

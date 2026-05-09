@@ -16,7 +16,6 @@ export function getNotificationNavigationTarget(
   const thesisId = asString(notification.data?.thesis_id);
   const conversationId = asString(notification.data?.conversation_id);
   const messageId = asString(notification.data?.message_id);
-  const facultyUserId = asString(notification.data?.faculty_user_id);
   const studentUserId = asString(notification.data?.student_user_id);
   const extensionRequestId = asString(notification.data?.extension_request_id);
 
@@ -67,19 +66,6 @@ export function getNotificationNavigationTarget(
           ? `/faculty/manage-thesis/extension-requests/${encodeURIComponent(extensionRequestId)}`
           : '/faculty/manage-thesis/review',
         state: { extensionRequestId, thesisId },
-      };
-    }
-  }
-
-  if (role === 'vpaa') {
-    if (
-      notification.type === 'faculty.created'
-      || notification.type === 'faculty.updated'
-      || notification.type === 'faculty.role_changed'
-    ) {
-      return {
-        path: '/vpaa/my-advisees',
-        state: { facultyUserId },
       };
     }
   }

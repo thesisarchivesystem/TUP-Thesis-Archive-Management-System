@@ -1,36 +1,29 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\AblyTokenController;
-use App\Http\Controllers\VpaaController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AiChatbotController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\ExtensionRequestController;
 use App\Http\Controllers\FacultyController;
-use App\Http\Controllers\StudentController;
-use App\Http\Controllers\ThesisController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SearchController;
-use App\Http\Controllers\AiChatbotController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\ExtensionRequestController;
+use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SupportTicketController;
+use App\Http\Controllers\ThesisController;
 use Illuminate\Support\Facades\Route;
 
-// ── Public ──────────────────────────────────────────────────
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/ai/chat', [AiChatbotController::class, 'chat'])->middleware('throttle:20,1');
 
-// ── Authenticated ────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
-
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
-
-    // Ably token endpoint (frontend requests this after login)
     Route::get('/ably/token', [AblyTokenController::class, 'issue']);
 
-    // Shared
     Route::get('/search', [SearchController::class, 'search']);
     Route::get('/search/filter-options', [SearchController::class, 'filterOptions']);
     Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
@@ -48,26 +41,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/extension-requests', [ExtensionRequestController::class, 'store']);
     Route::get('/academic-structure', [AdminController::class, 'structure']);
 
-    // Thesis (shared for all roles)
     Route::apiResource('thesis', ThesisController::class);
     Route::post('/thesis/{id}/submit', [ThesisController::class, 'submit']);
     Route::get('/thesis/{id}/manuscript', [ThesisController::class, 'manuscript']);
 
-    // ── VPAA ───────────────────────────────────────────────
-    Route::middleware('role:vpaa')->prefix('vpaa')->group(function () {
-        Route::get('/dashboard', [VpaaController::class, 'dashboard']);
-        Route::get('/profile', [VpaaController::class, 'profile']);
-        Route::put('/profile', [VpaaController::class, 'updateProfile']);
-        Route::get('/categories', [VpaaController::class, 'categories']);
-        Route::get('/activity-log', [VpaaController::class, 'activityLog']);
-        Route::get('/daily-quote', [VpaaController::class, 'dailyQuote']);
-        Route::get('/structure', [AdminController::class, 'structure']);
-        Route::apiResource('faculty', FacultyController::class);
-        Route::patch('/faculty/{id}/status', [FacultyController::class, 'updateStatus']);
-        Route::get('/faculty/export', [FacultyController::class, 'export']);
-    });
-
-    // ── Faculty ────────────────────────────────────────────
     Route::middleware('role:faculty')->prefix('faculty')->group(function () {
         Route::get('/dashboard', [FacultyController::class, 'dashboard']);
         Route::get('/profile', [FacultyController::class, 'profile']);
@@ -98,7 +75,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/extension-requests/{id}', [ExtensionRequestController::class, 'decide']);
     });
 
-    // ── Student ────────────────────────────────────────────
     Route::middleware('role:student')->prefix('student')->group(function () {
         Route::get('/dashboard', [StudentController::class, 'dashboard']);
         Route::get('/profile', [StudentController::class, 'profile']);

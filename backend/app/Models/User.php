@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -60,11 +60,6 @@ class User extends Authenticatable
     public function student(): HasOne
     {
         return $this->hasOne(StudentProfile::class, 'user_id');
-    }
-
-    public function vpaaProfile(): HasOne
-    {
-        return $this->hasOne(VpaaProfile::class, 'user_id');
     }
 
     public function theses(): HasMany

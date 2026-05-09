@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import SectionLoadingScreen from '../SectionLoadingScreen';
 import ThesisArchiveCover from '../thesis/ThesisArchiveCover';
-import { vpaaCategoriesService } from '../../services/vpaaCategoriesService';
+import { archiveCategoriesService } from '../../services/archiveCategoriesService';
 import type { UserRole } from '../../types/user.types';
 import DashboardCollectionPageHeader from '../dashboard/DashboardCollectionPageHeader';
 
@@ -18,7 +18,7 @@ export default function SharedCategoryDetailView({ role }: Props) {
   const { slug = '' } = useParams();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [category, setCategory] = useState<Awaited<ReturnType<typeof vpaaCategoriesService.list>>[number] | null>(null);
+  const [category, setCategory] = useState<Awaited<ReturnType<typeof archiveCategoriesService.list>>[number] | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -26,7 +26,7 @@ export default function SharedCategoryDetailView({ role }: Props) {
     setIsLoading(true);
     setError('');
 
-    void vpaaCategoriesService.list(role, { slug, allTheses: true })
+    void archiveCategoriesService.list(role, { slug, allTheses: true })
       .then((response) => {
         if (!isMounted) return;
         setCategory(response.find((item) => item.slug === slug) ?? null);
@@ -44,7 +44,7 @@ export default function SharedCategoryDetailView({ role }: Props) {
     };
   }, [role, slug]);
 
-  const thesisBasePath = role === 'vpaa' ? '/vpaa/theses' : role === 'faculty' ? '/faculty/theses' : '/student/theses';
+  const thesisBasePath = role === 'faculty' ? '/faculty/theses' : '/student/theses';
   const theses = useMemo(() => (category?.theses ?? []).slice().sort((left, right) =>
     left.title.localeCompare(right.title, undefined, { sensitivity: 'base' })), [category]);
 

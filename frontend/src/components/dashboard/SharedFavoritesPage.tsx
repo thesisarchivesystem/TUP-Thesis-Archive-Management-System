@@ -13,7 +13,6 @@ type SharedFavoritesPageProps = {
 const thesisBasePathByRole: Record<FavoriteRole, string> = {
   student: '/student/theses',
   faculty: '/faculty/theses',
-  vpaa: '/vpaa/theses',
   admin: '/admin/theses',
 };
 

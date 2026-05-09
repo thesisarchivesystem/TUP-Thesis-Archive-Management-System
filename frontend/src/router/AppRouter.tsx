@@ -7,23 +7,11 @@ import { authService } from '../services/authService';
 // Pages
 import Homepage from '../pages/public/Homepage';
 // Auth pages
-import VpaaSignIn from '../pages/auth/VpaaSignIn';
 import FacultySignIn from '../pages/auth/FacultySignIn';
 import StudentSignIn from '../pages/auth/StudentSignIn';
 import AdminSignIn from '../pages/auth/AdminSignIn';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import ResetPassword from '../pages/auth/ResetPassword';
-// Dashboard pages
-import VpaaDashboard from '../pages/vpaa/VpaaDashboard';
-import VpaaCategoriesPage from '../pages/vpaa/VpaaCategoriesPage';
-import VpaaActivityLogPage from '../pages/vpaa/VpaaActivityLogPage';
-import VpaaMessagesPage from '../pages/vpaa/VpaaMessagesPage';
-import VpaaAdviseesPage from '../pages/vpaa/VpaaAdviseesPage';
-import VpaaAboutPage from '../pages/vpaa/VpaaAboutPage';
-import VpaaSupportPage from '../pages/vpaa/VpaaSupportPage';
-import VpaaTermsPage from '../pages/vpaa/VpaaTermsPage';
-import VpaaProfilePage from '../pages/vpaa/VpaaProfilePage';
-import VpaaThesisDetailsPage from '../pages/vpaa/VpaaThesisDetailsPage';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import FacultyCategoriesPage from '../pages/faculty/FacultyCategoriesPage';
 import FacultyMessagesPage from '../pages/faculty/FacultyMessagesPage';
@@ -58,7 +46,6 @@ import StudentUploadThesisPage from '../pages/student/StudentUploadThesisPage';
 import StudentExtensionRequestPage from '../pages/student/StudentExtensionRequestPage';
 import StudentProfilePage from '../pages/student/StudentProfilePage';
 import StudentThesisDetailsPage from '../pages/student/StudentThesisDetailsPage';
-import VpaaSearchResultsPage from '../pages/vpaa/VpaaSearchResultsPage';
 import StudentRecentlyAddedPage from '../pages/student/StudentRecentlyAddedPage';
 import StudentTopSearchesPage from '../pages/student/StudentTopSearchesPage';
 import StudentAllThesesPage from '../pages/student/StudentAllThesesPage';
@@ -67,13 +54,8 @@ import FacultyRecentlyAddedPage from '../pages/faculty/FacultyRecentlyAddedPage'
 import FacultyTopSearchesPage from '../pages/faculty/FacultyTopSearchesPage';
 import FacultyAllThesesPage from '../pages/faculty/FacultyAllThesesPage';
 import FacultyFavoritesPage from '../pages/faculty/FacultyFavoritesPage';
-import VpaaRecentlyAddedPage from '../pages/vpaa/VpaaRecentlyAddedPage';
-import VpaaTopSearchesPage from '../pages/vpaa/VpaaTopSearchesPage';
-import VpaaAllThesesPage from '../pages/vpaa/VpaaAllThesesPage';
-import VpaaFavoritesPage from '../pages/vpaa/VpaaFavoritesPage';
 import StudentCategoryDetailPage from '../pages/student/StudentCategoryDetailPage';
 import FacultyCategoryDetailPage from '../pages/faculty/FacultyCategoryDetailPage';
-import VpaaCategoryDetailPage from '../pages/vpaa/VpaaCategoryDetailPage';
 import AdminLayout from '../components/admin/AdminLayout';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
@@ -130,36 +112,11 @@ export default function AppRouter() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Homepage />} />
-        <Route path="/sign-in/vpaa" element={<VpaaSignIn />} />
         <Route path="/sign-in/faculty" element={<FacultySignIn />} />
         <Route path="/sign-in/student" element={<StudentSignIn />} />
         <Route path="/admin/login" element={<AdminSignIn />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-
-        {/* Protected Routes - VPAA */}
-        <Route path="/vpaa" element={<ProtectedRoute allowedRoles={['vpaa']} />}>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<VpaaDashboard />} />
-          <Route path="dashboard/recently-added" element={<VpaaRecentlyAddedPage />} />
-          <Route path="dashboard/top-searches" element={<VpaaTopSearchesPage />} />
-          <Route path="dashboard/all" element={<VpaaAllThesesPage />} />
-          <Route path="dashboard/favorites" element={<VpaaFavoritesPage />} />
-          <Route path="categories" element={<VpaaCategoriesPage />} />
-          <Route path="categories/:slug" element={<VpaaCategoryDetailPage />} />
-          <Route path="search" element={<VpaaSearchResultsPage />} />
-          <Route path="thesis/:id" element={<VpaaThesisDetailsPage />} />
-          <Route path="theses/:id" element={<VpaaThesisDetailsPage />} />
-          <Route path="activity-log" element={<VpaaActivityLogPage />} />
-          <Route path="messages" element={<VpaaMessagesPage />} />
-          <Route path="my-advisees" element={<VpaaAdviseesPage />} />
-          <Route path="about" element={<VpaaAboutPage />} />
-          <Route path="support" element={<VpaaSupportPage />} />
-          <Route path="terms" element={<VpaaTermsPage />} />
-          <Route path="profile" element={<VpaaProfilePage />} />
-          <Route path="faculty" element={<Navigate to="/vpaa/my-advisees" replace />} />
-          <Route path="*" element={<Navigate to="dashboard" replace />} />
-        </Route>
 
         {/* Protected Routes - Faculty */}
         <Route path="/faculty" element={<ProtectedRoute allowedRoles={['faculty']} />}>

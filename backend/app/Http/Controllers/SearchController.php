@@ -225,8 +225,7 @@ class SearchController extends Controller
 
                 match ($actor->role) {
                     'student' => $queryBuilder->whereIn('role', ['student', 'faculty']),
-                    'faculty' => $queryBuilder->whereIn('role', ['faculty', 'student', 'vpaa']),
-                    'vpaa' => $queryBuilder->where('role', 'faculty'),
+                    'faculty' => $queryBuilder->whereIn('role', ['faculty', 'student']),
                     default => $queryBuilder->whereRaw('1 = 0'),
                 };
             })
@@ -284,7 +283,6 @@ class SearchController extends Controller
 
         return $users->map(function (User $user) use ($thesisContributions, $approvedContributions, $sharedFileContributions, $recentTheses, $recentSharedFiles) {
             $roleLabel = match ($user->role) {
-                'vpaa' => 'VPAA',
                 'faculty' => $user->faculty?->faculty_role ?: 'Faculty',
                 'student' => 'Student',
                 default => ucfirst($user->role),

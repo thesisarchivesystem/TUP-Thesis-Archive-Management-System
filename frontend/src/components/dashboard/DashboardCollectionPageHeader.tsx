@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type DashboardCollectionPageHeaderProps = {
-  role: 'student' | 'faculty' | 'vpaa' | 'admin';
+  role: 'student' | 'faculty' | 'admin';
   title: string;
   description: string;
 };
@@ -17,9 +17,7 @@ export default function DashboardCollectionPageHeader({
     ? 'Student Dashboard'
     : role === 'faculty'
       ? 'Faculty Dashboard'
-      : role === 'admin'
-        ? 'Admin Dashboard'
-        : 'VPAA Dashboard';
+      : 'Admin Dashboard';
 
   return (
     <div className="vpaa-page-intro">
