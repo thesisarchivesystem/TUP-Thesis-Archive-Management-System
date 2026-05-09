@@ -247,7 +247,7 @@ class AdminController extends Controller
                 'faculty.departmentModel:id,name',
                 'student.college:id,name',
                 'student.departmentModel:id,name',
-                'student.programModel:id,name',
+                'student.programModel:id,name,code',
                 'student.sectionModel:id,name',
             ])
             ->when(
@@ -293,7 +293,7 @@ class AdminController extends Controller
                 'faculty.departmentModel:id,name',
                 'student.college:id,name',
                 'student.departmentModel:id,name',
-                'student.programModel:id,name',
+                'student.programModel:id,name,code',
                 'student.sectionModel:id,name',
             ]);
         });
@@ -327,7 +327,7 @@ class AdminController extends Controller
             'faculty.departmentModel:id,name',
             'student.college:id,name',
             'student.departmentModel:id,name',
-            'student.programModel:id,name',
+            'student.programModel:id,name,code',
             'student.sectionModel:id,name',
         ]);
 
@@ -347,7 +347,11 @@ class AdminController extends Controller
 
         $this->logger->log($request->user(), 'admin.user_status_updated', 'user', $user->id, ['is_active' => $user->is_active]);
 
-        return response()->json(['data' => $this->formatManagedUser($user->fresh()->load(['faculty', 'student']))]);
+        return response()->json(['data' => $this->formatManagedUser($user->fresh()->load([
+            'faculty',
+            'student',
+            'student.programModel:id,name,code',
+        ]))]);
     }
 
     public function categories(): JsonResponse
@@ -666,9 +670,9 @@ class AdminController extends Controller
             'department_id' => $faculty?->department_id ?? $student?->department_id,
             'department' => $faculty?->department ?? $student?->department,
             'program_id' => $student?->program_id,
-            'program' => $student?->program,
+            'program' => $student?->programModel?->code ?? $student?->program,
             'course_id' => $student?->course_id,
-            'course' => $student?->course,
+            'course' => $student?->programModel?->code ?? $student?->course,
             'section_id' => $student?->section_id,
             'section' => $student?->section,
             'year_level' => $student?->year_level,
@@ -737,7 +741,9 @@ class AdminController extends Controller
     private function resolveProgramName(?string $programId, ?string $fallback): ?string
     {
         if ($programId) {
-            return Program::query()->find($programId)?->name;
+            $program = Program::query()->find($programId);
+
+            return $program?->code ?: $program?->name;
         }
 
         return $fallback ?: null;

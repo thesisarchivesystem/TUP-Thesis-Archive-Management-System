@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Conversation;
 use App\Models\Category;
 use App\Models\FacultyProfile;
+use App\Models\Program;
 use App\Models\SearchLog;
 use App\Models\StudentProfile;
 use App\Models\Thesis;
@@ -72,6 +73,7 @@ class StudentController extends Controller
             ->with([
                 'user:id,name,email',
                 'adviser:id,name,email',
+                'programModel:id,name,code',
             ])
             ->where('user_id', $user->id)
             ->first();
@@ -96,7 +98,7 @@ class StudentController extends Controller
                 'full_name' => $profile->user?->name,
                 'email' => $profile->user?->email,
                 'mobile' => null,
-                'program' => $profile->program,
+                'program' => $this->programDisplayLabel($profile),
                 'department' => $profile->department,
                 'year_level' => $profile->year_level,
                 'thesis_title' => $latestSubmission?->title,
@@ -419,6 +421,7 @@ class StudentController extends Controller
             : $this->generateNextStudentId();
 
         $studentProfile = DB::transaction(function () use ($request, $studentId) {
+            $program = $this->resolveProgramRecord($request->department, $request->program);
             $user = User::create([
                 'first_name' => $request->first_name,
                 'last_name'  => $request->last_name,
@@ -434,7 +437,10 @@ class StudentController extends Controller
                 'user_id'    => $user->id,
                 'student_id' => $studentId,
                 'department' => $request->department,
-                'program'    => $request->program,
+                'program_id' => $program?->id,
+                'course_id' => $program?->id,
+                'program'    => $program?->code ?: $request->program,
+                'course' => $program?->code ?: $request->program,
                 'year_level' => $request->year_level,
                 'adviser_id' => $request->user()->id,
                 'created_by' => $request->user()->id,
@@ -466,7 +472,7 @@ class StudentController extends Controller
             ],
         );
 
-        return response()->json(['data' => $studentProfile->load('user:id,name,email')], 201);
+        return response()->json(['data' => $studentProfile->load('user:id,name,email', 'programModel:id,name,code')], 201);
     }
 
     private function generateNextStudentId(): string
@@ -515,6 +521,7 @@ class StudentController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $student, $user) {
+            $program = $this->resolveProgramRecord($request->department, $request->program);
             $userPayload = [
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
@@ -532,7 +539,10 @@ class StudentController extends Controller
             $student->update([
                 'student_id' => $request->student_id,
                 'department' => $request->department,
-                'program' => $request->program,
+                'program_id' => $program?->id,
+                'course_id' => $program?->id,
+                'program' => $program?->code ?: $request->program,
+                'course' => $program?->code ?: $request->program,
                 'year_level' => $request->year_level,
             ]);
         });
@@ -550,7 +560,7 @@ class StudentController extends Controller
             ],
         );
 
-        return response()->json(['data' => $student->fresh()->load('user')]);
+        return response()->json(['data' => $student->fresh()->load('user', 'programModel:id,name,code')]);
     }
 
     public function destroy(string $id): JsonResponse
@@ -597,5 +607,30 @@ class StudentController extends Controller
             'participant_one_id' => $participants->get(0),
             'participant_two_id' => $participants->get(1),
         ];
+    }
+
+    private function resolveProgramRecord(?string $department, ?string $program): ?Program
+    {
+        $normalizedProgram = trim((string) $program);
+
+        if ($normalizedProgram === '') {
+            return null;
+        }
+
+        return Program::query()
+            ->when(filled($department), function ($query) use ($department) {
+                $query->whereHas('department', fn ($departmentQuery) => $departmentQuery->where('name', trim((string) $department)));
+            })
+            ->where(function ($query) use ($normalizedProgram) {
+                $query
+                    ->where('name', $normalizedProgram)
+                    ->orWhere('code', $normalizedProgram);
+            })
+            ->first();
+    }
+
+    private function programDisplayLabel(StudentProfile $profile): ?string
+    {
+        return $profile->programModel?->code ?: $profile->program;
     }
 }
