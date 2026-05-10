@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarDays, FolderOpen, GraduationCap, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Download, Eye, FileText, FolderOpen, GraduationCap, UserRound, Users } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
@@ -20,17 +20,6 @@ const formatDateTime = (value?: string | null) => {
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  });
-};
-
-const formatDate = (value?: string | null) => {
-  if (!value) return 'Not available';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Not available';
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
   });
 };
 
@@ -95,12 +84,15 @@ export default function FacultySharedFileDetailsPage() {
     return file.authors?.filter(Boolean).join(', ') || file.author || 'Unknown author';
   }, [file]);
 
-  const metadata = [
-    file?.department,
-    file?.college,
-    file?.school_year,
-    file?.category,
-  ].filter(Boolean);
+  const authorNames = useMemo(() => {
+    if (!file) return ['Unknown author'];
+    const names = file.authors?.filter(Boolean) ?? [];
+    return names.length ? names : [file.author || 'Unknown author'];
+  }, [file]);
+
+  const categoryLabel = file?.categories?.length
+    ? file.categories.map((category) => category.name).join(', ')
+    : file?.category;
 
   return (
     <FacultyLayout
@@ -108,9 +100,9 @@ export default function FacultySharedFileDetailsPage() {
       description="Review the shared file metadata and archive details."
       hidePageIntro
     >
-      <div className="student-submission-details-shell">
-        <div className="student-submission-details-topbar">
-          <Link to="/faculty/students" className="student-submission-back-link">
+      <div className="student-submission-details-shell shared-file-view-shell">
+        <div className="student-submission-details-topbar shared-file-view-topbar">
+          <Link to="/faculty/students" className="student-submission-back-link shared-file-view-back-link">
             <ArrowLeft size={16} />
             <span>Back to Shared Files</span>
           </Link>
@@ -123,7 +115,7 @@ export default function FacultySharedFileDetailsPage() {
         ) : !file ? (
           <div className="vpaa-card student-submission-details-loading">No shared file details were found.</div>
         ) : (
-          <div className="student-submission-details-grid">
+          <div className="shared-file-view-grid">
             <section className="vpaa-card student-submission-hero-card shared-file-hero-card">
               <div className="student-submission-hero-top shared-file-details-hero-top">
                 <ThesisArchiveCover
@@ -151,14 +143,26 @@ export default function FacultySharedFileDetailsPage() {
                     <h2>{file.title}</h2>
                   </div>
 
-                  <div className="student-submission-meta-row shared-file-meta-row">
-                    {metadata.map((item) => (
-                      <span key={item}>{item}</span>
-                    ))}
-                    <span>{file.is_draft ? 'Draft file' : file.type || 'Shared file'}</span>
+                  <div className="shared-file-action-row">
+                    <button
+                      type="button"
+                      className="shared-file-action-button primary"
+                      onClick={() => file.file_url && window.open(file.file_url, '_blank', 'noopener,noreferrer')}
+                      disabled={!file.file_url}
+                    >
+                      <Eye size={17} />
+                      View File
+                    </button>
+                    <a
+                      className={`shared-file-action-button secondary${!file.file_url ? ' disabled' : ''}`}
+                      href={file.file_url || undefined}
+                      download={file.file_name || undefined}
+                      aria-disabled={!file.file_url}
+                    >
+                      <Download size={17} />
+                      Download PDF
+                    </a>
                   </div>
-
-                  <div className="shared-file-updated-row">Updated {formatDate(file.shared_at || file.created_at)}</div>
 
                   {file.is_draft ? (
                     <div className="shared-file-draft-actions">
@@ -199,21 +203,31 @@ export default function FacultySharedFileDetailsPage() {
                 </div>
               </div>
 
-              <div className="student-submission-summary shared-file-summary-row">
-                <strong>Abstract</strong>
-                <p>{file.abstract || 'No abstract or notes provided for this file.'}</p>
-              </div>
-
-              <div className="student-submission-summary shared-file-summary-row shared-file-author-row">
-                <strong>Authors</strong>
-                <div className="shared-file-author-chip">
-                  <span className="shared-file-author-avatar">{getInitials(authorLabel)}</span>
-                  <span>{authorLabel}</span>
+              <section className="shared-file-record-section">
+                <div className="shared-file-record-heading">
+                  <span><FileText size={18} /></span>
+                  <h2>Abstract</h2>
                 </div>
-              </div>
+                <p>{file.abstract || 'No abstract or notes provided for this file.'}</p>
+              </section>
+
+              <section className="shared-file-record-section shared-file-record-authors">
+                <div className="shared-file-record-heading">
+                  <span><Users size={18} /></span>
+                  <h2>Authors</h2>
+                </div>
+                <div className="shared-file-author-list">
+                  {authorNames.map((name) => (
+                    <div className="shared-file-author-chip" key={name}>
+                      <span className="shared-file-author-avatar">{getInitials(name)}</span>
+                      <span>{name}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </section>
 
-            <aside className="student-submissions-side vpaa-card thesis-details-side-card">
+            <aside className="student-submissions-side vpaa-card thesis-details-side-card shared-file-details-panel">
               <div className="student-submissions-summary-head thesis-details-side-head">
                 <div>
                   <h2>File Details</h2>
@@ -247,8 +261,8 @@ export default function FacultySharedFileDetailsPage() {
                     <FolderOpen size={20} />
                   </div>
                   <div className="thesis-details-info-copy">
-                    <span>Category</span>
-                    <strong>{file.category || 'Not assigned yet'}</strong>
+                    <span>Categories</span>
+                    <strong>{categoryLabel || 'Not assigned yet'}</strong>
                   </div>
                 </article>
 
@@ -257,8 +271,8 @@ export default function FacultySharedFileDetailsPage() {
                     <GraduationCap size={20} />
                   </div>
                   <div className="thesis-details-info-copy">
-                    <span>College</span>
-                    <strong>{file.college || 'Not assigned yet'}</strong>
+                    <span>Type</span>
+                    <strong>{file.type || 'Shared file'}</strong>
                   </div>
                 </article>
               </div>
