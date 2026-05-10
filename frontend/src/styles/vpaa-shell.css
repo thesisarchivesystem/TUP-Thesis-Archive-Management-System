@@ -12804,7 +12804,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 }
 
 .recent-added-card-cover {
-  min-height: 348px;
+  min-height: 280px;
   width: 100%;
 }
 
@@ -12978,7 +12978,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 
 .thesis-archive-cover.compact {
   border-radius: 14px;
-  height: 220px;
+  height: 280px;
   box-shadow:
     6px 8px 0 rgba(112, 112, 112, 0.2),
     10px 12px 16px rgba(72, 72, 72, 0.15),
@@ -12990,7 +12990,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 }
 
 .thesis-archive-cover.compact .thesis-archive-cover-inner {
-  padding: 10px 12px 0;
+  padding: 9px 12px 0;
 }
 
 .thesis-archive-cover.compact .thesis-archive-cover-header {
@@ -13008,18 +13008,18 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 }
 
 .thesis-archive-cover.compact .thesis-archive-cover-title {
-  margin-top: 10px;
+  margin-top: 9px;
   width: 100%;
   max-width: none;
-  font-size: 14px;
+  font-size: 13px;
   min-height: calc(1.2em * 4);
 }
 
 .thesis-archive-cover.compact .thesis-archive-cover-tags {
   gap: 5px;
-  padding: 10px 0 10px;
-  min-height: 42px;
-  max-height: 42px;
+  padding: 8px 0 8px;
+  min-height: 38px;
+  max-height: 38px;
 }
 
 .thesis-archive-cover.compact .thesis-archive-cover-tag {
