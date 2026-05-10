@@ -784,18 +784,25 @@ class FacultyController extends Controller
     public function bestTheses(Request $request): JsonResponse
     {
         $selectedSchoolYear = trim((string) $request->query('school_year', ''));
+        $facultyProfile = $request->user()->faculty;
+        $chairDepartment = trim((string) ($facultyProfile?->department ?? ''));
         $eligibleBase = Thesis::query()
             ->where('status', 'approved')
             ->whereRaw('"is_archived" = true')
-            ->where(function ($query) use ($request) {
-                $query
-                    ->where('adviser_id', $request->user()->id)
+            ->where(function ($query) use ($request, $chairDepartment) {
+                if ($chairDepartment !== '') {
+                    $query->whereRaw('LOWER(TRIM(department)) = ?', [mb_strtolower($chairDepartment)]);
+                    return;
+                }
+
+                $query->where('adviser_id', $request->user()->id)
                     ->orWhere('archived_by', $request->user()->id);
             });
 
-        $schoolYears = (clone $eligibleBase)
+        $schoolYears = Thesis::query()
             ->whereNotNull('school_year')
             ->where('school_year', '!=', '')
+            ->selectRaw('TRIM(school_year) as school_year')
             ->distinct()
             ->orderByDesc('school_year')
             ->pluck('school_year')
@@ -805,25 +812,29 @@ class FacultyController extends Controller
             $selectedSchoolYear = (string) ($schoolYears->first() ?? now()->year);
         }
 
+        $eligibleThesisIds = (clone $eligibleBase)
+            ->pluck('id')
+            ->values();
+
         $candidates = (clone $eligibleBase)
-            ->with(['submitter:id,name', 'category:id,name,slug'])
+            ->with(['submitter:id,name', 'adviser:id,name', 'category:id,name,slug'])
             ->where('school_year', $selectedSchoolYear)
             ->orderByRaw('LOWER(title) asc')
             ->get()
             ->map(fn (Thesis $thesis) => $this->formatFacultyBestThesisCandidate($thesis))
             ->values();
 
-        $candidateIds = $candidates->pluck('id')->values();
         $currentAward = BestThesis::query()
-            ->with(['thesis.submitter:id,name', 'thesis.category:id,name,slug', 'awardedBy:id,name'])
+            ->with(['thesis.submitter:id,name', 'thesis.adviser:id,name', 'thesis.category:id,name,slug', 'awardedBy:id,name'])
             ->where('school_year', $selectedSchoolYear)
             ->first();
 
-        $history = $candidateIds->isEmpty()
+        $history = $eligibleThesisIds->isEmpty()
             ? collect()
             : BestThesis::query()
                 ->with(['thesis.submitter:id,name', 'thesis.category:id,name,slug', 'awardedBy:id,name'])
-                ->whereIn('thesis_id', $candidateIds)
+                ->with(['thesis.adviser:id,name'])
+                ->whereIn('thesis_id', $eligibleThesisIds)
                 ->orderByDesc('school_year')
                 ->orderByDesc('awarded_at')
                 ->get()
@@ -849,21 +860,27 @@ class FacultyController extends Controller
             'thesis_id' => ['required', 'uuid', 'exists:theses,id'],
         ]);
 
+        $facultyProfile = $request->user()->faculty;
+        $chairDepartment = trim((string) ($facultyProfile?->department ?? ''));
         $thesis = Thesis::query()
             ->where('id', $validated['thesis_id'])
             ->where('school_year', $validated['school_year'])
             ->where('status', 'approved')
             ->whereRaw('"is_archived" = true')
-            ->where(function ($query) use ($request) {
-                $query
-                    ->where('adviser_id', $request->user()->id)
+            ->where(function ($query) use ($request, $chairDepartment) {
+                if ($chairDepartment !== '') {
+                    $query->whereRaw('LOWER(TRIM(department)) = ?', [mb_strtolower($chairDepartment)]);
+                    return;
+                }
+
+                $query->where('adviser_id', $request->user()->id)
                     ->orWhere('archived_by', $request->user()->id);
             })
             ->first();
 
         if (!$thesis) {
             return response()->json([
-                'message' => 'Only your approved archived theses from the selected school year can be appointed as Best Thesis.',
+                'message' => 'Only approved archived theses from your department and selected school year can be appointed as Best Thesis.',
             ], 422);
         }
 
@@ -883,7 +900,7 @@ class FacultyController extends Controller
 
         return response()->json([
             'data' => $this->formatFacultyBestThesisAward(
-                $award->fresh(['thesis.submitter:id,name', 'thesis.category:id,name,slug', 'awardedBy:id,name'])
+                $award->fresh(['thesis.submitter:id,name', 'thesis.adviser:id,name', 'thesis.category:id,name,slug', 'awardedBy:id,name'])
             ),
             'message' => 'Best Thesis appointed successfully.',
         ]);
@@ -898,6 +915,7 @@ class FacultyController extends Controller
             'title' => $thesis->title,
             'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
             'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+            'adviser_name' => $thesis->adviser?->name ?? $thesis->adviser_name,
             'school_year' => $thesis->school_year,
             'department' => $thesis->department,
             'program' => $thesis->program,
