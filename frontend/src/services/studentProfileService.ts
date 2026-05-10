@@ -3,11 +3,16 @@ import api from './api';
 export interface StudentProfileView {
   id: string;
   student_id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  suffix?: string | null;
   full_name: string;
   email: string;
   mobile: string | null;
+  college?: string | null;
   department: string;
   program: string;
+  section?: string | null;
   year_level: number | null;
   thesis_title: string | null;
   adviser_name: string | null;

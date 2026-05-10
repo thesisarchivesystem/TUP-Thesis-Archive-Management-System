@@ -72,9 +72,14 @@ class StudentController extends Controller
 
         $profile = StudentProfile::query()
             ->with([
-                'user:id,name,email',
+                'user:id,first_name,last_name,suffix,name,email',
                 'adviser:id,name,email',
+                'college:id,name,code',
+                'departmentModel:id,college_id,name,code',
+                'departmentModel.college:id,name,code',
                 'programModel:id,name,code',
+                'courseModel:id,name,code',
+                'sectionModel:id,name,code',
             ])
             ->where('user_id', $user->id)
             ->first();
@@ -96,11 +101,16 @@ class StudentController extends Controller
             'data' => [
                 'id' => $profile->id,
                 'student_id' => $profile->student_id,
+                'first_name' => $profile->user?->first_name,
+                'last_name' => $profile->user?->last_name,
+                'suffix' => $profile->user?->suffix,
                 'full_name' => $profile->user?->name,
                 'email' => $profile->user?->email,
                 'mobile' => null,
+                'college' => $profile->college?->name ?? $profile->departmentModel?->college?->name,
+                'department' => $profile->departmentModel?->name ?? $profile->department,
                 'program' => $this->programDisplayLabel($profile),
-                'department' => $profile->department,
+                'section' => $profile->sectionModel?->name ?? $profile->section,
                 'year_level' => $profile->year_level,
                 'thesis_title' => $latestSubmission?->title,
                 'adviser_name' => $latestSubmission?->adviser?->name ?? $profile->adviser?->name,

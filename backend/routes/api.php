@@ -50,6 +50,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('/best-theses', [FacultyController::class, 'bestTheses']);
         Route::post('/best-theses', [FacultyController::class, 'appointBestThesis']);
         Route::get('/profile', [FacultyController::class, 'profile']);
+        Route::patch('/profile', [FacultyController::class, 'updateProfile']);
         Route::get('/activity-log', [FacultyController::class, 'activityLog']);
         Route::get('/advisees', [FacultyController::class, 'advisees']);
         Route::get('/advisers', [StudentController::class, 'advisers']);

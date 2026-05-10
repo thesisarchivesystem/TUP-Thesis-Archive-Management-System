@@ -318,7 +318,7 @@
 
 .admin-app-shell .vpaa-user-role {
   font-size: 12px;
-  color: #9a7c72;
+  color: var(--text-secondary);
 }
 
 .admin-stat-icon {
