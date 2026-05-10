@@ -16,6 +16,11 @@ class Department extends Model
         'college_id',
         'name',
         'code',
+        'chairperson',
+        'chairperson_email',
+        'description',
+        'office_location',
+        'contact_number',
         'is_active',
     ];
 

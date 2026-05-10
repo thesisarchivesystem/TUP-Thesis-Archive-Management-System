@@ -11,6 +11,8 @@ const notificationTypesByRole: Record<UserRole, NotificationType[]> = {
     'thesis.archived',
     'extension.approved',
     'extension.rejected',
+    'support.ticket_in_progress',
+    'support.ticket_resolved',
   ],
   faculty: [
     'new_message',
@@ -20,6 +22,8 @@ const notificationTypesByRole: Record<UserRole, NotificationType[]> = {
     'thesis.rejected',
     'extension.requested',
     'department.file_shared',
+    'support.ticket_in_progress',
+    'support.ticket_resolved',
   ],
   admin: [],
 };

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\BestThesis;
 use App\Models\Category;
 use App\Models\College;
 use App\Models\Department;
@@ -175,6 +176,134 @@ class AdminController extends Controller
                     'inactive_users' => User::query()->whereRaw('"is_active" = false')->count(),
                 ],
             ],
+        ]);
+    }
+
+    public function bestTheses(Request $request): JsonResponse
+    {
+        $selectedSchoolYear = trim((string) $request->query('school_year', ''));
+        $schoolYears = Thesis::query()
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->whereNotNull('school_year')
+            ->where('school_year', '!=', '')
+            ->distinct()
+            ->orderByDesc('school_year')
+            ->pluck('school_year')
+            ->values();
+
+        if ($selectedSchoolYear === '') {
+            $selectedSchoolYear = (string) ($schoolYears->first() ?? now()->year);
+        }
+
+        $awards = BestThesis::query()
+            ->with([
+                'thesis.submitter:id,name',
+                'thesis.adviser:id,name',
+                'thesis.category:id,name,slug',
+                'awardedBy:id,name',
+            ])
+            ->orderByDesc('school_year')
+            ->get()
+            ->map(fn (BestThesis $award) => $this->formatBestThesisAward($award))
+            ->values();
+
+        $currentAward = BestThesis::query()
+            ->with([
+                'thesis.submitter:id,name',
+                'thesis.adviser:id,name',
+                'thesis.category:id,name,slug',
+                'awardedBy:id,name',
+            ])
+            ->where('school_year', $selectedSchoolYear)
+            ->first();
+
+        $candidates = Thesis::query()
+            ->with(['submitter:id,name', 'adviser:id,name', 'category:id,name,slug'])
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->where('school_year', $selectedSchoolYear)
+            ->orderByRaw('LOWER(title) asc')
+            ->get()
+            ->map(fn (Thesis $thesis) => $this->formatBestThesisCandidate($thesis))
+            ->values();
+
+        return response()->json([
+            'data' => [
+                'school_years' => $schoolYears,
+                'selected_school_year' => $selectedSchoolYear,
+                'current_award' => $currentAward ? $this->formatBestThesisAward($currentAward) : null,
+                'awards' => $awards,
+                'candidates' => $candidates,
+            ],
+        ]);
+    }
+
+    public function appointBestThesis(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'school_year' => ['required', 'string', 'max:255'],
+            'thesis_id' => ['required', 'uuid', 'exists:theses,id'],
+            'remarks' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $thesis = Thesis::query()
+            ->where('id', $validated['thesis_id'])
+            ->where('school_year', $validated['school_year'])
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->first();
+
+        if (!$thesis) {
+            return response()->json([
+                'message' => 'Only approved archived theses from the selected school year can be appointed as Best Thesis.',
+            ], 422);
+        }
+
+        $award = BestThesis::query()->updateOrCreate(
+            ['school_year' => $validated['school_year']],
+            [
+                'thesis_id' => $thesis->id,
+                'remarks' => $validated['remarks'] ?? null,
+                'awarded_by' => $request->user()->id,
+                'awarded_at' => now(),
+            ],
+        );
+
+        $this->logger->log($request->user(), 'admin.best_thesis_awarded', 'thesis', $thesis->id, [
+            'title' => $thesis->title,
+            'school_year' => $validated['school_year'],
+        ]);
+
+        return response()->json([
+            'data' => $this->formatBestThesisAward(
+                $award->fresh([
+                    'thesis.submitter:id,name',
+                    'thesis.adviser:id,name',
+                    'thesis.category:id,name,slug',
+                    'awardedBy:id,name',
+                ])
+            ),
+            'message' => 'Best Thesis appointed successfully.',
+        ]);
+    }
+
+    public function removeBestThesis(Request $request, string $schoolYear): JsonResponse
+    {
+        $award = BestThesis::query()
+            ->where('school_year', $schoolYear)
+            ->firstOrFail();
+
+        $thesis = Thesis::query()->find($award->thesis_id);
+        $award->delete();
+
+        $this->logger->log($request->user(), 'admin.best_thesis_removed', 'thesis', $thesis?->id, [
+            'title' => $thesis?->title,
+            'school_year' => $schoolYear,
+        ]);
+
+        return response()->json([
+            'message' => 'Best Thesis selection removed.',
         ]);
     }
 
@@ -442,6 +571,7 @@ class AdminController extends Controller
                 ->all(),
             'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
             'status' => $thesis->status,
+            'is_archived' => (bool) $thesis->is_archived,
             'file_name' => $thesis->file_name,
             'file_size' => $thesis->file_size,
             'file_url' => $thesis->file_url,
@@ -460,6 +590,36 @@ class AdminController extends Controller
             'submitter_name' => $thesis->submitter?->name ?? $thesis->submitter_name,
             'created_at' => optional($thesis->created_at)?->toISOString(),
             'updated_at' => optional($thesis->updated_at)?->toISOString(),
+        ];
+    }
+
+    private function formatBestThesisAward(BestThesis $award): array
+    {
+        return [
+            'id' => $award->id,
+            'school_year' => $award->school_year,
+            'remarks' => $award->remarks,
+            'awarded_at' => optional($award->awarded_at)?->toISOString(),
+            'awarded_by_name' => $award->awardedBy?->name,
+            'thesis' => $award->thesis ? $this->formatBestThesisCandidate($award->thesis) : null,
+        ];
+    }
+
+    private function formatBestThesisCandidate(Thesis $thesis): array
+    {
+        return [
+            'id' => $thesis->id,
+            'title' => $thesis->title,
+            'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? $thesis->submitter_name ?? 'Unknown author'),
+            'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+            'department' => $thesis->department,
+            'program' => $thesis->program,
+            'school_year' => $thesis->school_year,
+            'category' => $thesis->category?->name,
+            'status' => $thesis->status,
+            'view_count' => (int) $thesis->view_count,
+            'approved_at' => optional($thesis->approved_at)?->toISOString(),
+            'archived_at' => optional($thesis->archived_at)?->toISOString(),
         ];
     }
 
@@ -756,6 +916,11 @@ class AdminController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:colleges,name'],
             'code' => ['nullable', 'string', 'max:50', 'unique:colleges,code'],
+            'dean_head' => ['nullable', 'string', 'max:255'],
+            'dean_head_email' => ['nullable', 'email', 'max:255'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'office_location' => ['nullable', 'string', 'max:255'],
+            'contact_number' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -768,8 +933,13 @@ class AdminController extends Controller
     {
         $college = College::query()->findOrFail($id);
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('colleges', 'name')->ignore($college->id)],
-            'code' => ['nullable', 'string', 'max:50', Rule::unique('colleges', 'code')->ignore($college->id)],
+            'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('colleges', 'name')->ignore($college->id)],
+            'code' => ['sometimes', 'nullable', 'string', 'max:50', Rule::unique('colleges', 'code')->ignore($college->id)],
+            'dean_head' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'dean_head_email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'office_location' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contact_number' => ['sometimes', 'nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -784,6 +954,11 @@ class AdminController extends Controller
             'college_id' => ['required', 'uuid', 'exists:colleges,id'],
             'name' => ['required', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:50'],
+            'chairperson' => ['nullable', 'string', 'max:255'],
+            'chairperson_email' => ['nullable', 'email', 'max:255'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'office_location' => ['nullable', 'string', 'max:255'],
+            'contact_number' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -796,9 +971,14 @@ class AdminController extends Controller
     {
         $department = Department::query()->findOrFail($id);
         $validated = $request->validate([
-            'college_id' => ['required', 'uuid', 'exists:colleges,id'],
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:50'],
+            'college_id' => ['sometimes', 'required', 'uuid', 'exists:colleges,id'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'code' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'chairperson' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'chairperson_email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'office_location' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contact_number' => ['sometimes', 'nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -813,6 +993,11 @@ class AdminController extends Controller
             'department_id' => ['required', 'uuid', 'exists:departments,id'],
             'name' => ['required', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:50'],
+            'coordinator' => ['nullable', 'string', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'curriculum_type' => ['nullable', 'string', 'max:100'],
+            'year_duration' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -825,9 +1010,14 @@ class AdminController extends Controller
     {
         $program = Program::query()->findOrFail($id);
         $validated = $request->validate([
-            'department_id' => ['required', 'uuid', 'exists:departments,id'],
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:50'],
+            'department_id' => ['sometimes', 'required', 'uuid', 'exists:departments,id'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'code' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'coordinator' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contact_email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'curriculum_type' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'year_duration' => ['sometimes', 'nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -891,7 +1081,7 @@ class AdminController extends Controller
             'college' => ['nullable', 'string', 'max:255'],
             'program' => ['nullable', 'string', 'max:255'],
             'course' => ['nullable', 'string', 'max:255'],
-            'faculty_role' => ['nullable', 'string', 'max:255'],
+            'faculty_role' => ['required_if:role,faculty', 'nullable', Rule::in(['Adviser', 'Chairperson', 'Dean/Head'])],
             'rank' => ['nullable', 'string', 'max:255'],
             'year_level' => ['nullable', 'integer', 'min:1', 'max:10'],
         ];
@@ -912,7 +1102,7 @@ class AdminController extends Controller
                     'college_id' => $validated['college_id'] ?? null,
                     'department_id' => $validated['department_id'] ?? null,
                     'rank' => $validated['rank'] ?? null,
-                    'faculty_role' => $validated['faculty_role'] ?? 'Faculty',
+                    'faculty_role' => $validated['faculty_role'] ?? 'Adviser',
                     'status' => $isActive ? 'active' : 'inactive',
                     'created_by' => $actorId,
                 ]

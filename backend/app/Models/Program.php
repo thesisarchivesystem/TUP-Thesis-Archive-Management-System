@@ -16,6 +16,11 @@ class Program extends Model
         'department_id',
         'name',
         'code',
+        'coordinator',
+        'contact_email',
+        'description',
+        'curriculum_type',
+        'year_duration',
         'is_active',
     ];
 

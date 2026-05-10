@@ -47,6 +47,8 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
 
     Route::middleware('role:faculty')->prefix('faculty')->group(function () {
         Route::get('/dashboard', [FacultyController::class, 'dashboard']);
+        Route::get('/best-theses', [FacultyController::class, 'bestTheses']);
+        Route::post('/best-theses', [FacultyController::class, 'appointBestThesis']);
         Route::get('/profile', [FacultyController::class, 'profile']);
         Route::get('/activity-log', [FacultyController::class, 'activityLog']);
         Route::get('/advisees', [FacultyController::class, 'advisees']);
@@ -86,6 +88,9 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard']);
+        Route::get('/best-theses', [AdminController::class, 'bestTheses']);
+        Route::post('/best-theses', [AdminController::class, 'appointBestThesis']);
+        Route::delete('/best-theses/{schoolYear}', [AdminController::class, 'removeBestThesis']);
         Route::post('/theses', [AdminController::class, 'storeThesis']);
         Route::get('/theses/{id}', [AdminController::class, 'showThesis']);
         Route::post('/theses/{id}', [AdminController::class, 'updateThesis']);

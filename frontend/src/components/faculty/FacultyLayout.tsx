@@ -1,7 +1,7 @@
 // frontend/src/components/faculty/FacultyLayout.tsx
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, Home, LogOut, Menu, MessageSquare, MoonStar, Shapes, SunMedium, Upload, User, Users } from 'lucide-react';
+import { Bell, CalendarDays, ChevronDown, ChevronRight, Clock3, FileClock, FilePlus2, FolderOpen, Home, LogOut, Menu, MessageSquare, MoonStar, Shapes, Star, SunMedium, Upload, User, Users } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -136,6 +136,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   }, [setNotifications, user?.id]);
 
   const isManageThesisRoute = location.pathname.startsWith('/faculty/manage-thesis');
+  const isChairperson = user?.faculty?.faculty_role === 'Chairperson';
 
   const initials = useMemo(() => {
     if (!user?.name) return 'FA';
@@ -256,6 +257,9 @@ export default function FacultyLayout({ title, description, children, hidePageIn
           <span className="vpaa-nav-section-label">Main</span>
           <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/dashboard"><Home size={20} /><span>Home</span></NavLink>
           <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/categories"><Shapes size={20} /><span>Categories</span></NavLink>
+          {isChairperson ? (
+            <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/best-thesis"><Star size={20} /><span>Best Thesis</span></NavLink>
+          ) : null}
           <NavLink className={({ isActive }) => `vpaa-nav-item${isActive ? ' active' : ''}`} to="/faculty/students"><Upload size={20} /><span>Add Files</span></NavLink>
           <div className={`vpaa-nav-group${manageThesisOpen ? ' open' : ''}`}>
             <button

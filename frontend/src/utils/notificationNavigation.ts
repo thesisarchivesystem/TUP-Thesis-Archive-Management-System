@@ -29,6 +29,12 @@ export function getNotificationNavigationTarget(
     };
   }
 
+  if (['support.ticket_in_progress', 'support.ticket_resolved'].includes(notification.type)) {
+    return {
+      path: `/${role}/support`,
+    };
+  }
+
   if (
     role === 'student'
     && thesisId

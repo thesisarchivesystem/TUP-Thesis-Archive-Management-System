@@ -6,6 +6,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
@@ -15,7 +16,10 @@ use Illuminate\Validation\Rule;
 
 class SupportTicketController extends Controller
 {
-    public function __construct(private ActivityLogService $logger) {}
+    public function __construct(
+        private ActivityLogService $logger,
+        private NotificationService $notifications,
+    ) {}
 
     public function store(Request $request): JsonResponse
     {
@@ -161,11 +165,13 @@ class SupportTicketController extends Controller
             ->findOrFail($id);
         $admin = $request->user();
         $changes = [];
+        $statusChangedTo = null;
 
         if (array_key_exists('status', $validated) && $validated['status'] !== $ticket->status) {
             $previousStatus = $this->statusLabel($ticket->status);
             $ticket->status = $validated['status'];
             $ticket->resolved_at = in_array($validated['status'], ['resolved', 'closed'], true) ? now() : null;
+            $statusChangedTo = $validated['status'];
             $changes[] = "Status updated from {$previousStatus} to ".$this->statusLabel($validated['status']).'.';
         }
 
@@ -202,6 +208,10 @@ class SupportTicketController extends Controller
         $this->logger->log($admin, 'support.ticket_updated', 'support_ticket', $ticket->id, [
             'changes' => $changes,
         ]);
+
+        if ($statusChangedTo !== null) {
+            $this->notifyRequesterOfStatusChange($ticket->fresh(['user:id,name,email,role']), $statusChangedTo);
+        }
 
         return response()->json([
             'data' => $this->transformTicket($ticket->fresh(['user:id,name,email', 'assignee:id,name,email', 'replies' => fn ($query) => $query->with('user:id,name,email')->orderBy('created_at')]), true),
@@ -247,6 +257,46 @@ class SupportTicketController extends Controller
         ]);
     }
 
+    private function notifyRequesterOfStatusChange(SupportTicket $ticket, string $status): void
+    {
+        $requester = $ticket->user;
+
+        if (!$requester || !in_array($requester->role, ['student', 'faculty'], true)) {
+            return;
+        }
+
+        $reference = $this->ticketReference($ticket);
+
+        if ($status === 'in_progress') {
+            $this->notifications->notify(
+                $requester,
+                'support.ticket_in_progress',
+                'Support ticket in progress',
+                "Your ticket {$reference} is now being reviewed by the archive support team.",
+                [
+                    'support_ticket_id' => $ticket->id,
+                    'reference' => $reference,
+                    'status' => $status,
+                ],
+            );
+            return;
+        }
+
+        if (in_array($status, ['resolved', 'closed'], true)) {
+            $this->notifications->notify(
+                $requester,
+                'support.ticket_resolved',
+                'Support ticket resolved',
+                "Your ticket {$reference} has been marked as resolved.",
+                [
+                    'support_ticket_id' => $ticket->id,
+                    'reference' => $reference,
+                    'status' => $status,
+                ],
+            );
+        }
+    }
+
     private function transformTicket(SupportTicket $ticket, bool $includeReplies = true): array
     {
         $submittedAt = $ticket->created_at instanceof Carbon ? $ticket->created_at : optional($ticket->created_at);
@@ -254,11 +304,7 @@ class SupportTicketController extends Controller
 
         $data = [
             'id' => $ticket->id,
-            'reference' => sprintf(
-                'TKT-%s-%s',
-                $submittedAt?->format('Y') ?? now()->format('Y'),
-                strtoupper(substr(str_replace('-', '', $ticket->id), 0, 6))
-            ),
+            'reference' => $this->ticketReference($ticket),
             'requester_role' => $ticket->requester_role,
             'full_name' => $ticket->full_name,
             'email' => $ticket->email,
@@ -314,6 +360,17 @@ class SupportTicketController extends Controller
         }
 
         return 'low';
+    }
+
+    private function ticketReference(SupportTicket $ticket): string
+    {
+        $submittedAt = $ticket->created_at instanceof Carbon ? $ticket->created_at : optional($ticket->created_at);
+
+        return sprintf(
+            'TKT-%s-%s',
+            $submittedAt?->format('Y') ?? now()->format('Y'),
+            strtoupper(substr(str_replace('-', '', $ticket->id), 0, 6))
+        );
     }
 
     private function uploadToSupabase(\Illuminate\Http\UploadedFile $file, string $folder): array

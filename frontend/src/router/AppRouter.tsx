@@ -29,6 +29,7 @@ import FacultyExtensionRequestDetailsPage from '../pages/faculty/FacultyExtensio
 import FacultySearchResultsPage from '../pages/faculty/FacultySearchResultsPage';
 import FacultyActivityLogPage from '../pages/faculty/FacultyActivityLogPage';
 import FacultyAdviseesPage from '../pages/faculty/FacultyAdviseesPage';
+import FacultyBestThesisPage from '../pages/faculty/FacultyBestThesisPage';
 import FacultyTermsPage from '../pages/faculty/FacultyTermsPage';
 import FacultyProfilePage from '../pages/faculty/FacultyProfilePage';
 import FacultyThesisDetailsPage from '../pages/faculty/FacultyThesisDetailsPage';
@@ -79,6 +80,16 @@ const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
     const fallbackPath = user.role === 'admin' ? '/admin/dashboard' : '/';
     return <Navigate to={fallbackPath} replace />;
   }
+  return <Outlet />;
+};
+
+const ChairpersonRoute = () => {
+  const { user } = useAuthStore();
+
+  if (user?.role !== 'faculty' || user.faculty?.faculty_role !== 'Chairperson') {
+    return <Navigate to="/faculty/dashboard" replace />;
+  }
+
   return <Outlet />;
 };
 
@@ -213,6 +224,9 @@ export default function AppRouter() {
           <Route path="dashboard/favorites" element={<FacultyFavoritesPage />} />
           <Route path="categories" element={<FacultyCategoriesPage />} />
           <Route path="categories/:slug" element={<FacultyCategoryDetailPage />} />
+          <Route element={<ChairpersonRoute />}>
+            <Route path="best-thesis" element={<FacultyBestThesisPage />} />
+          </Route>
           <Route path="search" element={<FacultySearchResultsPage />} />
           <Route path="thesis/:id" element={<FacultyThesisDetailsPage />} />
           <Route path="theses/:id" element={<FacultyThesisDetailsPage />} />

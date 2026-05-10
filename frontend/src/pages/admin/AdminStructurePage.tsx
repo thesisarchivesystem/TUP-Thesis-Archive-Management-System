@@ -1,6 +1,6 @@
 import { Building2, ChevronDown, GraduationCap, Plus, Search, School2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { adminService, type AdminStructureCollege } from '../../services/adminService';
+import { adminService, type AdminManagedUser, type AdminStructureCollege } from '../../services/adminService';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 const ALERT_TIMEOUT_MS = 4000;
@@ -102,6 +102,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 export default function AdminStructurePage() {
   const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
+  const [facultyUsers, setFacultyUsers] = useState<AdminManagedUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -134,8 +135,12 @@ export default function AdminStructurePage() {
   const [programErrors, setProgramErrors] = useState<FormErrors<keyof ProgramFormState>>({});
 
   const load = async () => {
-    const structureResponse = await adminService.listStructure();
+    const [structureResponse, facultyResponse] = await Promise.all([
+      adminService.listStructure(),
+      adminService.listUsers('faculty'),
+    ]);
     setStructure(structureResponse);
+    setFacultyUsers(facultyResponse);
   };
 
   useEffect(() => {
@@ -170,18 +175,49 @@ export default function AdminStructurePage() {
     [structure],
   );
 
+  const activeFacultyUsers = useMemo(
+    () => facultyUsers.filter((user) => user.is_active),
+    [facultyUsers],
+  );
+
+  const deanHeadForCollege = (collegeId: string, fallbackName?: string | null, fallbackEmail?: string | null) => {
+    const dean = activeFacultyUsers.find((user) => user.faculty_role === 'Dean/Head' && user.college_id === collegeId);
+
+    return {
+      name: dean?.name ?? fallbackName ?? '',
+      email: dean?.email ?? fallbackEmail ?? '',
+    };
+  };
+
+  const chairpersonForDepartment = (departmentId: string, fallbackName?: string | null, fallbackEmail?: string | null) => {
+    const chairperson = activeFacultyUsers.find((user) => user.faculty_role === 'Chairperson' && user.department_id === departmentId);
+
+    return {
+      name: chairperson?.name ?? fallbackName ?? '',
+      email: chairperson?.email ?? fallbackEmail ?? '',
+    };
+  };
+
   const departments = useMemo(
-    () => structure.flatMap((college) => college.departments.map((department) => ({
-      id: department.id,
-      name: department.name,
-      code: department.code ?? '',
-      is_active: department.is_active,
-      collegeId: college.id,
-      collegeName: college.name,
-      chairperson: 'Not assigned',
-      programs: department.programs,
-    }))),
-    [structure],
+    () => structure.flatMap((college) => college.departments.map((department) => {
+      const chairperson = chairpersonForDepartment(department.id, department.chairperson, department.chairperson_email);
+
+      return {
+        id: department.id,
+        name: department.name,
+        code: department.code ?? '',
+        is_active: department.is_active,
+        collegeId: college.id,
+        collegeName: college.name,
+        chairperson: chairperson.name,
+        chairperson_email: chairperson.email,
+        description: department.description ?? '',
+        office_location: department.office_location ?? '',
+        contact_number: department.contact_number ?? '',
+        programs: department.programs,
+      };
+    })),
+    [activeFacultyUsers, structure],
   );
 
   const programDepartmentOptions = useMemo(() => {
@@ -204,6 +240,11 @@ export default function AdminStructurePage() {
       collegeName: college.name,
       departmentId: department.id,
       departmentName: department.name,
+      coordinator: program.coordinator ?? '',
+      contact_email: program.contact_email ?? '',
+      description: program.description ?? '',
+      curriculum_type: program.curriculum_type ?? '',
+      year_duration: program.year_duration ?? '',
       sectionCount: program.sections.length,
     })))),
     [structure],
@@ -324,6 +365,11 @@ export default function AdminStructurePage() {
       const payload = {
         name: collegeForm.name.trim(),
         code: collegeForm.code.trim(),
+        dean_head: collegeForm.dean_head.trim(),
+        dean_head_email: collegeForm.dean_head_email.trim() || null,
+        description: collegeForm.description.trim() || null,
+        office_location: collegeForm.office_location.trim() || null,
+        contact_number: collegeForm.contact_number.trim() || null,
       };
 
       if (collegeForm.id) {
@@ -356,6 +402,11 @@ export default function AdminStructurePage() {
         college_id: departmentForm.college_id,
         name: departmentForm.name.trim(),
         code: departmentForm.code.trim() || null,
+        chairperson: departmentForm.chairperson.trim(),
+        chairperson_email: departmentForm.chairperson_email.trim() || null,
+        description: departmentForm.description.trim() || null,
+        office_location: departmentForm.office_location.trim() || null,
+        contact_number: departmentForm.contact_number.trim() || null,
       };
 
       if (departmentForm.id) {
@@ -388,6 +439,11 @@ export default function AdminStructurePage() {
         department_id: programForm.department_id,
         name: programForm.name.trim(),
         code: programForm.code.trim(),
+        coordinator: programForm.coordinator.trim() || null,
+        contact_email: programForm.contact_email.trim() || null,
+        description: programForm.description.trim() || null,
+        curriculum_type: programForm.curriculum_type || null,
+        year_duration: programForm.year_duration.trim() || null,
       };
 
       if (programForm.id) {
@@ -495,41 +551,50 @@ export default function AdminStructurePage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedColleges.length ? paginatedColleges.map((college) => (
-                  <tr key={college.id}>
-                    <td>{college.name}</td>
-                    <td>{college.code || 'N/A'}</td>
-                    <td>Not assigned</td>
-                    <td className="admin-structure-toggle-cell">
-                      <button
-                        type="button"
-                        className={`admin-status-switch ${college.is_active ? 'active' : ''}`}
-                        onClick={() => void toggleCollegeStatus(college.id, !college.is_active)}
-                        aria-label={`${college.is_active ? 'Disable' : 'Enable'} ${college.name}`}
-                      >
-                        <span />
-                      </button>
-                    </td>
-                    <td className="admin-structure-action-cell">
-                      <button
-                        type="button"
-                        className="admin-structure-edit-btn"
-                        onClick={() => {
-                          setCollegeForm({
-                            ...emptyCollegeForm,
-                            id: college.id,
-                            name: college.name,
-                            code: college.code ?? '',
-                          });
-                          setCollegeErrors({});
-                          setCollegeModalOpen(true);
-                        }}
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                )) : (
+                {paginatedColleges.length ? paginatedColleges.map((college) => {
+                  const deanHead = deanHeadForCollege(college.id, college.dean_head, college.dean_head_email);
+
+                  return (
+                    <tr key={college.id}>
+                      <td>{college.name}</td>
+                      <td>{college.code || 'N/A'}</td>
+                      <td>{deanHead.name || 'Not assigned'}</td>
+                      <td className="admin-structure-toggle-cell">
+                        <button
+                          type="button"
+                          className={`admin-status-switch ${college.is_active ? 'active' : ''}`}
+                          onClick={() => void toggleCollegeStatus(college.id, !college.is_active)}
+                          aria-label={`${college.is_active ? 'Disable' : 'Enable'} ${college.name}`}
+                        >
+                          <span />
+                        </button>
+                      </td>
+                      <td className="admin-structure-action-cell">
+                        <button
+                          type="button"
+                          className="admin-structure-edit-btn"
+                          onClick={() => {
+                            setCollegeForm({
+                              ...emptyCollegeForm,
+                              id: college.id,
+                              name: college.name,
+                              code: college.code ?? '',
+                              dean_head: deanHead.name,
+                              dean_head_email: deanHead.email,
+                              description: college.description ?? '',
+                              office_location: college.office_location ?? '',
+                              contact_number: college.contact_number ?? '',
+                            });
+                            setCollegeErrors({});
+                            setCollegeModalOpen(true);
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                }) : (
                   <tr>
                     <td colSpan={5} className="admin-table-empty">No colleges matched the current filters.</td>
                   </tr>
@@ -598,7 +663,7 @@ export default function AdminStructurePage() {
                   <tr key={department.id}>
                     <td>{department.name}</td>
                     <td>{department.collegeName}</td>
-                    <td>{department.chairperson}</td>
+                    <td>{department.chairperson || 'Not assigned'}</td>
                     <td className="admin-structure-toggle-cell">
                       <button
                         type="button"
@@ -620,6 +685,11 @@ export default function AdminStructurePage() {
                             college_id: department.collegeId,
                             name: department.name,
                             code: department.code,
+                            chairperson: department.chairperson,
+                            chairperson_email: department.chairperson_email,
+                            description: department.description,
+                            office_location: department.office_location,
+                            contact_number: department.contact_number,
                           });
                           setDepartmentErrors({});
                           setDepartmentModalOpen(true);
@@ -739,6 +809,11 @@ export default function AdminStructurePage() {
                             department_id: program.departmentId,
                             name: program.name,
                             code: program.code,
+                            coordinator: program.coordinator,
+                            contact_email: program.contact_email,
+                            description: program.description,
+                            curriculum_type: program.curriculum_type,
+                            year_duration: program.year_duration,
                           });
                           setProgramErrors({});
                           setProgramModalOpen(true);
