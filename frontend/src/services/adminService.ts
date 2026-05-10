@@ -78,16 +78,31 @@ export type AdminStructureCollege = {
   id: string;
   name: string;
   code?: string | null;
+  dean_head?: string | null;
+  dean_head_email?: string | null;
+  description?: string | null;
+  office_location?: string | null;
+  contact_number?: string | null;
   is_active: boolean;
   departments: Array<{
     id: string;
     name: string;
     code?: string | null;
+    chairperson?: string | null;
+    chairperson_email?: string | null;
+    description?: string | null;
+    office_location?: string | null;
+    contact_number?: string | null;
     is_active: boolean;
     programs: Array<{
       id: string;
       name: string;
       code?: string | null;
+      coordinator?: string | null;
+      contact_email?: string | null;
+      description?: string | null;
+      curriculum_type?: string | null;
+      year_duration?: string | null;
       is_active: boolean;
       sections: Array<{
         id: string;
@@ -131,6 +146,7 @@ export type AdminThesisDetail = {
   }>;
   authors: string[];
   status: string;
+  is_archived?: boolean;
   file_name?: string | null;
   file_size?: number | null;
   file_url?: string | null;
@@ -156,6 +172,38 @@ export type AdminThesisPayload = {
   allow_review?: boolean;
   manuscript?: File | null;
   supplementary_files?: File[];
+};
+
+export type AdminBestThesisCandidate = {
+  id: string;
+  title: string;
+  author: string;
+  authors: string[];
+  department?: string | null;
+  program?: string | null;
+  school_year: string;
+  category?: string | null;
+  status: string;
+  view_count: number;
+  approved_at?: string | null;
+  archived_at?: string | null;
+};
+
+export type AdminBestThesisAward = {
+  id: string;
+  school_year: string;
+  remarks?: string | null;
+  awarded_at?: string | null;
+  awarded_by_name?: string | null;
+  thesis: AdminBestThesisCandidate | null;
+};
+
+export type AdminBestThesesResponse = {
+  school_years: string[];
+  selected_school_year: string;
+  current_award: AdminBestThesisAward | null;
+  awards: AdminBestThesisAward[];
+  candidates: AdminBestThesisCandidate[];
 };
 
 export type AdminTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -224,6 +272,29 @@ export const adminService = {
   }): Promise<AdminDashboardResponse> {
     const { data } = await api.get('/admin/dashboard', { params });
     return data.data;
+  },
+
+  async getBestTheses(params?: { school_year?: string }): Promise<AdminBestThesesResponse> {
+    const { data } = await api.get('/admin/best-theses', {
+      params: {
+        school_year: params?.school_year || undefined,
+      },
+    });
+    return data.data;
+  },
+
+  async appointBestThesis(payload: {
+    school_year: string;
+    thesis_id: string;
+    remarks?: string;
+  }): Promise<AdminBestThesisAward> {
+    const { data } = await api.post('/admin/best-theses', payload);
+    return data.data;
+  },
+
+  async removeBestThesis(schoolYear: string): Promise<{ message?: string }> {
+    const { data } = await api.delete(`/admin/best-theses/${encodeURIComponent(schoolYear)}`);
+    return data;
   },
 
   async listUsers(role?: 'faculty' | 'student', search?: string): Promise<AdminManagedUser[]> {

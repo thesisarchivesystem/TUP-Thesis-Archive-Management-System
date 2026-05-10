@@ -37,11 +37,31 @@ export interface FacultyDailyQuote {
   is_active: boolean;
 }
 
+export interface FacultyBestThesis {
+  id: string;
+  school_year: string;
+  remarks?: string | null;
+  awarded_at?: string | null;
+  thesis: {
+    id: string;
+    title: string;
+    author: string;
+    authors?: string[];
+    year?: string | null;
+    department?: string | null;
+    program?: string | null;
+    category?: string | null;
+    categories?: Array<{ id: string; name: string; slug?: string }>;
+  };
+}
+
 export interface FacultyDashboardResponse {
   stats?: FacultyDashboardStats;
   recent_theses?: FacultyDashboardThesis[];
   top_searches?: FacultyDashboardThesis[];
   daily_quote?: FacultyDailyQuote | null;
+  best_thesis?: FacultyBestThesis | null;
+  best_theses?: FacultyBestThesis[];
 }
 
 interface FacultySubmissionApiRecord {

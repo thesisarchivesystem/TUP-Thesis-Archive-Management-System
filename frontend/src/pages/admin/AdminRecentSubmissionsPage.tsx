@@ -8,6 +8,7 @@ import {
   Layers3,
   Plus,
   Search,
+  Star,
   Upload,
   UserRound,
   X,
@@ -17,6 +18,7 @@ import { Link } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import {
   adminService,
+  type AdminBestThesisAward,
   type AdminCategory,
   type AdminDashboardResponse,
   type AdminManagedUser,
@@ -96,6 +98,7 @@ type EditFormState = {
   authors: string[];
   adviserId: string;
   abstract: string;
+  isBestThesis: boolean;
   confirmOriginal: boolean;
   allowReview: boolean;
 };
@@ -115,6 +118,7 @@ const initialEditForm: EditFormState = {
   authors: [],
   adviserId: '',
   abstract: '',
+  isBestThesis: false,
   confirmOriginal: true,
   allowReview: true,
 };
@@ -123,6 +127,7 @@ export default function AdminRecentSubmissionsPage() {
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [bestThesisAwards, setBestThesisAwards] = useState<AdminBestThesisAward[]>([]);
   const [facultyUsers, setFacultyUsers] = useState<AdminManagedUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -210,6 +215,16 @@ export default function AdminRecentSubmissionsPage() {
       .catch(() => {
         if (!active) return;
         setFacultyUsers([]);
+      });
+
+    void adminService.getBestTheses()
+      .then((response) => {
+        if (!active) return;
+        setBestThesisAwards(response.awards);
+      })
+      .catch(() => {
+        if (!active) return;
+        setBestThesisAwards([]);
       });
 
     return () => {
@@ -358,6 +373,21 @@ export default function AdminRecentSubmissionsPage() {
     [categories, editForm.categoryIds],
   );
 
+  const editingBestThesisAward = useMemo(
+    () => bestThesisAwards.find((award) => award.thesis?.id === editingId) ?? null,
+    [bestThesisAwards, editingId],
+  );
+
+  const bestThesisIds = useMemo(
+    () => new Set(bestThesisAwards.map((award) => award.thesis?.id).filter(Boolean)),
+    [bestThesisAwards],
+  );
+
+  const selectedYearBestThesisAward = useMemo(
+    () => bestThesisAwards.find((award) => award.school_year === editForm.schoolYear) ?? null,
+    [bestThesisAwards, editForm.schoolYear],
+  );
+
   useEffect(() => {
     if (!selectedDepartmentRecord) return;
 
@@ -447,6 +477,7 @@ export default function AdminRecentSubmissionsPage() {
         authors: thesis.authors ?? [],
         adviserId: thesis.adviser_id ?? '',
         abstract: thesis.abstract ?? '',
+        isBestThesis: bestThesisAwards.some((award) => award.thesis?.id === thesis.id),
         confirmOriginal: true,
         allowReview: true,
       });
@@ -545,6 +576,26 @@ export default function AdminRecentSubmissionsPage() {
       const updated = editingId
         ? await adminService.updateThesis(editingId, payload)
         : await adminService.createThesis(payload);
+
+      const previousAward = editingId
+        ? bestThesisAwards.find((award) => award.thesis?.id === editingId) ?? null
+        : null;
+
+      if (editForm.isBestThesis) {
+        await adminService.appointBestThesis({
+          school_year: updated.school_year,
+          thesis_id: updated.id,
+        });
+
+        if (previousAward && previousAward.school_year !== updated.school_year) {
+          await adminService.removeBestThesis(previousAward.school_year);
+        }
+      } else if (previousAward) {
+        await adminService.removeBestThesis(previousAward.school_year);
+      }
+
+      const bestThesisResponse = await adminService.getBestTheses();
+      setBestThesisAwards(bestThesisResponse.awards);
 
       setData((current) => (
         current
@@ -666,6 +717,7 @@ export default function AdminRecentSubmissionsPage() {
           <table className="admin-table admin-thesis-table">
             <thead>
               <tr>
+                <th>Best</th>
                 <th>Thesis Title</th>
                 <th>Author/s</th>
                 <th>College</th>
@@ -678,6 +730,13 @@ export default function AdminRecentSubmissionsPage() {
             <tbody>
               {paginatedUploads.length > 0 ? paginatedUploads.map((item: AdminThesisRecord) => (
                 <tr key={item.id}>
+                  <td className="admin-thesis-best-cell">
+                    {bestThesisIds.has(item.id) ? (
+                      <span className="admin-thesis-best-star" title="Best Thesis" aria-label="Best Thesis">
+                        <Star size={16} fill="currentColor" />
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="admin-thesis-title-cell">
                     <Link
                       to={`/admin/thesis/${encodeURIComponent(item.id)}`}
@@ -713,7 +772,7 @@ export default function AdminRecentSubmissionsPage() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={7} className="admin-table-empty">No thesis records matched the current filters.</td>
+                  <td colSpan={8} className="admin-table-empty">No thesis records matched the current filters.</td>
                 </tr>
               )}
             </tbody>
@@ -850,6 +909,24 @@ export default function AdminRecentSubmissionsPage() {
                       {SCHOOL_YEAR_OPTIONS.map((year) => <option key={year} value={year}>{year}</option>)}
                     </select>
                     {editFieldErrors.schoolYear ? <small className="admin-field-error">{editFieldErrors.schoolYear}</small> : null}
+                  </label>
+
+                  <label className="admin-thesis-checkbox admin-thesis-edit-field-full">
+                    <input
+                      type="checkbox"
+                      checked={editForm.isBestThesis}
+                      disabled={!isCreateMode && (editingThesis?.status !== 'approved' || editingThesis?.is_archived === false)}
+                      onChange={(event) => setEditForm((current) => ({ ...current, isBestThesis: event.target.checked }))}
+                    />
+                    <span>
+                      Set this thesis as Best Thesis for {editForm.schoolYear || 'the selected school year'}.
+                      {selectedYearBestThesisAward?.thesis && selectedYearBestThesisAward.thesis.id !== editingId
+                        ? ` This will replace "${selectedYearBestThesisAward.thesis.title}".`
+                        : ''}
+                      {editingBestThesisAward && !editForm.isBestThesis
+                        ? ` Unchecking will remove its Best Thesis selection for ${editingBestThesisAward.school_year}.`
+                        : ''}
+                    </span>
                   </label>
 
                   <div className="admin-field admin-modal-field admin-thesis-edit-field-full">

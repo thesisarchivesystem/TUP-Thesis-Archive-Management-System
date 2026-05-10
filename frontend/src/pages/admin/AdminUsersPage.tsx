@@ -7,6 +7,9 @@ const FEEDBACK_DISMISS_DELAY = 4000;
 
 type AdminUserRole = 'faculty' | 'student';
 type AdminUserSort = 'name_asc' | 'name_desc';
+type FacultyRoleOption = 'Adviser' | 'Chairperson' | 'Dean/Head';
+
+const FACULTY_ROLE_OPTIONS: FacultyRoleOption[] = ['Adviser', 'Chairperson', 'Dean/Head'];
 
 type AdminUserForm = {
   role: AdminUserRole;
@@ -192,7 +195,7 @@ export default function AdminUsersPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, faculty_role: 'Adviser' });
     setShowPassword(false);
     setSuccessMessage(null);
     setFormOpen(true);
@@ -443,7 +446,7 @@ export default function AdminUsersPage() {
                 type="button"
                 className={!isStudent ? 'active' : ''}
                 disabled={Boolean(editingId)}
-                onClick={() => setForm((current) => ({ ...current, role: 'faculty' }))}
+                onClick={() => setForm((current) => ({ ...current, role: 'faculty', faculty_role: current.faculty_role || 'Adviser' }))}
               >
                 <User size={16} />
                 <span>Faculty</span>
@@ -452,7 +455,7 @@ export default function AdminUsersPage() {
                 type="button"
                 className={isStudent ? 'active' : ''}
                 disabled={Boolean(editingId)}
-                onClick={() => setForm((current) => ({ ...current, role: 'student' }))}
+                onClick={() => setForm((current) => ({ ...current, role: 'student', faculty_role: '' }))}
               >
                 <GraduationCap size={16} />
                 <span>Student</span>
@@ -589,12 +592,14 @@ export default function AdminUsersPage() {
                       />
                     </label>
                     <label className="admin-field admin-modal-field">
-                      <span>Faculty Role</span>
-                      <input
-                        type="text"
-                        value={form.faculty_role}
+                      <span>Faculty Role <em>*</em></span>
+                      <select
+                        value={FACULTY_ROLE_OPTIONS.includes(form.faculty_role as FacultyRoleOption) ? form.faculty_role : ''}
                         onChange={(event) => setForm((current) => ({ ...current, faculty_role: event.target.value }))}
-                      />
+                      >
+                        <option value="">Select faculty role</option>
+                        {FACULTY_ROLE_OPTIONS.map((role) => <option key={role} value={role}>{role}</option>)}
+                      </select>
                     </label>
                   </div>
                 </section>

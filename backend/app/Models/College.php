@@ -14,6 +14,11 @@ class College extends Model
     protected $fillable = [
         'name',
         'code',
+        'dean_head',
+        'dean_head_email',
+        'description',
+        'office_location',
+        'contact_number',
         'is_active',
     ];
 

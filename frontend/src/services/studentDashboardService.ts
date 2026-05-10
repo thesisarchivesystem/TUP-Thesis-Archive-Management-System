@@ -29,10 +29,30 @@ export interface StudentDailyQuote {
   is_active: boolean;
 }
 
+export interface StudentBestThesis {
+  id: string;
+  school_year: string;
+  remarks?: string | null;
+  awarded_at?: string | null;
+  thesis: {
+    id: string;
+    title: string;
+    author: string;
+    authors?: string[];
+    year?: string | null;
+    department?: string | null;
+    program?: string | null;
+    category?: string | null;
+    categories?: Array<{ id: string; name: string; slug?: string }>;
+  };
+}
+
 export interface StudentDashboardResponse {
   recent_theses?: StudentDashboardThesis[];
   top_searches?: StudentDashboardThesis[];
   daily_quote?: StudentDailyQuote | null;
+  best_thesis?: StudentBestThesis | null;
+  best_theses?: StudentBestThesis[];
 }
 
 export interface MySubmission {

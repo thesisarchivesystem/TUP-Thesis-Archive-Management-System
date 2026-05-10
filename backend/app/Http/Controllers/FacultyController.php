@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\BestThesis;
 use App\Models\FacultyProfile;
 use App\Models\SearchLog;
 use App\Models\SharedFile;
@@ -765,8 +766,6 @@ class FacultyController extends Controller
 
         $topSearches = $this->resolveTopSearches();
 
-        $quote = $this->dailyQuoteService->getTodayQuote();
-
         return response()->json([
             'stats' => [
                 'assigned_students' => $assignedStudents,
@@ -777,8 +776,200 @@ class FacultyController extends Controller
             ],
             'recent_theses' => $recentTheses,
             'top_searches' => $topSearches,
-            'daily_quote' => $quote,
+            'best_thesis' => $this->currentBestThesis(),
+            'best_theses' => $this->bestThesisAwards(),
         ]);
+    }
+
+    public function bestTheses(Request $request): JsonResponse
+    {
+        $selectedSchoolYear = trim((string) $request->query('school_year', ''));
+        $eligibleBase = Thesis::query()
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->where(function ($query) use ($request) {
+                $query
+                    ->where('adviser_id', $request->user()->id)
+                    ->orWhere('archived_by', $request->user()->id);
+            });
+
+        $schoolYears = (clone $eligibleBase)
+            ->whereNotNull('school_year')
+            ->where('school_year', '!=', '')
+            ->distinct()
+            ->orderByDesc('school_year')
+            ->pluck('school_year')
+            ->values();
+
+        if ($selectedSchoolYear === '') {
+            $selectedSchoolYear = (string) ($schoolYears->first() ?? now()->year);
+        }
+
+        $candidates = (clone $eligibleBase)
+            ->with(['submitter:id,name', 'category:id,name,slug'])
+            ->where('school_year', $selectedSchoolYear)
+            ->orderByRaw('LOWER(title) asc')
+            ->get()
+            ->map(fn (Thesis $thesis) => $this->formatFacultyBestThesisCandidate($thesis))
+            ->values();
+
+        $candidateIds = $candidates->pluck('id')->values();
+        $currentAward = BestThesis::query()
+            ->with(['thesis.submitter:id,name', 'thesis.category:id,name,slug', 'awardedBy:id,name'])
+            ->where('school_year', $selectedSchoolYear)
+            ->first();
+
+        $history = $candidateIds->isEmpty()
+            ? collect()
+            : BestThesis::query()
+                ->with(['thesis.submitter:id,name', 'thesis.category:id,name,slug', 'awardedBy:id,name'])
+                ->whereIn('thesis_id', $candidateIds)
+                ->orderByDesc('school_year')
+                ->orderByDesc('awarded_at')
+                ->get()
+                ->map(fn (BestThesis $award) => $this->formatFacultyBestThesisAward($award))
+                ->filter()
+                ->values();
+
+        return response()->json([
+            'data' => [
+                'school_years' => $schoolYears,
+                'selected_school_year' => $selectedSchoolYear,
+                'current_award' => $currentAward ? $this->formatFacultyBestThesisAward($currentAward) : null,
+                'candidates' => $candidates,
+                'history' => $history,
+            ],
+        ]);
+    }
+
+    public function appointBestThesis(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'school_year' => ['required', 'string', 'max:255'],
+            'thesis_id' => ['required', 'uuid', 'exists:theses,id'],
+        ]);
+
+        $thesis = Thesis::query()
+            ->where('id', $validated['thesis_id'])
+            ->where('school_year', $validated['school_year'])
+            ->where('status', 'approved')
+            ->whereRaw('"is_archived" = true')
+            ->where(function ($query) use ($request) {
+                $query
+                    ->where('adviser_id', $request->user()->id)
+                    ->orWhere('archived_by', $request->user()->id);
+            })
+            ->first();
+
+        if (!$thesis) {
+            return response()->json([
+                'message' => 'Only your approved archived theses from the selected school year can be appointed as Best Thesis.',
+            ], 422);
+        }
+
+        $award = BestThesis::query()->updateOrCreate(
+            ['school_year' => $validated['school_year']],
+            [
+                'thesis_id' => $thesis->id,
+                'awarded_by' => $request->user()->id,
+                'awarded_at' => now(),
+            ],
+        );
+
+        $this->logger->log($request->user(), 'faculty.best_thesis_awarded', 'thesis', $thesis->id, [
+            'title' => $thesis->title,
+            'school_year' => $validated['school_year'],
+        ]);
+
+        return response()->json([
+            'data' => $this->formatFacultyBestThesisAward(
+                $award->fresh(['thesis.submitter:id,name', 'thesis.category:id,name,slug', 'awardedBy:id,name'])
+            ),
+            'message' => 'Best Thesis appointed successfully.',
+        ]);
+    }
+
+    private function formatFacultyBestThesisCandidate(Thesis $thesis): array
+    {
+        $categories = $this->resolveCategorySummaries($thesis);
+
+        return [
+            'id' => $thesis->id,
+            'title' => $thesis->title,
+            'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+            'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+            'school_year' => $thesis->school_year,
+            'department' => $thesis->department,
+            'program' => $thesis->program,
+            'category' => $categories[0]['name'] ?? $thesis->category?->name,
+            'categories' => $categories,
+            'archived_at' => $this->formatIsoTimestamp($thesis->archived_at),
+        ];
+    }
+
+    private function formatFacultyBestThesisAward(BestThesis $award): ?array
+    {
+        if (!$award->thesis) {
+            return null;
+        }
+
+        return [
+            'id' => $award->id,
+            'school_year' => $award->school_year,
+            'status' => 'appointed',
+            'awarded_by_name' => $award->awardedBy?->name,
+            'awarded_at' => $this->formatIsoTimestamp($award->awarded_at),
+            'thesis' => $this->formatFacultyBestThesisCandidate($award->thesis),
+        ];
+    }
+
+    private function currentBestThesis(): ?array
+    {
+        return $this->bestThesisAwards()[0] ?? null;
+    }
+
+    private function bestThesisAwards(): array
+    {
+        return BestThesis::query()
+            ->with(['thesis.submitter:id,name', 'thesis.category:id,name,slug'])
+            ->whereHas('thesis', fn ($query) => $query
+                ->where('status', 'approved')
+                ->whereRaw('"is_archived" = true'))
+            ->orderByDesc('school_year')
+            ->orderByDesc('awarded_at')
+            ->get()
+            ->map(fn (BestThesis $award) => $this->formatBestThesisAward($award))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function formatBestThesisAward(BestThesis $award): ?array
+    {
+        if (!$award->thesis) {
+            return null;
+        }
+
+        $thesis = $award->thesis;
+        $categories = $this->resolveCategorySummaries($thesis);
+
+        return [
+            'id' => $award->id,
+            'school_year' => $award->school_year,
+            'remarks' => $award->remarks,
+            'awarded_at' => $this->formatIsoTimestamp($award->awarded_at),
+            'thesis' => [
+                'id' => $thesis->id,
+                'title' => $thesis->title,
+                'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+                'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+                'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
+                'department' => $thesis->department,
+                'program' => $thesis->program,
+                'category' => $categories[0]['name'] ?? $thesis->category?->name,
+                'categories' => $categories,
+            ],
+        ];
     }
 
     private function recentDashboardTheses(): array

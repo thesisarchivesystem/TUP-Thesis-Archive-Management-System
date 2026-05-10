@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Conversation;
 use App\Models\Category;
+use App\Models\BestThesis;
 use App\Models\FacultyProfile;
 use App\Models\Program;
 use App\Models\SearchLog;
@@ -135,15 +136,6 @@ class StudentController extends Controller
             $topSearches = [];
         }
 
-        try {
-            $quote = $this->dailyQuoteService->getTodayQuote();
-        } catch (\Throwable $exception) {
-            Log::warning('Student dashboard daily quote failed to load.', [
-                'message' => $exception->getMessage(),
-            ]);
-            $quote = null;
-        }
-
         return response()->json([
             'stats' => [
                 'my_submissions' => (int) ($submissionStats?->my_submissions ?? 0),
@@ -153,8 +145,62 @@ class StudentController extends Controller
             ],
             'recent_theses' => $recentTheses,
             'top_searches' => $topSearches,
-            'daily_quote' => $quote,
+            'best_thesis' => $this->currentBestThesis(),
+            'best_theses' => $this->bestThesisAwards(),
         ]);
+    }
+
+    private function currentBestThesis(): ?array
+    {
+        return $this->bestThesisAwards()[0] ?? null;
+    }
+
+    private function bestThesisAwards(): array
+    {
+        if (!Schema::hasTable('best_theses')) {
+            return [];
+        }
+
+        return BestThesis::query()
+            ->with(['thesis.submitter:id,name', 'thesis.category:id,name,slug'])
+            ->whereHas('thesis', fn ($query) => $query
+                ->where('status', 'approved')
+                ->whereRaw('"is_archived" = true'))
+            ->orderByDesc('school_year')
+            ->orderByDesc('awarded_at')
+            ->get()
+            ->map(fn (BestThesis $award) => $this->formatBestThesisAward($award))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function formatBestThesisAward(BestThesis $award): ?array
+    {
+        if (!$award->thesis) {
+            return null;
+        }
+
+        $thesis = $award->thesis;
+        $categories = $this->resolveCategorySummaries($thesis);
+
+        return [
+            'id' => $award->id,
+            'school_year' => $award->school_year,
+            'remarks' => $award->remarks,
+            'awarded_at' => $this->formatIsoTimestamp($award->awarded_at),
+            'thesis' => [
+                'id' => $thesis->id,
+                'title' => $thesis->title,
+                'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
+                'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
+                'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
+                'department' => $thesis->department,
+                'program' => $thesis->program,
+                'category' => $categories[0]['name'] ?? $thesis->category?->name,
+                'categories' => $categories,
+            ],
+        ];
     }
 
     private function recentDashboardTheses(): array

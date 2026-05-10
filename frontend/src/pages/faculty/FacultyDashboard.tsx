@@ -1,24 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, FilePlus2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
+import BestThesisBanner from '../../components/dashboard/BestThesisBanner';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
 import { useAuth } from '../../hooks/useAuth';
 import { useFavoriteThesisStore } from '../../store/favoriteThesisStore';
 import {
   facultyDashboardService,
+  type FacultyBestThesis,
   type FacultyDashboardThesis,
-  type FacultyDailyQuote,
 } from '../../services/facultyDashboardService';
 
 export default function FacultyDashboard() {
   const DISPLAY_LIMIT = 12;
+  const FAVORITES_LIMIT = 5;
   const navigate = useNavigate();
   const { user } = useAuth();
+  const favoritesScrollRef = useRef<HTMLDivElement | null>(null);
   const [recentTheses, setRecentTheses] = useState<FacultyDashboardThesis[]>([]);
   const [topSearches, setTopSearches] = useState<FacultyDashboardThesis[]>([]);
-  const [quote, setQuote] = useState<FacultyDailyQuote | null>(null);
+  const [bestThesis, setBestThesis] = useState<FacultyBestThesis | null>(null);
+  const [bestTheses, setBestTheses] = useState<FacultyBestThesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const favoriteTheses = useFavoriteThesisStore((state) =>
@@ -42,12 +46,14 @@ export default function FacultyDashboard() {
       .then((dashboardResponse) => {
         setRecentTheses(sortDashboardTheses(dashboardResponse.recent_theses ?? []));
         setTopSearches(dashboardResponse.top_searches ?? []);
-        setQuote(dashboardResponse.daily_quote ?? null);
+        setBestThesis(dashboardResponse.best_thesis ?? null);
+        setBestTheses(dashboardResponse.best_theses ?? []);
       })
       .catch((err) => {
         setRecentTheses([]);
         setTopSearches([]);
-        setQuote(null);
+        setBestThesis(null);
+        setBestTheses([]);
         setError(err instanceof Error ? err.message : 'Failed to load dashboard');
       })
       .finally(() => {
@@ -55,7 +61,13 @@ export default function FacultyDashboard() {
       });
   }, [user?.role]);
 
-  const favoriteCards = useMemo(() => favoriteTheses.slice(0, 4), [favoriteTheses]);
+  const favoriteCards = useMemo(() => favoriteTheses.slice(0, FAVORITES_LIMIT), [favoriteTheses]);
+
+  useEffect(() => {
+    if (favoritesScrollRef.current) {
+      favoritesScrollRef.current.scrollLeft = 0;
+    }
+  }, [favoriteCards.length]);
   const recentlyAddedCards = useMemo(
     () => recentTheses.slice(0, DISPLAY_LIMIT),
     [recentTheses, DISPLAY_LIMIT],
@@ -181,23 +193,18 @@ export default function FacultyDashboard() {
       ) : (
         <>
           <div className="vpaa-hero-row">
-            <div className="vpaa-quote-banner">
-              <div className="vpaa-quote-title">Today&apos;s Quote</div>
-              {quote ? (
-                <>
-                  <p className="vpaa-quote-body">&quot;{quote.body}&quot;</p>
-                  <span>- {quote.author}</span>
-                </>
-              ) : (
-                <p className="vpaa-quote-body">No quote available.</p>
-              )}
-            </div>
+            <BestThesisBanner
+              award={bestThesis}
+              awards={bestTheses}
+              detailsPath={bestThesis ? thesisHref(bestThesis.thesis) : '#'}
+              getDetailsPath={(item) => thesisHref(item.thesis)}
+            />
 
             <div className="vpaa-cover-strip">
               <div className="vpaa-cover-strip-label">My Favorites</div>
               <div className="vpaa-cover-strip-content">
                 <div className="vpaa-cover-strip-head">
-                  {favoriteTheses.length > 4 ? (
+                  {favoriteTheses.length > FAVORITES_LIMIT ? (
                     <button
                       type="button"
                       className="vpaa-dashboard-toggle"
@@ -207,7 +214,7 @@ export default function FacultyDashboard() {
                     </button>
                   ) : null}
                 </div>
-                <div className="vpaa-cover-scroll">
+                <div className="vpaa-cover-scroll" ref={favoritesScrollRef}>
                 {favoriteCards.map(renderFavoriteCard)}
                 </div>
               </div>

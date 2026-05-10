@@ -11,6 +11,8 @@ export interface User {
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
+  faculty?: FacultyProfile | null;
+  student?: StudentProfile | null;
 }
 
 export interface FacultyProfile {
@@ -20,7 +22,7 @@ export interface FacultyProfile {
   department: string;
   college?: string | null;
   rank: string;
-  faculty_role: 'Dean' | 'Adviser' | 'Co-Adviser';
+  faculty_role: 'Adviser' | 'Chairperson' | 'Dean/Head' | string;
   assigned_chair_id?: string;
   notes?: string;
   status: 'active' | 'on_leave' | 'inactive';
