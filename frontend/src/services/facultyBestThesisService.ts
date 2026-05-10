@@ -5,6 +5,7 @@ export type FacultyBestThesisCandidate = {
   title: string;
   author: string;
   authors: string[];
+  adviser_name?: string | null;
   school_year: string;
   department?: string | null;
   program?: string | null;

@@ -183,10 +183,9 @@ class AdminController extends Controller
     {
         $selectedSchoolYear = trim((string) $request->query('school_year', ''));
         $schoolYears = Thesis::query()
-            ->where('status', 'approved')
-            ->whereRaw('"is_archived" = true')
             ->whereNotNull('school_year')
             ->where('school_year', '!=', '')
+            ->selectRaw('TRIM(school_year) as school_year')
             ->distinct()
             ->orderByDesc('school_year')
             ->pluck('school_year')

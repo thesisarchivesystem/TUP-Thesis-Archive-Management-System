@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
+import { ChevronRight, Trophy } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -109,11 +109,6 @@ export default function BestThesisBanner({ award, awards, detailsPath, getDetail
       onTouchStart={(event) => setTouchStartX(event.touches[0]?.clientX ?? null)}
       onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
     >
-      {hasMultipleSlides ? (
-        <button type="button" className="vpaa-best-thesis-nav previous" onClick={() => goToSlide(activeIndex - 1)} aria-label="Previous Best Thesis">
-          <ChevronLeft size={18} />
-        </button>
-      ) : null}
       <Link className="vpaa-best-thesis-banner" to={activeDetailsPath} state={{ thesis: activeAward?.thesis }}>
         {content}
       </Link>
