@@ -46,7 +46,12 @@ class FacultyController extends Controller
     public function profile(Request $request): JsonResponse
     {
         $profile = FacultyProfile::query()
-            ->with('user')
+            ->with([
+                'user:id,first_name,last_name,suffix,name,email',
+                'college:id,name,code',
+                'departmentModel:id,college_id,name,code',
+                'departmentModel.college:id,name,code',
+            ])
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
@@ -56,6 +61,59 @@ class FacultyController extends Controller
 
         return response()->json([
             'data' => $this->formatFacultyProfile($profile, $adviseeCount),
+        ]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $profile = FacultyProfile::query()
+            ->with('user')
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'suffix' => ['nullable', 'string', 'max:50'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($request->user()->id)],
+            'rank' => ['nullable', 'string', 'max:255'],
+            'faculty_role' => ['required', 'string', 'max:255'],
+            'college' => ['nullable', 'string', 'max:255'],
+            'department' => ['required', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($profile, $validated) {
+            $profile->user?->update([
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'suffix' => $validated['suffix'] ?? null,
+                'email' => $validated['email'],
+            ]);
+
+            $profile->update([
+                'rank' => $validated['rank'] ?? null,
+                'faculty_role' => $validated['faculty_role'],
+                'college' => $validated['college'] ?? null,
+                'department' => $validated['department'],
+            ]);
+        });
+
+        $updatedProfile = FacultyProfile::query()
+            ->with([
+                'user:id,first_name,last_name,suffix,name,email',
+                'college:id,name,code',
+                'departmentModel:id,college_id,name,code',
+                'departmentModel.college:id,name,code',
+            ])
+            ->where('id', $profile->id)
+            ->firstOrFail();
+
+        $adviseeCount = StudentProfile::query()
+            ->where('adviser_id', $request->user()->id)
+            ->count();
+
+        return response()->json([
+            'data' => $this->formatFacultyProfile($updatedProfile, $adviseeCount),
         ]);
     }
 
@@ -1202,11 +1260,8 @@ class FacultyController extends Controller
 
     private function formatFacultyProfile(FacultyProfile $profile, int $adviseeCount): array
     {
-        $roleTitle = match ($profile->faculty_role) {
-            'Dean' => 'Faculty - Dean',
-            'Co-Adviser' => 'Faculty - Co-Adviser',
-            default => 'Faculty - Thesis Adviser',
-        };
+        $collegeRelation = $profile->relationLoaded('college') ? $profile->getRelation('college') : null;
+        $departmentRelation = $profile->relationLoaded('departmentModel') ? $profile->getRelation('departmentModel') : null;
 
         return [
             'id' => $profile->id,
@@ -1214,11 +1269,12 @@ class FacultyController extends Controller
             'full_name' => $profile->user?->name,
             'first_name' => $profile->user?->first_name,
             'last_name' => $profile->user?->last_name,
+            'suffix' => $profile->user?->suffix,
             'email' => $profile->user?->email,
-            'department' => $profile->department,
-            'college' => $profile->college,
+            'department' => $profile->department ?? $departmentRelation?->name,
+            'college' => $profile->college ?? $collegeRelation?->name ?? $departmentRelation?->college?->name,
             'faculty_role' => $profile->faculty_role,
-            'role_title' => $roleTitle,
+            'role_title' => $profile->faculty_role,
             'rank' => $profile->rank,
             'mobile' => null,
             'advisee_count' => $adviseeCount,

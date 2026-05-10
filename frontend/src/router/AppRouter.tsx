@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import { getLoginPathForRole, useAuthStore } from '../store/authStore';
 import type { UserRole } from '../types/user.types';
 import { authService } from '../services/authService';
 
@@ -69,6 +69,9 @@ import AdminAboutPage from '../pages/admin/AdminAboutPage';
 import AdminSupportPage from '../pages/admin/AdminSupportPage';
 import AdminTermsPage from '../pages/admin/AdminTermsPage';
 import AdminTicketsPage from '../pages/admin/AdminTicketsPage';
+
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
+const ACTIVITY_STORAGE_KEY = 'tams-last-activity-at';
 
 const ProtectedRoute = ({ allowedRoles }: { allowedRoles: UserRole[] }) => {
   const { user, token } = useAuthStore();
@@ -141,6 +144,105 @@ function AuthSync() {
   return null;
 }
 
+function InactivityLogoutGuard() {
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+  const forcedLogoutNotice = useAuthStore((state) => state.forcedLogoutNotice);
+  const showForcedLogoutNotice = useAuthStore((state) => state.showForcedLogoutNotice);
+
+  useEffect(() => {
+    if (!token || !user || forcedLogoutNotice) return;
+
+    let lastRecordedActivity = 0;
+
+    const readLastActivity = () => {
+      const storedActivity = window.localStorage.getItem(ACTIVITY_STORAGE_KEY);
+      if (!storedActivity) {
+        return null;
+      }
+
+      try {
+        const parsed = JSON.parse(storedActivity);
+        if (parsed?.token === token && Number.isFinite(parsed.at)) {
+          return parsed.at as number;
+        }
+      } catch {
+        const legacyActivity = Number(storedActivity);
+        if (Number.isFinite(legacyActivity) && legacyActivity > 0) {
+          return legacyActivity;
+        }
+      }
+
+      return null;
+    };
+
+    const recordActivity = () => {
+      const now = Date.now();
+      if (now - lastRecordedActivity < 1000) {
+        return;
+      }
+
+      lastRecordedActivity = now;
+      window.localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify({ token, at: now }));
+    };
+
+    const expireSession = () => {
+      showForcedLogoutNotice({
+        title: 'Session Expired',
+        message: 'You have been inactive for 30 minutes. Please log in again to continue.',
+        redirectPath: getLoginPathForRole(user.role),
+        logoutDelayMs: 0,
+        note: 'Please log in again to continue.',
+      });
+    };
+
+    const checkInactivity = () => {
+      const lastActivity = readLastActivity();
+      if (lastActivity && Date.now() - lastActivity >= INACTIVITY_TIMEOUT_MS) {
+        expireSession();
+      }
+    };
+
+    if (readLastActivity()) {
+      checkInactivity();
+    } else {
+      recordActivity();
+    }
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      'click',
+      'keydown',
+      'mousemove',
+      'scroll',
+      'touchstart',
+      'wheel',
+    ];
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, recordActivity, { passive: true });
+    });
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === ACTIVITY_STORAGE_KEY) {
+        checkInactivity();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+
+    const intervalId = window.setInterval(checkInactivity, 1000);
+
+    return () => {
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, recordActivity);
+      });
+      window.removeEventListener('storage', handleStorage);
+      window.clearInterval(intervalId);
+    };
+  }, [forcedLogoutNotice, showForcedLogoutNotice, token, user?.role]);
+
+  return null;
+}
+
 function ForcedLogoutDialog() {
   const logout = useAuthStore((state) => state.logout);
   const forcedLogoutNotice = useAuthStore((state) => state.forcedLogoutNotice);
@@ -153,7 +255,7 @@ function ForcedLogoutDialog() {
     const timeoutId = window.setTimeout(() => {
       logout();
       window.location.replace(forcedLogoutNotice.redirectPath);
-    }, 3200);
+    }, forcedLogoutNotice.logoutDelayMs ?? 3200);
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -183,7 +285,9 @@ function ForcedLogoutDialog() {
             {forcedLogoutNotice.message.split('\n').map((line, index) => (
               <p key={`${line}-${index}`}>{line || '\u00A0'}</p>
             ))}
-            <p className="confirm-dialog-note">You will be signed out of this browser in a few seconds.</p>
+            <p className="confirm-dialog-note">
+              {forcedLogoutNotice.note || 'You will be signed out of this browser in a few seconds.'}
+            </p>
           </div>
         </div>
         <div className="confirm-dialog-actions confirm-dialog-actions-single">
@@ -204,6 +308,7 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <AuthSync />
+      <InactivityLogoutGuard />
       <ForcedLogoutDialog />
       <Routes>
         {/* Public */}

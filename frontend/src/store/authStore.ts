@@ -11,13 +11,23 @@ type ForcedLogoutNotice = {
   title: string;
   message: string;
   redirectPath: string;
+  logoutDelayMs?: number;
+  note?: string;
+};
+
+type ForcedLogoutNoticeInput = string | {
+  title?: string;
+  message?: string;
+  redirectPath?: string;
+  logoutDelayMs?: number;
+  note?: string;
 };
 
 interface AuthState extends StoredAuthState {
   forcedLogoutNotice: ForcedLogoutNotice | null;
   setAuth: (user: User, token: string, rememberMe?: boolean) => void;
   updateUser: (updates: Partial<User>) => void;
-  showForcedLogoutNotice: (message?: string) => void;
+  showForcedLogoutNotice: (notice?: ForcedLogoutNoticeInput) => void;
   logout: () => void;
 }
 
@@ -142,17 +152,22 @@ export const useAuthStore = create<AuthState>()((set) => ({
       return { user: nextUser };
     });
   },
-  showForcedLogoutNotice: (message) => {
+  showForcedLogoutNotice: (notice) => {
     set((state) => {
       if (!state.user || state.forcedLogoutNotice) {
         return state;
       }
 
+      const noticeOptions = typeof notice === 'object' && notice !== null ? notice : {};
+      const message = typeof notice === 'string' ? notice : noticeOptions.message;
+
       return {
         forcedLogoutNotice: {
-          title: 'Account Disabled',
+          title: noticeOptions.title?.trim() || 'Account Disabled',
           message: message?.trim() || DEFAULT_FORCED_LOGOUT_MESSAGE,
-          redirectPath: getLoginPathForRole(state.user.role),
+          redirectPath: noticeOptions.redirectPath || getLoginPathForRole(state.user.role),
+          logoutDelayMs: noticeOptions.logoutDelayMs,
+          note: noticeOptions.note,
         },
       };
     });
