@@ -22,6 +22,7 @@ interface AuthState extends StoredAuthState {
 }
 
 const LOCAL_STORAGE_KEY = 'tams-auth';
+const BROWSER_STORAGE_KEY = 'tams-active-browser-auth';
 const SESSION_STORAGE_KEY = 'tams-auth-session';
 const DEFAULT_FORCED_LOGOUT_MESSAGE = 'Your account has been disabled, so this browser session will be logged out.';
 
@@ -37,7 +38,19 @@ export function getLoginPathForRole(role?: UserRole | null) {
   return '/sign-in/faculty';
 }
 
-function parseStoredValue(value: string | null): { user: User | null; token: string | null } | null {
+export function getDashboardPathForRole(role?: UserRole | null) {
+  if (role === 'admin') {
+    return '/admin/dashboard';
+  }
+
+  if (role === 'student') {
+    return '/student/dashboard';
+  }
+
+  return '/faculty/dashboard';
+}
+
+function parseStoredValue(value: string | null): { user: User | null; token: string | null; rememberMe?: boolean } | null {
   if (!value) return null;
 
   try {
@@ -47,12 +60,14 @@ function parseStoredValue(value: string | null): { user: User | null; token: str
       return {
         user: parsed.state?.user ?? null,
         token: parsed.state?.token ?? null,
+        rememberMe: parsed.state?.rememberMe,
       };
     }
 
     return {
       user: parsed?.user ?? null,
       token: parsed?.token ?? null,
+      rememberMe: parsed?.rememberMe,
     };
   } catch {
     return null;
@@ -64,14 +79,19 @@ function readStoredAuth(): StoredAuthState {
     return { user: null, token: null, rememberMe: false };
   }
 
-  const sessionAuth = parseStoredValue(window.sessionStorage.getItem(SESSION_STORAGE_KEY));
-  if (sessionAuth?.token) {
-    return { ...sessionAuth, rememberMe: false };
+  const browserAuth = parseStoredValue(window.localStorage.getItem(BROWSER_STORAGE_KEY));
+  if (browserAuth?.token) {
+    return { ...browserAuth, rememberMe: Boolean(browserAuth.rememberMe) };
   }
 
   const localAuth = parseStoredValue(window.localStorage.getItem(LOCAL_STORAGE_KEY));
   if (localAuth?.token) {
     return { ...localAuth, rememberMe: true };
+  }
+
+  const legacySessionAuth = parseStoredValue(window.sessionStorage.getItem(SESSION_STORAGE_KEY));
+  if (legacySessionAuth?.token) {
+    return { ...legacySessionAuth, rememberMe: false };
   }
 
   return { user: null, token: null, rememberMe: false };
@@ -80,15 +100,16 @@ function readStoredAuth(): StoredAuthState {
 function persistAuth(user: User, token: string, rememberMe: boolean) {
   if (typeof window === 'undefined') return;
 
-  const payload = JSON.stringify({ user, token });
+  const payload = JSON.stringify({ user, token, rememberMe, updatedAt: Date.now() });
+
+  window.localStorage.setItem(BROWSER_STORAGE_KEY, payload);
+  window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
 
   if (rememberMe) {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, payload);
-    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
     return;
   }
 
-  window.sessionStorage.setItem(SESSION_STORAGE_KEY, payload);
   window.localStorage.removeItem(LOCAL_STORAGE_KEY);
 }
 
@@ -96,6 +117,7 @@ function clearStoredAuth() {
   if (typeof window === 'undefined') return;
 
   window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+  window.localStorage.removeItem(BROWSER_STORAGE_KEY);
   window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
 }
 
@@ -140,3 +162,23 @@ export const useAuthStore = create<AuthState>()((set) => ({
     set({ user: null, token: null, rememberMe: false, forcedLogoutNotice: null });
   },
 }));
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (![BROWSER_STORAGE_KEY, LOCAL_STORAGE_KEY, SESSION_STORAGE_KEY].includes(event.key ?? '')) {
+      return;
+    }
+
+    const nextAuth = readStoredAuth();
+    const currentAuth = useAuthStore.getState();
+
+    if (currentAuth.token === nextAuth.token && currentAuth.user?.id === nextAuth.user?.id) {
+      return;
+    }
+
+    useAuthStore.setState({
+      ...nextAuth,
+      forcedLogoutNotice: null,
+    });
+  });
+}
