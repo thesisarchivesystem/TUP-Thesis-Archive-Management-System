@@ -2,8 +2,11 @@ import { CSSProperties, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MoonStar, SunMedium } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { useBookThemeCssVariables } from '../../hooks/useBookThemeCssVariables';
 import tupBuilding from '../../assets/tup-building.gif';
 import BrandMarkIcon from '../../components/BrandMarkIcon';
+import BookColorThemePicker from '../../components/BookColorThemePicker';
+import '../../styles/vpaa-shell.css';
 
 type RoleLink = {
   label: string;
@@ -277,10 +280,21 @@ function AuthStyles() {
         position: relative;
       }
 
-      .auth-theme-toggle {
+      .auth-theme-actions {
         position: absolute;
         top: 28px;
         right: 28px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 5;
+      }
+
+      .auth-theme-actions .book-color-theme-picker {
+        --shadow-md: var(--shadow-xl);
+      }
+
+      .auth-theme-toggle {
         width: 40px;
         height: 40px;
         border: 1.5px solid var(--border-hover);
@@ -617,6 +631,7 @@ export default function RoleSignInLayout({
   onSubmit,
 }: RoleSignInLayoutProps) {
   const { theme, toggle } = useTheme();
+  const bookThemeStyle = useBookThemeCssVariables(theme);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
@@ -625,10 +640,11 @@ export default function RoleSignInLayout({
   const rootStyle = useMemo(
     () =>
       ({
+        ...bookThemeStyle,
         ['--success-bg' as string]: theme === 'dark' ? accent.successBgDark : accent.successBgLight,
         ['--success-text' as string]: theme === 'dark' ? accent.successTextDark : accent.successTextLight,
       }) as CSSProperties,
-    [accent.successBgDark, accent.successBgLight, accent.successTextDark, accent.successTextLight, theme]
+    [accent.successBgDark, accent.successBgLight, accent.successTextDark, accent.successTextLight, bookThemeStyle, theme]
   );
 
   useEffect(() => {
@@ -664,10 +680,13 @@ export default function RoleSignInLayout({
       </div>
 
       <div className="auth-panel">
-        <button className="auth-theme-toggle" type="button" aria-label="Toggle theme" onClick={toggle}>
-          <SunMedium className="sun-icon" size={18} />
-          <MoonStar className="moon-icon" size={18} />
-        </button>
+        <div className="auth-theme-actions">
+          <button className="auth-theme-toggle" type="button" aria-label="Toggle theme" onClick={toggle}>
+            <SunMedium className="sun-icon" size={18} />
+            <MoonStar className="moon-icon" size={18} />
+          </button>
+          <BookColorThemePicker />
+        </div>
 
         <Link to="/" className="auth-back-link">
           <BackIcon />
