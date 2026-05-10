@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, ChevronDown, Clock3, Files, Layers3, Paperclip, Search, Upload, UserRound, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Clock3, FileText, Files, Layers3, Paperclip, Save, Search, Send, Upload, UserRound, Users } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FacultyLayout from '../../components/faculty/FacultyLayout';
 import ThesisArchiveCover from '../../components/thesis/ThesisArchiveCover';
@@ -55,6 +55,7 @@ const initialForm = {
   schoolYear: getCurrentSchoolYear(),
   fileName: '',
   file: null as File | null,
+  keywords: '',
   notes: '',
   userSearch: '',
 };
@@ -76,7 +77,8 @@ export default function FacultyFileSharingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as { draft?: FacultyLibraryItem } | null;
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(true);
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const [form, setForm] = useState(initialForm);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -132,6 +134,10 @@ export default function FacultyFileSharingPage() {
   );
   const visibleLibraryItems = useMemo(() => libraryItems.slice(0, 6), [libraryItems]);
   const selectedResourceType = form.type === otherLibraryType ? form.customType.trim() : form.type;
+  const selectedCategoryNames = categories
+    .filter((category) => form.categoryIds.includes(category.id))
+    .map((category) => category.name)
+    .join(', ');
 
   const getMissingShareField = () => {
     if (!form.title.trim()) {
@@ -230,6 +236,16 @@ export default function FacultyFileSharingPage() {
   }, []);
 
   useEffect(() => {
+    if (!success) return;
+
+    const timer = window.setTimeout(() => {
+      setSuccess('');
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [success]);
+
+  useEffect(() => {
     let isMounted = true;
 
     void loadLibrary()
@@ -301,6 +317,7 @@ export default function FacultyFileSharingPage() {
       schoolYear: draft.school_year ?? getCurrentSchoolYear(),
       fileName: draft.file_name ?? '',
       file: null,
+      keywords: draft.keywords?.join(', ') ?? '',
       notes: draft.abstract ?? '',
       userSearch: '',
     });
@@ -322,7 +339,33 @@ export default function FacultyFileSharingPage() {
     setUserResults([]);
     setShareWarning('');
     setShareValidationField(null);
+    setActiveStep(1);
     if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+  };
+
+  const goToNextStep = () => {
+    setShareWarning('');
+    setShareValidationField(null);
+    setActiveStep((current) => (current === 1 ? 2 : current === 2 ? 3 : 3));
+  };
+
+  const goToPreviousStep = () => {
+    setShareWarning('');
+    setShareValidationField(null);
+    setActiveStep((current) => (current === 3 ? 2 : current === 2 ? 1 : 1));
+  };
+
+  const showStepForField = (field: ShareValidationField) => {
+    if (!field) return;
+    if (field === 'title' || field === 'type' || field === 'category') {
+      setActiveStep(1);
+      return;
+    }
+    if (field === 'targetCollege' || field === 'targetDepartment' || field === 'specificUser') {
+      setActiveStep(2);
+      return;
+    }
+    setActiveStep(3);
   };
 
   const handleSave = async (mode: 'draft' | 'share') => {
@@ -338,7 +381,8 @@ export default function FacultyFileSharingPage() {
       if (missingField) {
         setShareValidationField(missingField.field);
         setShareWarning(missingField.message);
-        scrollToValidationField(missingField.field);
+        showStepForField(missingField.field);
+        window.setTimeout(() => scrollToValidationField(missingField.field), 0);
         return;
       }
     }
@@ -360,6 +404,10 @@ export default function FacultyFileSharingPage() {
         category_ids: form.categoryIds,
         school_year: form.schoolYear,
         authors: form.author ? [form.author] : [],
+        keywords: form.keywords
+          .split(',')
+          .map((keyword) => keyword.trim())
+          .filter(Boolean),
         share_scope: form.shareScope,
         target_college: form.shareScope === 'specific_college' ? form.targetCollege : undefined,
         target_department: form.shareScope === 'specific_department' ? form.targetDepartment : undefined,
@@ -379,7 +427,7 @@ export default function FacultyFileSharingPage() {
       setSuccess(
         mode === 'share'
           ? (editingDraftId ? 'Draft updated and shared successfully.' : 'File shared successfully and recipients were saved to the database.')
-          : (editingDraftId ? 'Draft updated successfully in the database.' : 'File draft saved successfully to the database.'),
+          : (editingDraftId ? 'Draft updated successfully!' : 'File draft saved successfully!'),
       );
 
       setLibraryLoading(true);
@@ -524,28 +572,53 @@ export default function FacultyFileSharingPage() {
           </div>
         </section>
 
-        <section className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <section className="faculty-department-file-card">
+          <div className="faculty-department-file-head">
             <button
               type="button"
               onClick={() => setFormOpen((current) => !current)}
-              className="flex items-center gap-4 text-left"
+              className="faculty-department-file-title-button"
               aria-expanded={formOpen}
               aria-controls="faculty-library-form"
             >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(139,35,50,0.06)] text-[var(--maroon)]">
+              <span className="faculty-department-file-icon">
                 <Upload size={18} />
               </span>
-              <div className="flex items-center gap-3">
-                <h2 className="mb-0 text-xl text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Add Department File</h2>
+              <div className="faculty-department-file-title-copy">
+                <h2>Add Department File</h2>
                 <ChevronDown size={18} className={`transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`} />
               </div>
             </button>
+            <span className="faculty-department-file-pill">Department Library Entry</span>
           </div>
 
           {formOpen ? (
-            <form id="faculty-library-form" className="mt-6 space-y-4" onSubmit={(event) => event.preventDefault()}>
-              <div className="rounded-[22px] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(139,35,50,0.05),rgba(139,35,50,0.01))] p-4 md:p-5">
+            <form id="faculty-library-form" className="faculty-department-file-form" onSubmit={(event) => event.preventDefault()}>
+              <div className="faculty-department-file-stepper" aria-label="Department file steps">
+                {[
+                  { id: 1, label: 'File Details' },
+                  { id: 2, label: 'Sharing Setup' },
+                  { id: 3, label: 'Attachment & Notes' },
+                ].map((step) => {
+                  const stepId = step.id as 1 | 2 | 3;
+                  const isDone = activeStep > stepId;
+                  const isActive = activeStep === stepId;
+
+                  return (
+                    <button
+                      key={step.id}
+                      type="button"
+                      className={`faculty-department-file-step${isActive ? ' active' : ''}${isDone ? ' done' : ''}`}
+                      onClick={() => setActiveStep(stepId)}
+                    >
+                      <span>{isDone ? <Check size={17} /> : step.id}</span>
+                      <strong>{step.label}</strong>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="faculty-department-file-panel" hidden={activeStep !== 1}>
                 <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
                     <h3 className="mb-1 text-lg text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>File Details</h3>
@@ -667,12 +740,7 @@ export default function FacultyFileSharingPage() {
                     <details className="student-upload-multi-dropdown faculty-file-category-dropdown">
                       <summary className="student-upload-multi-dropdown-trigger">
                         <span className="student-upload-multi-dropdown-value">
-                          {form.categoryIds.length
-                            ? categories
-                                .filter((category) => form.categoryIds.includes(category.id))
-                                .map((category) => category.name)
-                                .join(', ')
-                            : 'Select categories'}
+                          {form.categoryIds.length ? selectedCategoryNames : 'Select categories'}
                         </span>
                         <span className="student-upload-multi-dropdown-meta">{form.categoryIds.length}/{MAX_CATEGORY_SELECTIONS}</span>
                       </summary>
@@ -713,7 +781,7 @@ export default function FacultyFileSharingPage() {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-[var(--border)] bg-[var(--bg-card-alt)] p-4 md:p-5">
+              <div className="faculty-department-file-panel" hidden={activeStep !== 2}>
                 <div className="mb-4">
                   <h3 className="mb-1 text-lg text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Sharing Setup</h3>
                   <p className="mb-0 text-sm text-text-secondary">Choose where this file should appear and who should be able to access it.</p>
@@ -969,16 +1037,16 @@ export default function FacultyFileSharingPage() {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(139,35,50,0.05),rgba(139,35,50,0.01))] p-4 md:p-5">
+              <div className="faculty-department-file-panel" hidden={activeStep !== 3}>
                 <div className="mb-4">
                   <h3 className="mb-1 text-lg text-text-primary" style={{ fontFamily: 'DM Serif Display, serif' }}>Attachment and Notes</h3>
                   <p className="mb-0 text-sm text-text-secondary">Upload the file, add a filename if needed, and include tags or context for recipients.</p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <label className={`block md:col-span-2 xl:col-span-3${shareValidationField === 'fileName' ? ' student-upload-field has-error' : ''}`} ref={fileNameFieldRef}>
+                <div className="faculty-department-attachment-grid">
+                  <label className={`faculty-department-attachment-field${shareValidationField === 'fileName' ? ' student-upload-field has-error' : ''}`} ref={fileNameFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
-                      <span className="inline-flex items-center gap-2"><Paperclip size={14} className="text-[var(--maroon)]" /> File Name</span>
+                      <span className="inline-flex items-center gap-2"><FileText size={14} className="text-[var(--maroon)]" /> File Name</span>
                     </span>
                     <input
                       className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
@@ -993,27 +1061,35 @@ export default function FacultyFileSharingPage() {
                     {shareValidationField === 'fileName' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
 
-                  <label className={`block md:col-span-2 xl:col-span-3${shareValidationField === 'attachment' ? ' student-upload-field has-error' : ''}`} ref={attachmentFieldRef}>
+                  <label className={`faculty-department-attachment-field faculty-department-attachment-upload${shareValidationField === 'attachment' ? ' student-upload-field has-error' : ''}`} ref={attachmentFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
-                      <span className="inline-flex items-center gap-2"><Upload size={14} className="text-[var(--maroon)]" /> Attachment</span>
+                      <span className="inline-flex items-center gap-2"><Paperclip size={14} className="text-[var(--maroon)]" /> Attachment</span>
                     </span>
-                    <div className="student-upload-file-row">
-                      <div className="student-upload-file-label">{form.file?.name || 'No file chosen'}</div>
-                      <div className="student-upload-file-actions">
-                        <label className="student-upload-file-btn">
-                          <input
-                            ref={attachmentInputRef}
-                            type="file"
-                            hidden
-                            onChange={(event) => {
-                              setShareWarning('');
-                              setShareValidationField((current) => (current === 'attachment' ? null : current));
-                              setForm({ ...form, file: event.target.files?.[0] ?? null });
-                            }}
-                          />
-                          Choose File
-                        </label>
-                        {form.file ? (
+                    <div className="faculty-department-dropzone">
+                      <Upload size={34} />
+                      <strong>Drag & drop your file here</strong>
+                      <span className="faculty-department-choose-file">
+                        <input
+                          ref={attachmentInputRef}
+                          type="file"
+                          hidden
+                          onChange={(event) => {
+                            const file = event.target.files?.[0] ?? null;
+                            setShareWarning('');
+                            setShareValidationField((current) => (current === 'attachment' ? null : current));
+                            setForm({ ...form, file, fileName: form.fileName || file?.name || '' });
+                          }}
+                        />
+                        Choose File
+                      </span>
+                    </div>
+                    {form.file ? (
+                      <div className="faculty-department-selected-file">
+                        <span className="faculty-department-selected-file-icon"><FileText size={18} /></span>
+                        <strong>{form.file.name}</strong>
+                        <span>{form.file.type.split('/').pop()?.toUpperCase() || 'FILE'}</span>
+                        <span>{(form.file.size / (1024 * 1024)).toFixed(1)} MB</span>
+                        <Check size={19} className="faculty-department-selected-check" />
                           <button
                             type="button"
                             className="student-upload-file-remove"
@@ -1027,13 +1103,19 @@ export default function FacultyFileSharingPage() {
                           >
                             x
                           </button>
-                        ) : null}
                       </div>
-                    </div>
+                    ) : null}
                     {shareValidationField === 'attachment' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
 
-                  <label className={`block md:col-span-2 xl:col-span-3${shareValidationField === 'notes' ? ' student-upload-field has-error' : ''}`} ref={notesFieldRef}>
+                  <label className="faculty-department-attachment-field">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">
+                      <span className="inline-flex items-center gap-2"><Paperclip size={14} className="text-[var(--maroon)]" /> Supplementary Attachment <small>(optional)</small></span>
+                    </span>
+                    <button type="button" className="faculty-department-add-file">Add File</button>
+                  </label>
+
+                  <label className={`faculty-department-attachment-field${shareValidationField === 'notes' ? ' student-upload-field has-error' : ''}`} ref={notesFieldRef}>
                     <span className="mb-2 block text-sm font-medium text-text-secondary">
                       <span className="inline-flex items-center gap-2"><BookOpen size={14} className="text-[var(--maroon)]" /> Abstract / Notes</span>
                     </span>
@@ -1049,13 +1131,32 @@ export default function FacultyFileSharingPage() {
                     />
                     {shareValidationField === 'notes' ? renderShareFieldWarning(shareWarning) : null}
                   </label>
+
+                  <label className="faculty-department-attachment-field faculty-department-attachment-tags">
+                    <span className="mb-2 block text-sm font-medium text-text-secondary">
+                      <span className="inline-flex items-center gap-2"><Layers3 size={14} className="text-[var(--maroon)]" /> Tags / Keywords</span>
+                    </span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--input-border)] bg-[var(--bg-input)] px-4 py-3 text-base text-text-primary outline-none transition focus:border-[var(--maroon)]"
+                      value={form.keywords}
+                      onChange={(event) => setForm({ ...form, keywords: event.target.value })}
+                      placeholder="Add tags separated by commas"
+                    />
+                  </label>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <div className="faculty-department-file-actions">
+                <div className="faculty-department-file-actions-left">
+                  {activeStep > 1 ? (
+                    <button type="button" className="faculty-department-file-back" onClick={goToPreviousStep}>
+                      <ArrowLeft size={20} />
+                      Back
+                    </button>
+                  ) : null}
                 <button
                   type="button"
-                  className="rounded-2xl border border-[var(--input-border)] bg-white px-6 py-3 text-sm font-semibold text-text-primary"
+                  className="faculty-department-file-draft"
                   onClick={() => void handleSave('draft')}
                   disabled={
                     submittingAction !== null
@@ -1069,18 +1170,28 @@ export default function FacultyFileSharingPage() {
                     || (form.shareScope === 'specific_users' && !selectedUsers.length)
                   }
                 >
+                  <Save size={19} />
                   {submittingAction === 'draft' ? 'Saving...' : 'Save Draft'}
                 </button>
-                <button
-                  type="submit"
-                  className="rounded-2xl bg-[var(--maroon)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--shadow-sm)]"
-                  onClick={() => void handleSave('share')}
-                  disabled={
-                    submittingAction !== null || categoriesLoading
-                  }
-                >
-                  {submittingAction === 'share' ? 'Sharing...' : 'Share File'}
-                </button>
+                </div>
+                {activeStep < 3 ? (
+                  <button type="button" className="faculty-department-file-primary" onClick={goToNextStep}>
+                    Next
+                    <ArrowRight size={23} />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="faculty-department-file-primary"
+                    onClick={() => void handleSave('share')}
+                    disabled={
+                      submittingAction !== null || categoriesLoading
+                    }
+                  >
+                    {submittingAction === 'share' ? 'Sharing...' : 'Share File'}
+                    <Send size={21} />
+                  </button>
+                )}
               </div>
             </form>
           ) : null}
