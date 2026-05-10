@@ -357,7 +357,7 @@ class FacultyController extends Controller
         $uploadedFile = $request->file('file');
         $fileUpload = $uploadedFile ? $this->uploadToSupabase($uploadedFile, 'shared-resources') : null;
 
-        DB::transaction(function () use ($file, $validated, $isDraft, $shareScope, $recipientIds, $fileUpload, $facultyProfile) {
+        DB::transaction(function () use ($file, $validated, $isDraft, $shareScope, $recipientIds, $fileUpload, $facultyProfile, $primaryCategoryId, $categoryIds) {
             $file->update([
                 'category_id' => $primaryCategoryId,
                 'category_ids' => $categoryIds,
@@ -476,7 +476,8 @@ class FacultyController extends Controller
             $isDraft,
             $shareScope,
             $recipientIds,
-            $fileUpload
+            $fileUpload,
+            $categoryIds
         ) {
             $file = SharedFile::create([
                 'uploaded_by' => $request->user()->id,
