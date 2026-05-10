@@ -1,15 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import { getDashboardPathForRole, useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import RoleSignInLayout from './RoleSignInLayout';
 
 export default function AdminSignIn() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const activeUser = useAuthStore((s) => s.user);
+  const activeToken = useAuthStore((s) => s.token);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (activeUser && activeToken) {
+      navigate(getDashboardPathForRole(activeUser.role), { replace: true });
+    }
+  }, [activeToken, activeUser, navigate]);
 
   return (
     <RoleSignInLayout
@@ -27,7 +35,10 @@ export default function AdminSignIn() {
       ]}
       identifierLabel="Admin Email"
       identifierPlaceholder="e.g. admin@tup.edu.ph"
-      roleSwitchLinks={[]}
+      roleSwitchLinks={[
+        { label: 'Student', to: '/sign-in/student' },
+        { label: 'Faculty', to: '/sign-in/faculty' },
+      ]}
       accent={{
         successBgLight: 'rgba(61,139,74,0.12)',
         successTextLight: '#276437',

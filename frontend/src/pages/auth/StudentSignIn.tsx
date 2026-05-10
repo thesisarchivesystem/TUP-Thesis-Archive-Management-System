@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import { getDashboardPathForRole, useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import RoleSignInLayout from './RoleSignInLayout';
 
@@ -16,8 +16,16 @@ function StudentBadgeIcon() {
 export default function StudentSignIn() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const activeUser = useAuthStore((s) => s.user);
+  const activeToken = useAuthStore((s) => s.token);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (activeUser && activeToken) {
+      navigate(getDashboardPathForRole(activeUser.role), { replace: true });
+    }
+  }, [activeToken, activeUser, navigate]);
 
   return (
     <RoleSignInLayout
