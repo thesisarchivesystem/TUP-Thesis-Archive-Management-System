@@ -188,7 +188,7 @@ export default function FacultyExtensionRequestDetailsPage() {
               </span>
               <div className="faculty-extension-request-info-copy">
                 <strong>Abstract</strong>
-                <p>{request.thesis?.abstract || 'No abstract was provided for this thesis.'}</p>
+                <p className="thesis-abstract-text">{request.thesis?.abstract || 'No abstract was provided for this thesis.'}</p>
               </div>
             </div>
 

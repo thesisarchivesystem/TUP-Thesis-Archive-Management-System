@@ -82,7 +82,7 @@ export default function ThesisDetailsModal({ thesis, onClose }: ThesisDetailsMod
         <div className="vpaa-thesis-modal-grid">
           <section className="vpaa-thesis-modal-section">
             <h3>Abstract</h3>
-            <p>{thesis.abstract?.trim() || 'No abstract available for this thesis yet.'}</p>
+            <p className="thesis-abstract-text">{thesis.abstract?.trim() || 'No abstract available for this thesis yet.'}</p>
           </section>
 
           <section className="vpaa-thesis-modal-section">

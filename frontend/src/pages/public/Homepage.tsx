@@ -14,7 +14,7 @@ import '../../styles/vpaa-shell.css';
 const sections = [
   { id: 'home', label: 'Home' },
   { id: 'features', label: 'Features' },
-  { id: 'departments', label: 'Departments' },
+  { id: 'departments', label: 'Programs' },
   { id: 'categories', label: 'Browse' },
 ] as const;
 
@@ -700,9 +700,9 @@ export default function Homepage() {
         <section className="departments" id="departments">
           <div data-reveal-id="departments-header" className={revealClass('departments-header')}>
             <div className="section-header">
-              <div className="section-label">Departments</div>
-              <h2 className="section-title">Thesis by Department</h2>
-              <p className="section-desc">Browse our collection of thesis documents organized by academic department.</p>
+              <div className="section-label">Programs</div>
+              <h2 className="section-title">Thesis by Program</h2>
+              <p className="section-desc">Browse our collection of thesis documents organized by academic program.</p>
             </div>
           </div>
 

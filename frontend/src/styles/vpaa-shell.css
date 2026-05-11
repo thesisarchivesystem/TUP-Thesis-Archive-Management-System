@@ -14253,6 +14253,11 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   line-height: 1.7;
 }
 
+.thesis-abstract-text {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
 .vpaa-thesis-modal-chip {
   display: inline-flex;
   align-items: center;

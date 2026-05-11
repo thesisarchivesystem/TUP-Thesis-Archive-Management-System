@@ -361,7 +361,7 @@ export default function SharedThesisDetailsPage({
                   <span>Abstract</span>
                 </strong>
                 <div className="thesis-record-section-body">
-                  <p>{thesis.abstract || 'No abstract provided for this thesis.'}</p>
+                  <p className="thesis-abstract-text">{thesis.abstract || 'No abstract provided for this thesis.'}</p>
                 </div>
               </div>
 

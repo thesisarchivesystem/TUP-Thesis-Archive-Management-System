@@ -408,7 +408,7 @@ export default function StudentSubmissionDetailsPage() {
                   <span>Abstract</span>
                 </strong>
                 <div className="thesis-record-section-body">
-                  <p>{submission.abstract || 'No abstract provided for this submission.'}</p>
+                  <p className="thesis-abstract-text">{submission.abstract || 'No abstract provided for this submission.'}</p>
                 </div>
               </div>
 
