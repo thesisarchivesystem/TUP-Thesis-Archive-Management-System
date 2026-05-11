@@ -769,7 +769,13 @@ class AdminController extends Controller
                 $query->where(function ($searchQuery) use ($search) {
                     $searchQuery
                         ->where('name', 'ilike', "%{$search}%")
-                        ->orWhere('email', 'ilike', "%{$search}%");
+                        ->orWhere('email', 'ilike', "%{$search}%")
+                        ->orWhereHas('faculty', function ($facultyQuery) use ($search) {
+                            $facultyQuery->where('faculty_id', 'ilike', "%{$search}%");
+                        })
+                        ->orWhereHas('student', function ($studentQuery) use ($search) {
+                            $studentQuery->where('student_id', 'ilike', "%{$search}%");
+                        });
                 });
             })
             ->orderByDesc('created_at')
