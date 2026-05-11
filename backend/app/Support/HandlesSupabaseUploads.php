@@ -49,12 +49,14 @@ trait HandlesSupabaseUploads
                 $preset = in_array($preset, ['screen', 'ebook', 'printer'], true) ? $preset : 'ebook';
                 $forceDownsample = filter_var(config('services.pdf_compression.force_downsample', false), FILTER_VALIDATE_BOOLEAN);
                 $imageDpi = max(36, min((int) config('services.pdf_compression.image_dpi', 72), 300));
+                $timeoutSeconds = max(1, min((int) config('services.pdf_compression.timeout', 20), 60));
 
                 Log::info('PDF compression starting.', [
                     'storage_root' => trim($rootFolder, '/'),
                     'preset' => $preset,
                     'force_downsample' => $forceDownsample,
                     'image_dpi' => $forceDownsample ? $imageDpi : null,
+                    'timeout_seconds' => $timeoutSeconds,
                     'original_size' => $originalSize,
                 ]);
 
@@ -146,7 +148,7 @@ trait HandlesSupabaseUploads
                                 break;
                             }
 
-                            if ((microtime(true) - $startedAt) >= 20) {
+                            if ((microtime(true) - $startedAt) >= $timeoutSeconds) {
                                 $timedOut = true;
                                 proc_terminate($process);
                                 break;
@@ -165,7 +167,7 @@ trait HandlesSupabaseUploads
                         $exitCode = $exitCode ?? $closeCode;
 
                         if ($timedOut) {
-                            $lastCompressionError = "{$binary} timed out after 20 seconds.";
+                            $lastCompressionError = "{$binary} timed out after {$timeoutSeconds} seconds.";
                             @unlink($compressedPath);
 
                             continue;

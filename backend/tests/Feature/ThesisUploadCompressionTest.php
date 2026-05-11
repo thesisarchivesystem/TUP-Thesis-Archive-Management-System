@@ -72,12 +72,18 @@ namespace Tests\Feature {
 
         public static array $commands = [];
 
+        public static bool $keepRunning = false;
+
+        public static bool $terminated = false;
+
         public static function reset(): void
         {
             self::$enabled = false;
             self::$exitCode = 0;
             self::$compressedContent = null;
             self::$commands = [];
+            self::$keepRunning = false;
+            self::$terminated = false;
         }
 
         public static function procOpen(array|string $command, array $descriptorSpec, array &$pipes, ?string $cwd = null, ?array $envVars = null, ?array $options = null): mixed
@@ -107,6 +113,13 @@ namespace Tests\Feature {
                 return \proc_get_status($process);
             }
 
+            if (self::$keepRunning) {
+                return [
+                    'running' => true,
+                    'exitcode' => -1,
+                ];
+            }
+
             return [
                 'running' => false,
                 'exitcode' => self::$exitCode,
@@ -118,6 +131,8 @@ namespace Tests\Feature {
             if (! self::$enabled) {
                 return \proc_terminate($process, $signal);
             }
+
+            self::$terminated = true;
 
             return true;
         }
@@ -210,6 +225,24 @@ namespace Tests\Feature {
                     && $request->hasHeader('Content-Type', 'application/pdf')
                     && $request->hasHeader('Content-Length', (string) strlen($originalPdf));
             });
+        }
+
+        public function test_pdf_upload_falls_back_when_ghostscript_times_out(): void
+        {
+            $originalPdf = $this->samplePdf(str_repeat('slow-payload', 500));
+
+            $this->configureSupabase();
+            Config::set('services.pdf_compression.enabled', true);
+            Config::set('services.pdf_compression.timeout', 1);
+
+            GhostscriptProcessFake::$enabled = true;
+            GhostscriptProcessFake::$keepRunning = true;
+
+            $result = $this->invokeUpload(UploadedFile::fake()->createWithContent('slow-thesis.pdf', $originalPdf));
+
+            $this->assertSame(strlen($originalPdf), $result['size']);
+            $this->assertSame($originalPdf, $this->uploadedBody);
+            $this->assertTrue(GhostscriptProcessFake::$terminated);
         }
 
         public function test_pdf_upload_can_force_screen_downsampling_options(): void

@@ -138,12 +138,13 @@ PDF_COMPRESSION_ENABLED=true
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_TIMEOUT=30
 PDF_COMPRESSION_GS_BINARY='C:\Program Files\gs\gs10.07.0\bin\gswin64c.exe'
 ```
 
 ### PDF Compression
 Install Ghostscript on Linux with `sudo apt-get install ghostscript`; on Windows, install the official package from https://ghostscript.com/releases/gsdnld.html and make sure `gswin64c.exe` is on `PATH`.
-The upload path uses `proc_open` for a 20-second synchronous compression timeout; check `php.ini` `disable_functions` for `proc_open`/`exec`, and uploads continue uncompressed with a log warning if `proc_open` is disabled.
+The upload path uses `proc_open` for a synchronous compression timeout, controlled by `PDF_COMPRESSION_TIMEOUT` seconds; check `php.ini` `disable_functions` for `proc_open`/`exec`, and uploads continue uncompressed with a log warning if `proc_open` is disabled.
 Toggle compression with `PDF_COMPRESSION_ENABLED=false`, or set `PDF_COMPRESSION_PRESET=screen|ebook|printer` to tune size vs quality; run `php artisan config:clear` after changing env values on cached deployments.
 Test locally with `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dBATCH -dQUIET -sOutputFile=compressed.pdf original.pdf`, then compare file sizes with `ls -lh` or PowerShell `Get-Item *.pdf | Select Name,Length`.
 See `PDF_COMPRESSION.md` for detailed setup, deployment, testing, and troubleshooting instructions.

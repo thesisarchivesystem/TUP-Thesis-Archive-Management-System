@@ -87,6 +87,7 @@ PDF_COMPRESSION_ENABLED=true
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_TIMEOUT=30
 PDF_COMPRESSION_GS_BINARY='C:\Program Files\gs\gs10.07.0\bin\gswin64c.exe'
 ```
 
@@ -104,9 +105,12 @@ If your manual `compressed_forced.pdf` test gives the best savings and the quali
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_TIMEOUT=30
 ```
 
-Those three values make the Laravel upload use the same aggressive image-downsampling style as the manual `compressed_forced.pdf` command.
+Those compression values make the Laravel upload use the same aggressive image-downsampling style as the manual `compressed_forced.pdf` command.
+
+`PDF_COMPRESSION_TIMEOUT` controls how many seconds Laravel lets Ghostscript run during a single upload. Start with `30` on Railway; use `45` only if your logs still say `gs timed out`, and keep it lower if upload latency matters more than file size.
 
 `PDF_COMPRESSION_GS_BINARY` is optional, but recommended on Windows. It tells Laravel the exact Ghostscript executable to use, so the web server does not depend on Windows `PATH`.
 
@@ -273,6 +277,7 @@ PDF_COMPRESSION_ENABLED=true
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_TIMEOUT=30
 RAILPACK_DEPLOY_APT_PACKAGES=ghostscript
 ```
 
@@ -287,7 +292,7 @@ Why `RAILPACK_DEPLOY_APT_PACKAGES` matters:
 You can also set the variables with the Railway CLI:
 
 ```powershell
-railway variables set PDF_COMPRESSION_ENABLED=true PDF_COMPRESSION_PRESET=screen PDF_COMPRESSION_FORCE_DOWNSAMPLE=true PDF_COMPRESSION_IMAGE_DPI=72 RAILPACK_DEPLOY_APT_PACKAGES=ghostscript
+railway variables set PDF_COMPRESSION_ENABLED=true PDF_COMPRESSION_PRESET=screen PDF_COMPRESSION_FORCE_DOWNSAMPLE=true PDF_COMPRESSION_IMAGE_DPI=72 PDF_COMPRESSION_TIMEOUT=30 RAILPACK_DEPLOY_APT_PACKAGES=ghostscript
 ```
 
 If Railway asks which service to target, choose the backend service.
@@ -339,8 +344,17 @@ Common causes:
 - `PDF_COMPRESSION_ENABLED=false` is set in Railway.
 - Railway is still set to `PDF_COMPRESSION_PRESET=ebook` instead of `screen`.
 - `PDF_COMPRESSION_FORCE_DOWNSAMPLE=true` is missing.
+- `PDF_COMPRESSION_TIMEOUT` is too low for Railway's current CPU speed.
 - The uploaded file is not detected as `application/pdf`.
 - Ghostscript produced a larger file, so the app uploaded the original by design.
+
+If the logs say this:
+
+```text
+PDF compression skipped; uploading the original file. {"reason":"gs timed out after 20 seconds."}
+```
+
+Ghostscript is installed and working, but Railway did not finish compression before Laravel stopped it. Set `PDF_COMPRESSION_TIMEOUT=30`, redeploy, and try again. If the same 13 MB scanned file still times out, try `PDF_COMPRESSION_TIMEOUT=45`. The code caps this value at 60 seconds to avoid runaway requests.
 
 ### 6. If Railway Uses Nixpacks Instead of Railpack
 
@@ -357,6 +371,7 @@ PDF_COMPRESSION_ENABLED=true
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_TIMEOUT=30
 ```
 
 Redeploy after changing the variables.
@@ -364,7 +379,7 @@ Redeploy after changing the variables.
 ## Railway Resource Notes
 
 - Compression happens during the upload request, so very large scanned PDFs can add upload latency.
-- The code currently uses a 20-second Ghostscript timeout.
+- The code defaults to a 20-second Ghostscript timeout; set `PDF_COMPRESSION_TIMEOUT=30` on Railway when scanned PDFs need more time.
 - The existing upload limit is 50 MB.
 - Use `screen` plus forced 72 DPI downsampling if you need the same result as `compressed_forced.pdf`.
 - Set `PDF_COMPRESSION_ENABLED=false` if Railway CPU usage or upload latency becomes a problem.
