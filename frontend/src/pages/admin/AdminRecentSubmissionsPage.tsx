@@ -25,6 +25,7 @@ import {
   type AdminStructureCollege,
   type AdminThesisDetail,
 } from '../../services/adminService';
+import { compactFileName, compactFileNameList } from '../../utils/fileNames';
 import { getDepartmentProgramOptions, normalizeProgramValue, resolveProgramDisplayValue } from '../../utils/programs';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
@@ -1084,9 +1085,9 @@ export default function AdminRecentSubmissionsPage() {
                           <strong>Upload PDF <em>(Required)</em></strong>
                           <p>
                             {replacementManuscript
-                              ? `${replacementManuscript.name}${replacementManuscript.size ? ` (${formatBytes(replacementManuscript.size)})` : ''}`
+                              ? `${compactFileName(replacementManuscript.name)}${replacementManuscript.size ? ` (${formatBytes(replacementManuscript.size)})` : ''}`
                               : editingThesis?.file_name
-                                ? `${editingThesis.file_name}${editingThesis.file_size ? ` (${formatBytes(editingThesis.file_size)})` : ''}`
+                                ? `${compactFileName(editingThesis.file_name)}${editingThesis.file_size ? ` (${formatBytes(editingThesis.file_size)})` : ''}`
                                 : isCreateMode
                                   ? 'Accepted format: .pdf'
                                   : 'No manuscript uploaded yet'}
@@ -1110,9 +1111,9 @@ export default function AdminRecentSubmissionsPage() {
                           <strong>Supplementary Files <em>(Optional)</em></strong>
                           <p>
                             {newSupplementaryFiles.length
-                              ? newSupplementaryFiles.map((file) => file.name).join(', ')
+                              ? compactFileNameList(newSupplementaryFiles.map((file) => file.name))
                               : editingThesis?.supplementary_files?.length
-                                ? editingThesis.supplementary_files.map((file) => file.name).join(', ')
+                                ? compactFileNameList(editingThesis.supplementary_files.map((file) => file.name))
                                 : isCreateMode
                                   ? 'Add supporting documents if needed.'
                                   : 'No supplementary files uploaded yet'}

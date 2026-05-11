@@ -21,6 +21,7 @@ import { archiveCategoriesService, type ArchiveCategory } from '../../services/a
 import { studentProfileService } from '../../services/studentProfileService';
 import { thesisService, type StudentAdviserOption } from '../../services/thesisService';
 import type { Thesis } from '../../types/thesis.types';
+import { compactFileName, compactFileNameList } from '../../utils/fileNames';
 import { getDepartmentProgramOptions, normalizeProgramValue, resolveProgramDisplayValue } from '../../utils/programs';
 
 type UploadFormState = {
@@ -122,6 +123,8 @@ export default function StudentUploadThesisPage() {
   const programOptions = getDepartmentProgramOptions(selectedDepartment);
   const college = selectedCollege?.name ?? '';
   const selectedAdviser = advisers.find((adviser) => adviser.id === form.adviser_id) ?? null;
+  const selectedManuscriptName = manuscriptFile?.name || existingManuscriptName || '';
+  const supplementaryFileNames = supplementaryFiles.map((file) => file.name);
   const filteredAdvisers = advisers.filter((adviser) => {
     const query = adviserSearch.trim().toLowerCase();
     if (!query) return true;
@@ -759,7 +762,9 @@ export default function StudentUploadThesisPage() {
                     </div>
                   </div>
                   <div className="student-upload-file-side">
-                    <div className="student-upload-file-label">{manuscriptFile?.name || existingManuscriptName || 'No file chosen'}</div>
+                    <div className="student-upload-file-label" title={selectedManuscriptName || 'No file chosen'}>
+                      {compactFileName(selectedManuscriptName) || 'No file chosen'}
+                    </div>
                     <div className="student-upload-file-actions">
                       <label className="student-upload-file-btn">
                         <input
@@ -799,8 +804,8 @@ export default function StudentUploadThesisPage() {
                     </div>
                   </div>
                   <div className="student-upload-file-side">
-                    <div className="student-upload-file-label">
-                      {supplementaryFiles.length ? supplementaryFiles.map((file) => file.name).join(', ') : 'No files chosen'}
+                    <div className="student-upload-file-label" title={supplementaryFileNames.join(', ') || 'No files chosen'}>
+                      {supplementaryFiles.length ? compactFileNameList(supplementaryFileNames) : 'No files chosen'}
                     </div>
                     <div className="student-upload-file-actions">
                       <label className="student-upload-file-btn">
