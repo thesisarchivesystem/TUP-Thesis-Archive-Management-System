@@ -26,6 +26,13 @@ return [
         'service_key' => env('SUPABASE_SERVICE_KEY'),
         'bucket' => env('SUPABASE_STORAGE_BUCKET'),
     ],
+    'pdf_compression' => [
+        'enabled' => env('PDF_COMPRESSION_ENABLED', true),
+        'preset' => env('PDF_COMPRESSION_PRESET', 'ebook'),
+        'force_downsample' => env('PDF_COMPRESSION_FORCE_DOWNSAMPLE', false),
+        'image_dpi' => env('PDF_COMPRESSION_IMAGE_DPI', 72),
+        'gs_binary' => env('PDF_COMPRESSION_GS_BINARY'),
+    ],
     'zenquotes' => [
         'base_url' => env('ZENQUOTES_BASE_URL', 'https://zenquotes.io/api'),
         'key' => env('ZENQUOTES_API_KEY'),

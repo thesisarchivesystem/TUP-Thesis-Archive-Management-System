@@ -9,6 +9,7 @@ use App\Models\StudentProfile;
 use App\Services\AblyService;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
+use App\Support\HandlesSupabaseUploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
@@ -21,6 +22,8 @@ use Illuminate\Support\Str;
 
 class ThesisController extends Controller
 {
+    use HandlesSupabaseUploads;
+
     public function __construct(
         private AblyService $ably,
         private ActivityLogService $logger,
@@ -793,40 +796,7 @@ class ThesisController extends Controller
 
     private function uploadToSupabase(\Illuminate\Http\UploadedFile $file, string $folder): array
     {
-        $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
-        $serviceKey = (string) config('services.supabase.service_key');
-        $bucket = (string) config('services.supabase.bucket');
-
-        if ($supabaseUrl === '' || $serviceKey === '' || $bucket === '') {
-            throw new \RuntimeException('Supabase storage is not configured.');
-        }
-
-        $path = sprintf(
-            'student-theses/%s/%s/%s-%s',
-            $folder,
-            now()->format('Y/m'),
-            (string) Str::uuid(),
-            preg_replace('/[^A-Za-z0-9.\-_]/', '-', $file->getClientOriginalName())
-        );
-
-        $response = Http::withHeaders([
-            'apikey' => $serviceKey,
-            'Authorization' => 'Bearer ' . $serviceKey,
-            'x-upsert' => 'true',
-            'Content-Type' => $file->getMimeType() ?: 'application/octet-stream',
-        ])->withBody(file_get_contents($file->getRealPath()), $file->getMimeType() ?: 'application/octet-stream')
-            ->post("{$supabaseUrl}/storage/v1/object/{$bucket}/{$path}");
-
-        if ($response->failed()) {
-            throw new \RuntimeException('Failed to upload file to storage.');
-        }
-
-        return [
-            'name' => $file->getClientOriginalName(),
-            'size' => $file->getSize(),
-            'path' => $path,
-            'url' => "{$supabaseUrl}/storage/v1/object/public/{$bucket}/{$path}",
-        ];
+        return $this->uploadFileToSupabase($file, $folder, 'student-theses');
     }
 
     private function downloadFromSupabaseUrl(string $url): array
