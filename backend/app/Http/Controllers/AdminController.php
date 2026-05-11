@@ -335,6 +335,23 @@ class AdminController extends Controller
         ]);
     }
 
+    public function destroyThesis(Request $request, string $id): JsonResponse
+    {
+        $thesis = Thesis::query()->findOrFail($id);
+        $title = $thesis->title;
+
+        $this->logger->log($request->user(), 'admin.thesis_deleted', 'thesis', $thesis->id, [
+            'title' => $title,
+            'status' => $thesis->status,
+        ]);
+
+        $thesis->delete();
+
+        return response()->json([
+            'message' => 'Thesis deleted successfully.',
+        ]);
+    }
+
     public function storeThesis(Request $request): JsonResponse
     {
         $categoryIds = $this->normalizeJsonArrayInput($request->input('category_ids'));
@@ -553,7 +570,8 @@ class AdminController extends Controller
             'title' => $thesis->title,
             'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? $thesis->submitter_name ?? 'Unknown author'),
             'category' => $thesis->category?->name,
-            'status' => $thesis->status,
+            'status' => $thesis->is_archived ? 'archived' : $thesis->status,
+            'is_archived' => (bool) $thesis->is_archived,
             'department' => $thesis->department,
             'program' => $thesis->program,
             'course' => $thesis->course,
@@ -751,7 +769,7 @@ class AdminController extends Controller
                         ->orWhere('email', 'ilike', "%{$search}%");
                 });
             })
-            ->orderBy('role')
+            ->orderByDesc('created_at')
             ->orderBy('name')
             ->get()
             ->map(fn (User $user) => $this->formatManagedUser($user));

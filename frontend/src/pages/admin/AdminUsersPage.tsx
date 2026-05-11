@@ -6,7 +6,7 @@ import { adminService, type AdminManagedUser, type AdminStructureCollege } from 
 const FEEDBACK_DISMISS_DELAY = 4000;
 
 type AdminUserRole = 'faculty' | 'student';
-type AdminUserSort = 'name_asc' | 'name_desc';
+type AdminUserSort = 'newest' | 'oldest' | 'name_asc' | 'name_desc';
 type FacultyRoleOption = 'Adviser' | 'Chairperson' | 'Dean/Head';
 
 const FACULTY_ROLE_OPTIONS: FacultyRoleOption[] = ['Adviser', 'Chairperson', 'Dean/Head'];
@@ -66,13 +66,17 @@ const toInitials = (name: string) =>
     .join('')
     .toUpperCase();
 
+const getUserCreatedTime = (user: AdminManagedUser) => (
+  user.created_at ? new Date(user.created_at).getTime() : 0
+);
+
 export default function AdminUsersPage() {
   const { confirm } = useConfirmDialog();
   const [users, setUsers] = useState<AdminManagedUser[]>([]);
   const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [roleFilter, setRoleFilter] = useState<AdminUserRole | ''>('');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<AdminUserSort>('name_asc');
+  const [sortBy, setSortBy] = useState<AdminUserSort>('newest');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [form, setForm] = useState<AdminUserForm>(emptyForm);
@@ -107,6 +111,10 @@ export default function AdminUsersPage() {
 
     sorted.sort((left, right) => {
       switch (sortBy) {
+        case 'oldest':
+          return getUserCreatedTime(left) - getUserCreatedTime(right);
+        case 'newest':
+          return getUserCreatedTime(right) - getUserCreatedTime(left);
         case 'name_desc':
           return collator.compare(right.name, left.name);
         case 'name_asc':
@@ -319,6 +327,8 @@ export default function AdminUsersPage() {
 
           <label className="admin-users-select">
             <select value={sortBy} onChange={(event) => setSortBy(event.target.value as AdminUserSort)}>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
               <option value="name_asc">Name A-Z</option>
               <option value="name_desc">Name Z-A</option>
             </select>

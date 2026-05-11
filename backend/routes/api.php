@@ -97,6 +97,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('/theses/{id}', [AdminController::class, 'showThesis']);
         Route::post('/theses/{id}', [AdminController::class, 'updateThesis']);
         Route::patch('/theses/{id}', [AdminController::class, 'updateThesis']);
+        Route::delete('/theses/{id}', [AdminController::class, 'destroyThesis']);
         Route::get('/support-tickets', [SupportTicketController::class, 'indexForAdmin']);
         Route::get('/support-tickets/{id}', [SupportTicketController::class, 'showForAdmin']);
         Route::patch('/support-tickets/{id}', [SupportTicketController::class, 'updateForAdmin']);
