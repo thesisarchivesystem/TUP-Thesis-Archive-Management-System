@@ -20,10 +20,10 @@ import {
   adminService,
   type AdminBestThesisAward,
   type AdminCategory,
-  type AdminDashboardResponse,
   type AdminManagedUser,
   type AdminStructureCollege,
   type AdminThesisDetail,
+  type AdminThesisRecord,
 } from '../../services/adminService';
 import { getDepartmentProgramOptions, normalizeProgramValue, resolveProgramDisplayValue } from '../../utils/programs';
 
@@ -86,8 +86,6 @@ const extractApiErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-type AdminThesisRecord = AdminDashboardResponse['recent_uploads'][number];
-
 type EditFormState = {
   title: string;
   college: string;
@@ -124,7 +122,7 @@ const initialEditForm: EditFormState = {
 };
 
 export default function AdminRecentSubmissionsPage() {
-  const [data, setData] = useState<AdminDashboardResponse | null>(null);
+  const [uploads, setUploads] = useState<AdminThesisRecord[]>([]);
   const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [bestThesisAwards, setBestThesisAwards] = useState<AdminBestThesisAward[]>([]);
@@ -160,12 +158,12 @@ export default function AdminRecentSubmissionsPage() {
     setError(null);
 
     void Promise.all([
-      adminService.getDashboard({ recent_uploads_limit: 50 }),
+      adminService.listTheses(),
       adminService.listStructure(),
     ])
-      .then(([response, structureResponse]) => {
+      .then(([thesesResponse, structureResponse]) => {
         if (!active) return;
-        setData(response);
+        setUploads(thesesResponse);
         setStructure(structureResponse);
       })
       .catch((err) => {
@@ -231,8 +229,6 @@ export default function AdminRecentSubmissionsPage() {
       active = false;
     };
   }, []);
-
-  const uploads = data?.recent_uploads ?? [];
 
   const colleges = useMemo(
     () => structure.map((college) => college.name),
@@ -597,39 +593,34 @@ export default function AdminRecentSubmissionsPage() {
       const bestThesisResponse = await adminService.getBestTheses();
       setBestThesisAwards(bestThesisResponse.awards);
 
-      setData((current) => (
-        current
-          ? {
+      setUploads((current) => (
+        editingId
+          ? current.map((record) => (
+              record.id === updated.id
+                ? {
+                    ...record,
+                    title: updated.title,
+                    author: updated.authors.join(', ') || record.author,
+                    category: updated.categories[0]?.name ?? record.category,
+                    status: updated.status,
+                    department: updated.department,
+                    program: updated.program ?? record.program,
+                  }
+                : record
+            ))
+          : [
+              {
+                id: updated.id,
+                title: updated.title,
+                author: updated.authors.join(', '),
+                category: updated.categories[0]?.name ?? null,
+                status: updated.status,
+                department: updated.department,
+                program: updated.program ?? null,
+                created_at: updated.created_at ?? new Date().toISOString(),
+              },
               ...current,
-              recent_uploads: editingId
-                ? current.recent_uploads.map((record) => (
-                    record.id === updated.id
-                      ? {
-                          ...record,
-                          title: updated.title,
-                          author: updated.authors.join(', ') || record.author,
-                          category: updated.categories[0]?.name ?? record.category,
-                          status: updated.status,
-                          department: updated.department,
-                          program: updated.program ?? record.program,
-                        }
-                      : record
-                  ))
-                : [
-                    {
-                      id: updated.id,
-                      title: updated.title,
-                      author: updated.authors.join(', '),
-                      category: updated.categories[0]?.name ?? null,
-                      status: updated.status,
-                      department: updated.department,
-                      program: updated.program ?? null,
-                      created_at: updated.created_at ?? new Date().toISOString(),
-                    },
-                    ...current.recent_uploads,
-                  ].slice(0, 50),
-            }
-          : current
+            ]
       ));
 
       setSuccess(editingId ? 'Thesis updated successfully.' : 'Thesis added successfully.');
@@ -642,7 +633,7 @@ export default function AdminRecentSubmissionsPage() {
   };
 
   if (error) return <div className="admin-alert">{error}</div>;
-  if (loading || !data) return <SectionLoadingScreen label="Loading thesis management..." />;
+  if (loading) return <SectionLoadingScreen label="Loading thesis management..." />;
 
   return (
     <div className="admin-page admin-thesis-page">

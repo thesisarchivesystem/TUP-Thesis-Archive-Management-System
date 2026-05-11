@@ -47,6 +47,8 @@ export type AdminDashboardResponse = {
   system_statistics: Record<string, number>;
 };
 
+export type AdminThesisRecord = AdminDashboardResponse['recent_uploads'][number];
+
 export type AdminManagedUser = {
   id: string;
   name: string;
@@ -281,6 +283,11 @@ export const adminService = {
       },
     });
     return data.data;
+  },
+
+  async listTheses(): Promise<AdminThesisRecord[]> {
+    const { data } = await api.get('/admin/theses');
+    return data.data ?? [];
   },
 
   async appointBestThesis(payload: {
