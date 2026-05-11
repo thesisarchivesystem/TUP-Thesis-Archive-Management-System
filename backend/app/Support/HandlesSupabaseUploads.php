@@ -49,6 +49,10 @@ trait HandlesSupabaseUploads
                 $preset = in_array($preset, ['screen', 'ebook', 'printer'], true) ? $preset : 'ebook';
                 $forceDownsample = filter_var(config('services.pdf_compression.force_downsample', false), FILTER_VALIDATE_BOOLEAN);
                 $imageDpi = max(36, min((int) config('services.pdf_compression.image_dpi', 72), 300));
+                $jpegQualityConfig = config('services.pdf_compression.jpeg_quality');
+                $jpegQuality = is_numeric($jpegQualityConfig)
+                    ? max(30, min((int) $jpegQualityConfig, 95))
+                    : null;
                 $timeoutSeconds = max(1, min((int) config('services.pdf_compression.timeout', 20), 60));
 
                 Log::info('PDF compression starting.', [
@@ -56,6 +60,7 @@ trait HandlesSupabaseUploads
                     'preset' => $preset,
                     'force_downsample' => $forceDownsample,
                     'image_dpi' => $forceDownsample ? $imageDpi : null,
+                    'jpeg_quality' => $jpegQuality,
                     'timeout_seconds' => $timeoutSeconds,
                     'original_size' => $originalSize,
                 ]);
@@ -97,6 +102,21 @@ trait HandlesSupabaseUploads
                                 '-dDownsampleColorImages=true',
                                 '-dDownsampleGrayImages=true',
                                 '-dDownsampleMonoImages=true',
+                                '-dColorImageDownsampleThreshold=1.0',
+                                '-dGrayImageDownsampleThreshold=1.0',
+                                '-dMonoImageDownsampleThreshold=1.0',
+                            ]);
+                        }
+
+                        if ($jpegQuality !== null) {
+                            array_splice($command, -2, 0, [
+                                '-dAutoFilterColorImages=false',
+                                '-dAutoFilterGrayImages=false',
+                                '-dColorImageFilter=/DCTEncode',
+                                '-dGrayImageFilter=/DCTEncode',
+                                '-dPassThroughJPEGImages=false',
+                                '-dPassThroughJPXImages=false',
+                                "-dJPEGQ={$jpegQuality}",
                             ]);
                         }
 
@@ -185,6 +205,7 @@ trait HandlesSupabaseUploads
                                 'preset' => $preset,
                                 'force_downsample' => $forceDownsample,
                                 'image_dpi' => $forceDownsample ? $imageDpi : null,
+                                'jpeg_quality' => $jpegQuality,
                                 'original_size' => $originalSize,
                                 'compressed_size' => $compressedSize,
                             ]);

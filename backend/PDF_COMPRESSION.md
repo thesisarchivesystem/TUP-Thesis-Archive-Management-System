@@ -87,6 +87,7 @@ PDF_COMPRESSION_ENABLED=true
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_JPEG_QUALITY=50
 PDF_COMPRESSION_TIMEOUT=30
 PDF_COMPRESSION_GS_BINARY='C:\Program Files\gs\gs10.07.0\bin\gswin64c.exe'
 ```
@@ -105,10 +106,13 @@ If your manual `compressed_forced.pdf` test gives the best savings and the quali
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_JPEG_QUALITY=50
 PDF_COMPRESSION_TIMEOUT=30
 ```
 
 Those compression values make the Laravel upload use the same aggressive image-downsampling style as the manual `compressed_forced.pdf` command.
+
+`PDF_COMPRESSION_JPEG_QUALITY` controls extra lossy JPEG compression for color and grayscale images. Use `50` for smaller scanned PDFs, `60` for a little better image quality, or remove it if you do not want this extra recompression.
 
 `PDF_COMPRESSION_TIMEOUT` controls how many seconds Laravel lets Ghostscript run during a single upload. Start with `30` on Railway; use `45` only if your logs still say `gs timed out`, and keep it lower if upload latency matters more than file size.
 
@@ -277,6 +281,7 @@ PDF_COMPRESSION_ENABLED=true
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_JPEG_QUALITY=50
 PDF_COMPRESSION_TIMEOUT=30
 RAILPACK_DEPLOY_APT_PACKAGES=ghostscript
 ```
@@ -292,7 +297,7 @@ Why `RAILPACK_DEPLOY_APT_PACKAGES` matters:
 You can also set the variables with the Railway CLI:
 
 ```powershell
-railway variables set PDF_COMPRESSION_ENABLED=true PDF_COMPRESSION_PRESET=screen PDF_COMPRESSION_FORCE_DOWNSAMPLE=true PDF_COMPRESSION_IMAGE_DPI=72 PDF_COMPRESSION_TIMEOUT=30 RAILPACK_DEPLOY_APT_PACKAGES=ghostscript
+railway variables set PDF_COMPRESSION_ENABLED=true PDF_COMPRESSION_PRESET=screen PDF_COMPRESSION_FORCE_DOWNSAMPLE=true PDF_COMPRESSION_IMAGE_DPI=72 PDF_COMPRESSION_JPEG_QUALITY=50 PDF_COMPRESSION_TIMEOUT=30 RAILPACK_DEPLOY_APT_PACKAGES=ghostscript
 ```
 
 If Railway asks which service to target, choose the backend service.
@@ -344,6 +349,7 @@ Common causes:
 - `PDF_COMPRESSION_ENABLED=false` is set in Railway.
 - Railway is still set to `PDF_COMPRESSION_PRESET=ebook` instead of `screen`.
 - `PDF_COMPRESSION_FORCE_DOWNSAMPLE=true` is missing.
+- `PDF_COMPRESSION_JPEG_QUALITY=50` is missing, so image recompression is less aggressive.
 - `PDF_COMPRESSION_TIMEOUT` is too low for Railway's current CPU speed.
 - The uploaded file is not detected as `application/pdf`.
 - Ghostscript produced a larger file, so the app uploaded the original by design.
@@ -371,6 +377,7 @@ PDF_COMPRESSION_ENABLED=true
 PDF_COMPRESSION_PRESET=screen
 PDF_COMPRESSION_FORCE_DOWNSAMPLE=true
 PDF_COMPRESSION_IMAGE_DPI=72
+PDF_COMPRESSION_JPEG_QUALITY=50
 PDF_COMPRESSION_TIMEOUT=30
 ```
 
@@ -381,7 +388,7 @@ Redeploy after changing the variables.
 - Compression happens during the upload request, so very large scanned PDFs can add upload latency.
 - The code defaults to a 20-second Ghostscript timeout; set `PDF_COMPRESSION_TIMEOUT=30` on Railway when scanned PDFs need more time.
 - The existing upload limit is 50 MB.
-- Use `screen` plus forced 72 DPI downsampling if you need the same result as `compressed_forced.pdf`.
+- Use `screen`, forced 72 DPI downsampling, and `PDF_COMPRESSION_JPEG_QUALITY=50` for smaller scanned PDFs.
 - Set `PDF_COMPRESSION_ENABLED=false` if Railway CPU usage or upload latency becomes a problem.
 
 ## Troubleshooting

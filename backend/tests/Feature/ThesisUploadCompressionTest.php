@@ -255,6 +255,7 @@ namespace Tests\Feature {
             Config::set('services.pdf_compression.preset', 'screen');
             Config::set('services.pdf_compression.force_downsample', true);
             Config::set('services.pdf_compression.image_dpi', 72);
+            Config::set('services.pdf_compression.jpeg_quality', 50);
 
             GhostscriptProcessFake::$enabled = true;
             GhostscriptProcessFake::$compressedContent = $compressedPdf;
@@ -269,6 +270,16 @@ namespace Tests\Feature {
             $this->assertContains('-dDownsampleColorImages=true', GhostscriptProcessFake::$commands[0]);
             $this->assertContains('-dDownsampleGrayImages=true', GhostscriptProcessFake::$commands[0]);
             $this->assertContains('-dDownsampleMonoImages=true', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dColorImageDownsampleThreshold=1.0', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dGrayImageDownsampleThreshold=1.0', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dMonoImageDownsampleThreshold=1.0', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dAutoFilterColorImages=false', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dAutoFilterGrayImages=false', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dColorImageFilter=/DCTEncode', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dGrayImageFilter=/DCTEncode', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dPassThroughJPEGImages=false', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dPassThroughJPXImages=false', GhostscriptProcessFake::$commands[0]);
+            $this->assertContains('-dJPEGQ=50', GhostscriptProcessFake::$commands[0]);
         }
 
         public function test_admin_thesis_uploads_use_pdf_compression(): void

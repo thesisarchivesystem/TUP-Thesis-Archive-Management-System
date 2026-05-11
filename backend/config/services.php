@@ -31,6 +31,7 @@ return [
         'preset' => env('PDF_COMPRESSION_PRESET', 'ebook'),
         'force_downsample' => env('PDF_COMPRESSION_FORCE_DOWNSAMPLE', false),
         'image_dpi' => env('PDF_COMPRESSION_IMAGE_DPI', 72),
+        'jpeg_quality' => env('PDF_COMPRESSION_JPEG_QUALITY'),
         'timeout' => env('PDF_COMPRESSION_TIMEOUT', 20),
         'gs_binary' => env('PDF_COMPRESSION_GS_BINARY'),
     ],
