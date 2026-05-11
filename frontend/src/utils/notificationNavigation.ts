@@ -29,6 +29,12 @@ export function getNotificationNavigationTarget(
     };
   }
 
+  if (role === 'admin' && notification.type.startsWith('support.ticket_')) {
+    return {
+      path: '/admin/tickets',
+    };
+  }
+
   if (['support.ticket_in_progress', 'support.ticket_resolved'].includes(notification.type)) {
     return {
       path: `/${role}/support`,

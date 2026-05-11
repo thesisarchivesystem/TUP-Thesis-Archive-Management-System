@@ -2551,8 +2551,8 @@
   width: 48px;
   height: 48px;
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(240, 64, 215, 0.12), rgba(196, 33, 33, 0.08));
-  color: #cf2fc8;
+  background: linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.12), rgba(var(--book-theme-accent-rgb), 0.06));
+  color: var(--maroon);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
@@ -2643,8 +2643,8 @@
   min-width: 44px;
   padding: 4px 10px;
   border-radius: 10px;
-  background: rgba(240, 64, 215, 0.08);
-  color: #cf2fc8;
+  background: rgba(var(--book-theme-accent-rgb), 0.08);
+  color: var(--maroon);
   font-size: 0.78rem;
   font-weight: 700;
   text-align: center;
@@ -2847,8 +2847,8 @@
   gap: 10px;
   padding: 12px;
   border-radius: 18px;
-  border: 1px dashed rgba(240, 64, 215, 0.26);
-  background: linear-gradient(180deg, rgba(255, 251, 253, 0.98), rgba(255, 247, 251, 0.94));
+  border: 1px dashed rgba(var(--book-theme-accent-rgb), 0.26);
+  background: linear-gradient(180deg, rgba(var(--book-theme-accent-rgb), 0.04), rgba(var(--book-theme-accent-rgb), 0.02));
 }
 
 .admin-thesis-file-row {
@@ -2859,7 +2859,7 @@
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(240, 64, 215, 0.1);
+  border: 1px solid rgba(var(--book-theme-accent-rgb), 0.1);
 }
 
 .admin-thesis-file-meta {
@@ -2890,8 +2890,8 @@
   padding: 0 14px;
   border-radius: 12px;
   gap: 8px;
-  color: #cf2fc8;
-  border-color: rgba(240, 64, 215, 0.18);
+  color: var(--maroon);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.18);
 }
 
 .admin-thesis-checkbox {
@@ -2906,7 +2906,7 @@
 
 .admin-thesis-checkbox input {
   margin-top: 2px;
-  accent-color: #cf2fc8;
+  accent-color: var(--maroon);
 }
 
 .admin-thesis-edit-actions {
@@ -3380,4 +3380,155 @@
 
 .admin-app-shell.theme-dark .admin-stat-card-value {
   color: #fff4f6;
+}
+
+.admin-app-shell.theme-dark .admin-page,
+.admin-app-shell.theme-dark .admin-thesis-page,
+.admin-app-shell.theme-dark .admin-best-thesis-page {
+  color: var(--text-primary);
+}
+
+.admin-app-shell.theme-dark .admin-table-wrap,
+.admin-app-shell.theme-dark .admin-thesis-edit-modal,
+.admin-app-shell.theme-dark .admin-categories-modal,
+.admin-app-shell.theme-dark .admin-user-form-modal,
+.admin-app-shell.theme-dark .admin-user-form-section,
+.admin-app-shell.theme-dark .admin-user-role-toggle,
+.admin-app-shell.theme-dark .admin-thesis-file-panel,
+.admin-app-shell.theme-dark .admin-thesis-file-row,
+.admin-app-shell.theme-dark .admin-thesis-search-results,
+.admin-app-shell.theme-dark .admin-thesis-selected-row,
+.admin-app-shell.theme-dark .admin-thesis-category-menu,
+.admin-app-shell.theme-dark .admin-best-thesis-spotlight,
+.admin-app-shell.theme-dark .admin-best-thesis-search,
+.admin-app-shell.theme-dark .admin-best-thesis-choice {
+  background: rgba(31, 25, 31, 0.96);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.16);
+  color: var(--text-primary);
+}
+
+.admin-app-shell.theme-dark .admin-table tbody tr,
+.admin-app-shell.theme-dark .admin-thesis-file-row,
+.admin-app-shell.theme-dark .admin-thesis-search-option,
+.admin-app-shell.theme-dark .admin-thesis-selected-chip,
+.admin-app-shell.theme-dark .admin-thesis-chip,
+.admin-app-shell.theme-dark .admin-user-avatar-chip,
+.admin-app-shell.theme-dark .admin-role-badge,
+.admin-app-shell.theme-dark .admin-categories-description-field,
+.admin-app-shell.theme-dark .admin-best-thesis-current,
+.admin-app-shell.theme-dark .admin-best-thesis-choice {
+  border-color: rgba(var(--book-theme-accent-rgb), 0.12);
+}
+
+.admin-app-shell.theme-dark .admin-table tbody tr:hover,
+.admin-app-shell.theme-dark .admin-thesis-category-option.active,
+.admin-app-shell.theme-dark .admin-thesis-search-option:hover,
+.admin-app-shell.theme-dark .admin-thesis-search-option.active,
+.admin-app-shell.theme-dark .admin-best-thesis-choice:hover,
+.admin-app-shell.theme-dark .admin-best-thesis-row-selected td {
+  background: rgba(var(--book-theme-accent-rgb), 0.1);
+}
+
+.admin-app-shell.theme-dark .admin-thesis-edit-head h3,
+.admin-app-shell.theme-dark .admin-categories-modal-head h3,
+.admin-app-shell.theme-dark .admin-user-modal-head h3,
+.admin-app-shell.theme-dark .admin-user-section-head span,
+.admin-app-shell.theme-dark .admin-thesis-file-meta strong,
+.admin-app-shell.theme-dark .admin-thesis-selected-name,
+.admin-app-shell.theme-dark .admin-thesis-search-option strong,
+.admin-app-shell.theme-dark .admin-best-thesis-spotlight strong,
+.admin-app-shell.theme-dark .admin-best-thesis-choice strong,
+.admin-app-shell.theme-dark .admin-categories-table td strong {
+  color: var(--text-primary);
+}
+
+.admin-app-shell.theme-dark .admin-thesis-edit-head p,
+.admin-app-shell.theme-dark .admin-categories-modal-head p,
+.admin-app-shell.theme-dark .admin-modal-field small,
+.admin-app-shell.theme-dark .admin-thesis-placeholder,
+.admin-app-shell.theme-dark .admin-thesis-search-option span,
+.admin-app-shell.theme-dark .admin-thesis-search-empty,
+.admin-app-shell.theme-dark .admin-thesis-file-meta p,
+.admin-app-shell.theme-dark .admin-thesis-file-meta strong em,
+.admin-app-shell.theme-dark .admin-thesis-checkbox,
+.admin-app-shell.theme-dark .admin-best-thesis-spotlight p,
+.admin-app-shell.theme-dark .admin-best-thesis-spotlight span,
+.admin-app-shell.theme-dark .admin-best-thesis-choice small,
+.admin-app-shell.theme-dark .admin-categories-modal-head p {
+  color: var(--text-secondary);
+}
+
+.admin-app-shell.theme-dark .admin-modal-field span,
+.admin-app-shell.theme-dark .admin-categories-form-grid .admin-field span,
+.admin-app-shell.theme-dark .admin-thesis-edit-form .admin-modal-field span {
+  color: color-mix(in srgb, var(--text-primary) 72%, var(--maroon) 28%);
+}
+
+.admin-app-shell.theme-dark .admin-modal-field input,
+.admin-app-shell.theme-dark .admin-modal-field select,
+.admin-app-shell.theme-dark .admin-modal-field textarea,
+.admin-app-shell.theme-dark .admin-users-search,
+.admin-app-shell.theme-dark .admin-users-search input,
+.admin-app-shell.theme-dark .admin-users-select select,
+.admin-app-shell.theme-dark .admin-thesis-multi-select,
+.admin-app-shell.theme-dark .admin-thesis-token-input,
+.admin-app-shell.theme-dark .admin-thesis-token-input input,
+.admin-app-shell.theme-dark .admin-thesis-searchbox input,
+.admin-app-shell.theme-dark .admin-best-thesis-year select,
+.admin-app-shell.theme-dark .admin-best-thesis-remarks textarea {
+  background: rgba(20, 16, 21, 0.96) !important;
+  border-color: rgba(var(--book-theme-accent-rgb), 0.18) !important;
+  color: var(--text-primary) !important;
+}
+
+.admin-app-shell.theme-dark .admin-modal-field input::placeholder,
+.admin-app-shell.theme-dark .admin-modal-field textarea::placeholder,
+.admin-app-shell.theme-dark .admin-users-search input::placeholder,
+.admin-app-shell.theme-dark .admin-thesis-token-input input::placeholder,
+.admin-app-shell.theme-dark .admin-thesis-searchbox input::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+}
+
+.admin-app-shell.theme-dark .admin-thesis-edit-close,
+.admin-app-shell.theme-dark .admin-thesis-selected-remove,
+.admin-app-shell.theme-dark .admin-thesis-chip button,
+.admin-app-shell.theme-dark .admin-categories-cancel-btn {
+  background: rgba(20, 16, 21, 0.9);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.16);
+  color: var(--text-primary);
+}
+
+.admin-app-shell.theme-dark .admin-thesis-list-icon,
+.admin-app-shell.theme-dark .admin-thesis-edit-icon,
+.admin-app-shell.theme-dark .admin-thesis-multi-select-count,
+.admin-app-shell.theme-dark .admin-thesis-selected-avatar {
+  background: rgba(var(--book-theme-accent-rgb), 0.14);
+  color: color-mix(in srgb, var(--maroon) 76%, white 24%);
+}
+
+.admin-app-shell.theme-dark .admin-thesis-file-btn,
+.admin-app-shell.theme-dark .admin-thesis-create-btn,
+.admin-app-shell.theme-dark .admin-categories-create-btn,
+.admin-app-shell.theme-dark .admin-structure-create-btn {
+  background: rgba(var(--book-theme-accent-rgb), 0.08);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.22);
+  color: color-mix(in srgb, var(--maroon) 80%, white 20%);
+}
+
+.admin-app-shell.theme-dark .admin-status-badge,
+.admin-app-shell.theme-dark .admin-thesis-status-badge,
+.admin-app-shell.theme-dark .admin-role-badge {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.admin-app-shell.theme-dark .admin-alert {
+  background: rgba(127, 29, 29, 0.22);
+  border-color: rgba(248, 113, 113, 0.24);
+  color: #fecaca;
+}
+
+.admin-app-shell.theme-dark .admin-success {
+  background: rgba(20, 83, 45, 0.22);
+  border-color: rgba(74, 222, 128, 0.24);
+  color: #bbf7d0;
 }

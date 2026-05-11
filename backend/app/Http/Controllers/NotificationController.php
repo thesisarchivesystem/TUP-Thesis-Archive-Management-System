@@ -70,6 +70,14 @@ class NotificationController extends Controller
                 'support.ticket_in_progress',
                 'support.ticket_resolved',
             ],
+            'admin' => [
+                'new_message',
+                'support.ticket_created',
+                'support.ticket_updated',
+                'support.ticket_replied',
+                'support.ticket_in_progress',
+                'support.ticket_resolved',
+            ],
             default => ['new_message'],
         };
     }

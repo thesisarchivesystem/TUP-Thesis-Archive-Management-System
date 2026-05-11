@@ -44,12 +44,6 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
-        $this->logger->log($user, 'auth.login', 'user', $user->id, [
-            'identifier' => $identifier,
-            'ip_address' => $request->ip(),
-            'user_agent' => (string) $request->userAgent(),
-        ]);
-
         return response()->json([
             'user'  => $user->loadMissing(['student', 'faculty']),
             'token' => $token,

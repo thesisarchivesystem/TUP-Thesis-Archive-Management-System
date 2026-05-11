@@ -99,18 +99,20 @@ class AdminController extends Controller
             'faculty.updated',
             'faculty.role_changed',
             'faculty.status_changed',
-            'admin.user_created',
-            'admin.user_updated',
-            'admin.user_status_updated',
+            'faculty.library_item_created',
+            'faculty.thesis_created',
             'thesis.submitted',
             'thesis.approved',
             'thesis.rejected',
             'thesis.archived',
             'thesis.uploaded',
+            'extension.requested',
+            'support.ticket_created',
         ];
 
         $recentActivity = ActivityLog::query()
             ->with('user:id,name')
+            ->whereHas('user', fn ($query) => $query->whereIn('role', ['student', 'faculty']))
             ->whereIn('action', $recentActivityActions)
             ->orderByDesc('created_at')
             ->limit($recentActivityLimit)
@@ -681,14 +683,15 @@ class AdminController extends Controller
             'faculty.updated' => 'Faculty account updated',
             'faculty.role_changed' => 'Faculty role assignment updated',
             'faculty.status_changed' => 'Faculty account status changed',
-            'admin.user_created' => 'Admin created a user account',
-            'admin.user_updated' => 'Admin updated a user account',
-            'admin.user_status_updated' => 'Admin changed an account status',
+            'faculty.library_item_created' => 'Faculty shared a library file',
+            'faculty.thesis_created' => 'Faculty added a thesis record',
             'thesis.submitted' => 'New thesis submitted for review',
             'thesis.approved' => 'A thesis submission was approved',
             'thesis.rejected' => 'A thesis submission needs revision',
             'thesis.archived' => 'A thesis was archived',
             'thesis.uploaded' => 'A thesis record was uploaded',
+            'extension.requested' => 'A student requested an extension',
+            'support.ticket_created' => 'A support ticket was submitted',
             default => filled($meta['identifier'] ?? null)
                 ? sprintf('Activity recorded for %s', (string) $meta['identifier'])
                 : str($log->action)->replace('.', ' ')->replace('_', ' ')->title()->toString(),
@@ -698,9 +701,9 @@ class AdminController extends Controller
     private function formatAdminActivityTone(string $action): string
     {
         return match ($action) {
-            'thesis.approved', 'student.created', 'faculty.created', 'admin.user_created' => 'green',
-            'thesis.submitted', 'thesis.uploaded', 'student.updated', 'faculty.updated', 'faculty.role_changed', 'admin.user_updated' => 'blue',
-            'thesis.rejected', 'admin.user_status_updated' => 'orange',
+            'thesis.approved', 'student.created', 'faculty.created' => 'green',
+            'thesis.submitted', 'thesis.uploaded', 'student.updated', 'faculty.updated', 'faculty.role_changed', 'faculty.library_item_created', 'faculty.thesis_created', 'extension.requested', 'support.ticket_created' => 'blue',
+            'thesis.rejected', 'faculty.status_changed' => 'orange',
             default => 'rose',
         };
     }
