@@ -376,7 +376,7 @@ export default function StudentUploadThesisPage() {
     return nextErrors;
   };
 
-  const buildUploadPayload = () => ({
+  const buildUploadPayload = (submissionMode: 'draft' | 'submit' = 'draft') => ({
     title: form.title,
     abstract: form.abstract,
     department: form.department,
@@ -386,12 +386,13 @@ export default function StudentUploadThesisPage() {
     school_year: form.school_year,
     authors: form.authors,
     adviser_id: form.adviser_id,
+    submission_mode: submissionMode,
     manuscript: manuscriptFile,
     supplementary_files: supplementaryFiles,
   });
 
-  const persistDraft = async () => {
-    const payload = buildUploadPayload();
+  const persistDraft = async (submissionMode: 'draft' | 'submit' = 'draft') => {
+    const payload = buildUploadPayload(submissionMode);
 
     if (draftId) {
       const updated = await thesisService.updateStudentUpload(draftId, payload);
@@ -479,15 +480,12 @@ export default function StudentUploadThesisPage() {
         }
       }
 
-      let thesisId = draftId;
-
-      thesisId = await persistDraft();
+      const thesisId = await persistDraft('submit');
 
       if (!thesisId) {
-        throw new Error('The thesis draft was created but no ID was returned.');
+        throw new Error('The thesis was saved but no ID was returned.');
       }
 
-      await thesisService.submit(thesisId);
       setMessage('Thesis submitted successfully.');
       setPendingSubmitRedirect(true);
       setDraftId(null);

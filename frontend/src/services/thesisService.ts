@@ -11,6 +11,7 @@ export interface StudentThesisPayload {
   school_year: string;
   authors?: string | string[];
   adviser_id?: string;
+  submission_mode?: 'draft' | 'submit';
   manuscript?: File | null;
   supplementary_files?: File[];
 }
@@ -25,6 +26,7 @@ const buildStudentUploadFormData = (payload: StudentThesisPayload) => {
   formData.append('category_ids', JSON.stringify(payload.category_ids ?? [payload.category_id].filter(Boolean)));
   formData.append('school_year', payload.school_year);
   formData.append('adviser_id', payload.adviser_id ?? '');
+  formData.append('submission_mode', payload.submission_mode ?? 'draft');
   const normalizedAuthors = Array.isArray(payload.authors)
     ? payload.authors
     : (payload.authors ?? '')

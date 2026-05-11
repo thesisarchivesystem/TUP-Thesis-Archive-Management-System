@@ -20,7 +20,8 @@ type CachedResponse = {
 };
 
 const DEFAULT_GET_CACHE_TTL_MS = 45_000;
-const STATIC_LOOKUP_CACHE_TTL_MS = 120_000;
+const STATIC_LOOKUP_CACHE_TTL_MS = 300_000;
+const DASHBOARD_CACHE_TTL_MS = 60_000;
 const MAX_GET_CACHE_ENTRIES = 80;
 const getResponseCache = new Map<string, CachedResponse>();
 const pendingGetRequests = new Map<string, Promise<AxiosResponse>>();
@@ -38,7 +39,16 @@ const getCacheTtl = <D>(url: string, config?: CachedRequestConfig<D>) => {
     return config.cacheTtlMs;
   }
 
-  if (url.includes('/categories') || url.includes('/profile')) {
+  if (url.includes('/dashboard')) {
+    return DASHBOARD_CACHE_TTL_MS;
+  }
+
+  if (
+    url.includes('/categories')
+    || url.includes('/profile')
+    || url.includes('/academic-structure')
+    || url.endsWith('/advisers')
+  ) {
     return STATIC_LOOKUP_CACHE_TTL_MS;
   }
 

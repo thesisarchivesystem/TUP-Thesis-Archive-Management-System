@@ -84,15 +84,23 @@ class ThesisController extends Controller
             'file_url'    => 'nullable|url',
             'file_name'   => 'nullable|string',
             'file_size'   => 'nullable|integer',
+            'submission_mode' => 'nullable|in:draft,submit',
         ]);
 
+        $submissionMode = $request->input('submission_mode') === 'submit' ? 'submit' : 'draft';
         $manuscript = $request->file('manuscript');
+
+        if ($submissionMode === 'submit' && !$manuscript && !$request->filled('file_url')) {
+            return response()->json(['error' => 'File is required to submit'], 422);
+        }
+
         $manuscriptUpload = $manuscript ? $this->uploadToSupabase($manuscript, 'manuscripts') : null;
         $supplementaryUploads = collect($request->file('supplementary_files', []))
             ->filter()
             ->map(fn (\Illuminate\Http\UploadedFile $file) => $this->uploadToSupabase($file, 'supplementary'))
             ->values()
             ->all();
+        $submittedAt = $submissionMode === 'submit' ? now() : null;
 
         $thesis = Thesis::create([
             'title'        => $request->title,
@@ -107,7 +115,8 @@ class ThesisController extends Controller
             'file_name'    => $manuscriptUpload['name'] ?? $request->file_name,
             'file_size'    => $manuscriptUpload['size'] ?? $request->file_size,
             'supplementary_files' => $supplementaryUploads,
-            'status'       => 'draft',
+            'status'       => $submissionMode === 'submit' ? 'pending' : 'draft',
+            'submitted_at' => $submittedAt,
             'submitted_by' => $request->user()->id,
             'adviser_id'   => $request->input('adviser_id'),
         ]);
@@ -116,6 +125,10 @@ class ThesisController extends Controller
             StudentProfile::query()
                 ->where('user_id', $request->user()->id)
                 ->update(['adviser_id' => $request->input('adviser_id')]);
+        }
+
+        if ($submissionMode === 'submit') {
+            $this->notifyThesisSubmitted($request, $thesis);
         }
 
         return response()->json([
@@ -190,7 +203,14 @@ class ThesisController extends Controller
             'manuscript'  => 'nullable|file|mimes:pdf|max:51200',
             'supplementary_files' => 'nullable|array',
             'supplementary_files.*' => 'file|max:51200',
+            'submission_mode' => 'nullable|in:draft,submit',
         ]);
+
+        $submissionMode = $request->input('submission_mode') === 'submit' ? 'submit' : 'draft';
+
+        if ($submissionMode === 'submit' && !$request->hasFile('manuscript') && !$thesis->file_url) {
+            return response()->json(['error' => 'File is required to submit'], 422);
+        }
 
         $payload = $request->only([
             'title', 'abstract', 'department', 'program', 'category_id', 'category_ids', 'school_year', 'authors', 'adviser_id',
@@ -211,7 +231,20 @@ class ThesisController extends Controller
                 ->all();
         }
 
+        if ($submissionMode === 'submit') {
+            $payload = array_merge($payload, [
+                'status' => 'pending',
+                'submitted_at' => now(),
+                'reviewed_at' => null,
+                'approved_at' => null,
+                'rejection_reason' => null,
+                'adviser_remarks' => null,
+                'revision_due_at' => null,
+            ]);
+        }
+
         $thesis->update($payload);
+        $freshThesis = $thesis->fresh();
 
         if ($request->filled('adviser_id')) {
             StudentProfile::query()
@@ -219,7 +252,11 @@ class ThesisController extends Controller
                 ->update(['adviser_id' => $request->input('adviser_id')]);
         }
 
-        return response()->json(['data' => $thesis->fresh()->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug')]);
+        if ($submissionMode === 'submit' && $freshThesis) {
+            $this->notifyThesisSubmitted($request, $freshThesis);
+        }
+
+        return response()->json(['data' => ($freshThesis ?? $thesis)->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug')]);
     }
 
     public function submit(Request $request, string $id): JsonResponse
@@ -244,6 +281,15 @@ class ThesisController extends Controller
             'revision_due_at' => null,
         ]);
 
+        $this->notifyThesisSubmitted($request, $thesis);
+
+        return response()->json([
+            'data' => $thesis->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug'),
+        ]);
+    }
+
+    private function notifyThesisSubmitted(Request $request, Thesis $thesis): void
+    {
         $this->logger->log($request->user(), 'thesis.submitted', 'thesis', $thesis->id);
 
         $this->notifications->notify(
@@ -266,10 +312,6 @@ class ThesisController extends Controller
                 ],
             );
         }
-
-        return response()->json([
-            'data' => $thesis->load('submitter:id,name', 'adviser:id,name', 'category:id,name,slug'),
-        ]);
     }
 
     public function manuscript(Request $request, string $id): Response|StreamedResponse|JsonResponse|RedirectResponse

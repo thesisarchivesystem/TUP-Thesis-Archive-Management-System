@@ -827,6 +827,7 @@ class FacultyController extends Controller
         $recentTheses = $this->recentDashboardTheses();
 
         $topSearches = $this->resolveTopSearches();
+        $bestTheses = $this->bestThesisAwards();
 
         return response()->json([
             'stats' => [
@@ -838,8 +839,8 @@ class FacultyController extends Controller
             ],
             'recent_theses' => $recentTheses,
             'top_searches' => $topSearches,
-            'best_thesis' => $this->currentBestThesis(),
-            'best_theses' => $this->bestThesisAwards(),
+            'best_thesis' => $bestTheses[0] ?? null,
+            'best_theses' => $bestTheses,
         ]);
     }
 
@@ -1010,18 +1011,20 @@ class FacultyController extends Controller
 
     private function bestThesisAwards(): array
     {
-        return BestThesis::query()
-            ->with(['thesis.submitter:id,name', 'thesis.category:id,name,slug'])
-            ->whereHas('thesis', fn ($query) => $query
-                ->where('status', 'approved')
-                ->whereRaw('"is_archived" = true'))
-            ->orderByDesc('school_year')
-            ->orderByDesc('awarded_at')
-            ->get()
-            ->map(fn (BestThesis $award) => $this->formatBestThesisAward($award))
-            ->filter()
-            ->values()
-            ->all();
+        return Cache::remember('dashboard:best-theses:v2', self::DASHBOARD_THESIS_CACHE_SECONDS, function () {
+            return BestThesis::query()
+                ->with(['thesis.submitter:id,name', 'thesis.category:id,name,slug'])
+                ->whereHas('thesis', fn ($query) => $query
+                    ->where('status', 'approved')
+                    ->whereRaw('"is_archived" = true'))
+                ->orderByDesc('school_year')
+                ->orderByDesc('awarded_at')
+                ->get()
+                ->map(fn (BestThesis $award) => $this->formatBestThesisAward($award))
+                ->filter()
+                ->values()
+                ->all();
+        });
     }
 
     private function formatBestThesisAward(BestThesis $award): ?array
@@ -1080,7 +1083,6 @@ class FacultyController extends Controller
         return [
             'id',
             'title',
-            'abstract',
             'authors',
             'department',
             'program',
@@ -1189,7 +1191,6 @@ class FacultyController extends Controller
             'title' => $thesis->title,
             'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? 'Unknown author'),
             'authors' => collect($thesis->authors ?? [])->filter()->values()->all(),
-            'abstract' => $thesis->abstract,
             'submitter_name' => $thesis->submitter?->name,
             'year' => $thesis->approved_at?->format('Y') ?? ($thesis->created_at?->format('Y') ?? null),
             'college' => $this->resolveCollegeForDepartment($thesis->department, $thesis->college ?? null),

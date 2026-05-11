@@ -38,18 +38,17 @@ class AdminController extends Controller
         $selectedYear = min(max($selectedYear, $minYear), $now->year);
         $recentUploadsLimit = min(max((int) $request->integer('recent_uploads_limit', 8), 1), 50);
         $recentActivityLimit = min(max((int) $request->integer('recent_activity_limit', 6), 1), 50);
+        $monthExpression = $this->monthNumberExpression('created_at');
+        $monthlyCounts = Thesis::query()
+            ->selectRaw("{$monthExpression} as month_number, COUNT(*) as total")
+            ->whereYear('created_at', $selectedYear)
+            ->groupByRaw($monthExpression)
+            ->pluck('total', 'month_number');
         $monthlySubmissions = collect(range(1, 12))
-            ->map(function (int $month) use ($selectedYear) {
-                $count = Thesis::query()
-                    ->whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
-                    ->count();
-
-                return [
-                    'month' => Carbon::create($selectedYear, $month, 1)->format('M'),
-                    'value' => $count,
-                ];
-            })
+            ->map(fn (int $month) => [
+                'month' => Carbon::create($selectedYear, $month, 1)->format('M'),
+                'value' => (int) ($monthlyCounts[$month] ?? $monthlyCounts[(string) $month] ?? 0),
+            ])
             ->values();
 
         $courseUploads = Thesis::query()
@@ -129,7 +128,21 @@ class AdminController extends Controller
             ])
             ->values();
 
-        $totalTheses = Thesis::query()->count();
+        $thesisOverview = Thesis::query()
+            ->selectRaw('COUNT(*) as total_theses')
+            ->selectRaw("SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_theses")
+            ->selectRaw("SUM(CASE WHEN status IN ('pending', 'under_review') THEN 1 ELSE 0 END) as pending_theses")
+            ->selectRaw("SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as revisions_needed")
+            ->selectRaw('SUM(CASE WHEN "is_archived" = true THEN 1 ELSE 0 END) as archived_theses')
+            ->first();
+        $userOverview = User::query()
+            ->selectRaw("SUM(CASE WHEN role = 'student' THEN 1 ELSE 0 END) as total_students")
+            ->selectRaw("SUM(CASE WHEN role = 'faculty' THEN 1 ELSE 0 END) as total_faculty")
+            ->selectRaw('SUM(CASE WHEN "is_active" = true THEN 1 ELSE 0 END) as active_users')
+            ->selectRaw('SUM(CASE WHEN "is_active" = false THEN 1 ELSE 0 END) as inactive_users')
+            ->first();
+
+        $totalTheses = (int) ($thesisOverview?->total_theses ?? 0);
         $currentMonthTheses = Thesis::query()
             ->whereYear('created_at', $now->year)
             ->whereMonth('created_at', $now->month)
@@ -141,18 +154,23 @@ class AdminController extends Controller
         $monthlyGrowth = $previousMonthTheses > 0
             ? round((($currentMonthTheses - $previousMonthTheses) / $previousMonthTheses) * 100, 1)
             : ($currentMonthTheses > 0 ? 100.0 : 0.0);
-        $approvedTheses = Thesis::query()->where('status', 'approved')->count();
-        $pendingTheses = Thesis::query()->whereIn('status', ['pending', 'under_review'])->count();
-        $revisionsNeeded = Thesis::query()->where('status', 'rejected')->count();
+        $approvedTheses = (int) ($thesisOverview?->approved_theses ?? 0);
+        $pendingTheses = (int) ($thesisOverview?->pending_theses ?? 0);
+        $revisionsNeeded = (int) ($thesisOverview?->revisions_needed ?? 0);
+        $archivedTheses = (int) ($thesisOverview?->archived_theses ?? 0);
+        $totalStudents = (int) ($userOverview?->total_students ?? 0);
+        $totalFaculty = (int) ($userOverview?->total_faculty ?? 0);
+        $activeUsers = (int) ($userOverview?->active_users ?? 0);
+        $inactiveUsers = (int) ($userOverview?->inactive_users ?? 0);
 
         return response()->json([
             'data' => [
                 'stats' => [
-                    'total_students' => User::query()->where('role', 'student')->count(),
-                    'total_faculty' => User::query()->where('role', 'faculty')->count(),
-                    'total_thesis_uploads' => Thesis::query()->count(),
+                    'total_students' => $totalStudents,
+                    'total_faculty' => $totalFaculty,
+                    'total_thesis_uploads' => $totalTheses,
                     'total_categories' => Category::query()->count(),
-                    'active_users' => User::query()->whereRaw('"is_active" = true')->count(),
+                    'active_users' => $activeUsers,
                     'colleges' => College::query()->count(),
                     'departments' => Department::query()->count(),
                     'programs' => Program::query()->count(),
@@ -173,13 +191,22 @@ class AdminController extends Controller
                 'recent_uploads' => $recentUploads,
                 'recent_activity' => $recentActivity,
                 'system_statistics' => [
-                    'archived_theses' => Thesis::query()->whereRaw('"is_archived" = true')->count(),
-                    'pending_theses' => Thesis::query()->whereIn('status', ['pending', 'under_review'])->count(),
-                    'approved_theses' => Thesis::query()->where('status', 'approved')->count(),
-                    'inactive_users' => User::query()->whereRaw('"is_active" = false')->count(),
+                    'archived_theses' => $archivedTheses,
+                    'pending_theses' => $pendingTheses,
+                    'approved_theses' => $approvedTheses,
+                    'inactive_users' => $inactiveUsers,
                 ],
             ],
         ]);
+    }
+
+    private function monthNumberExpression(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "CAST(strftime('%m', {$column}) AS INTEGER)",
+            'mysql', 'mariadb' => "MONTH({$column})",
+            default => "EXTRACT(MONTH FROM {$column})",
+        };
     }
 
     public function bestTheses(Request $request): JsonResponse
