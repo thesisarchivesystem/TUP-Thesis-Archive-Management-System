@@ -6,6 +6,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useBookThemeCssVariables } from '../../hooks/useBookThemeCssVariables';
+import { useFloatingChatPosition } from '../../hooks/useFloatingChatPosition';
 import { useNotificationChannel } from '../../hooks/useNotificationChannel';
 import { useNotificationStore } from '../../store/notificationStore';
 import { notificationService } from '../../services/notificationService';
@@ -58,6 +59,7 @@ export default function FacultyLayout({ title, description, children, hidePageIn
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
   const chatIntroTimerRef = useRef<number | null>(null);
+  const floatingChat = useFloatingChatPosition();
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
   const notifications = useNotificationStore((state) => state.notifications);
@@ -408,7 +410,12 @@ export default function FacultyLayout({ title, description, children, hidePageIn
         </section>
       </main>
 
-      <div className={`vpaa-ai-chatbot-panel ${chatOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
+      <div
+        ref={floatingChat.panelRef}
+        className={`vpaa-ai-chatbot-panel ${chatOpen ? 'open' : ''}`}
+        style={floatingChat.panelStyle}
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="vpaa-ai-chatbot-header">
           <div className="vpaa-ai-chatbot-title">
             <div className="vpaa-ai-chatbot-avatar"><img src={tamsBot} alt="Archie chatbot" /></div>
@@ -441,14 +448,23 @@ export default function FacultyLayout({ title, description, children, hidePageIn
         </div>
       </div>
 
-      <button type="button" className="vpaa-ai-chatbot-fab" aria-label="Open Archie chatbot" onClick={(event) => {
-        event.stopPropagation();
-        if (!chatOpen) {
-          if (!chatMessages.length) showInitialChatGreeting();
-        }
-        setChatOpen((current) => !current);
-      }}>
-        <img src={tamsBot} alt="Archie chatbot" />
+      <button
+        ref={floatingChat.fabRef}
+        type="button"
+        className="vpaa-ai-chatbot-fab"
+        aria-label="Open Archie chatbot"
+        style={floatingChat.fabStyle}
+        onPointerDown={floatingChat.startDrag}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (floatingChat.consumeDragClick()) return;
+          if (!chatOpen) {
+            if (!chatMessages.length) showInitialChatGreeting();
+          }
+          setChatOpen((current) => !current);
+        }}
+      >
+        <img src={tamsBot} alt="Archie chatbot" draggable={false} />
       </button>
     </div>
   );

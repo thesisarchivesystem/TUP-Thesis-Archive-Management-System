@@ -16686,9 +16686,16 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   border: 0;
   background: transparent;
   box-shadow: none;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   transition: transform 0.25s ease;
   z-index: 1201;
+}
+
+.vpaa-ai-chatbot-fab:active {
+  cursor: grabbing;
 }
 
 .vpaa-ai-chatbot-fab:hover {
