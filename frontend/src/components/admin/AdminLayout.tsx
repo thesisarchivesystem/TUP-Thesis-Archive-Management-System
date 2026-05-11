@@ -4,7 +4,11 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useBookThemeCssVariables } from '../../hooks/useBookThemeCssVariables';
-import { adminService, type AdminDashboardResponse } from '../../services/adminService';
+import { useNotificationChannel } from '../../hooks/useNotificationChannel';
+import { notificationService } from '../../services/notificationService';
+import { useNotificationStore } from '../../store/notificationStore';
+import type { AppNotification } from '../../types/notification.types';
+import { getNotificationNavigationTarget } from '../../utils/notificationNavigation';
 import BrandMarkIcon from '../BrandMarkIcon';
 import BookColorThemePicker from '../BookColorThemePicker';
 import '../../styles/vpaa-shell.css';
@@ -37,7 +41,13 @@ export default function AdminLayout() {
   const [searchValue, setSearchValue] = useState('');
   const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
   const [currentDate, setCurrentDate] = useState(() => formatDate(new Date()));
-  const [notificationItems, setNotificationItems] = useState<AdminDashboardResponse['recent_activity']>([]);
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const setNotifications = useNotificationStore((state) => state.setNotifications);
+  const markRead = useNotificationStore((state) => state.markRead);
+  const clearNotifications = useNotificationStore((state) => state.clearNotifications);
+
+  useNotificationChannel(user?.id ?? null, user?.role ?? null);
 
   useEffect(() => {
     const tick = () => {
@@ -92,24 +102,38 @@ export default function AdminLayout() {
   };
 
   useEffect(() => {
-    if (!notificationsOpen) return;
+    if (!user?.id) return;
 
-    let active = true;
-
-    void adminService.getDashboard({ recent_activity_limit: 4 })
-      .then((data) => {
-        if (!active) return;
-        setNotificationItems(data.recent_activity);
+    void notificationService.list()
+      .then((response) => {
+        setNotifications((response?.data ?? []) as AppNotification[]);
       })
       .catch(() => {
-        if (!active) return;
-        setNotificationItems([]);
+        setNotifications([]);
       });
+  }, [setNotifications, user?.id]);
 
-    return () => {
-      active = false;
-    };
-  }, [notificationsOpen]);
+  const handleNotificationClick = async (notification: AppNotification) => {
+    try {
+      await notificationService.markRead(notification.id);
+      markRead(notification.id);
+    } catch {
+      markRead(notification.id);
+    }
+
+    setNotificationsOpen(false);
+    const target = getNotificationNavigationTarget('admin', notification);
+    navigate(target?.path ?? '/admin/tickets', target?.state ? { state: target.state } : undefined);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await notificationService.markAllRead();
+      clearNotifications();
+    } catch {
+      clearNotifications();
+    }
+  };
 
   useEffect(() => {
     const query = new URLSearchParams(location.search).get('search') ?? '';
@@ -211,39 +235,33 @@ export default function AdminLayout() {
                 }}
               >
                 <Bell size={18} />
-                <span className="vpaa-notif-dot" />
+                {unreadCount > 0 ? <span className="vpaa-notif-dot" /> : null}
               </button>
 
               <div className={`vpaa-dropdown-panel admin-notification-panel ${notificationsOpen ? 'open' : ''}`}>
                 <div className="admin-notification-head">
-                  <strong>Recent activity</strong>
+                  <strong>Notifications</strong>
                   <button
                     type="button"
                     className="admin-view-all"
-                    onClick={() => {
-                      setNotificationsOpen(false);
-                      navigate('/admin/activity');
-                    }}
+                    onClick={() => void handleMarkAllNotificationsRead()}
                   >
-                    View all
+                    Mark all read
                   </button>
                 </div>
                 <div className="admin-notification-list">
-                  {notificationItems.length > 0 ? notificationItems.map((item) => (
+                  {notifications.length > 0 ? notifications.slice(0, 6).map((notification) => (
                     <button
-                      key={item.id}
+                      key={notification.id}
                       type="button"
                       className="admin-notification-item"
-                      onClick={() => {
-                        setNotificationsOpen(false);
-                        navigate('/admin/activity');
-                      }}
+                      onClick={() => void handleNotificationClick(notification)}
                     >
-                      <strong>{item.title}</strong>
-                      <span>{item.actor} · {item.relative_time || 'Recently'}</span>
+                      <strong>{notification.title}</strong>
+                      <span>{notification.body || 'Recently'}</span>
                     </button>
                   )) : (
-                    <p className="admin-notification-empty">No recent admin activity yet.</p>
+                    <p className="admin-notification-empty">No notifications yet.</p>
                   )}
                 </div>
               </div>
@@ -288,3 +306,4 @@ export default function AdminLayout() {
     </div>
   );
 }
+

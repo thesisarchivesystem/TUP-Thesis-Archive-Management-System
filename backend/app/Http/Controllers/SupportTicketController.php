@@ -57,6 +57,13 @@ class SupportTicketController extends Controller
             'priority' => $ticket->priority,
         ]);
 
+        $this->notifyAdminsOfTicketActivity(
+            $ticket->fresh(['user:id,name,email,role']),
+            'support.ticket_created',
+            'New support ticket',
+            "{$ticket->full_name} submitted {$this->ticketReference($ticket)}: {$ticket->subject}.",
+        );
+
         return response()->json([
             'message' => 'Support ticket submitted successfully.',
             'data' => $this->transformTicket($ticket->fresh(['user:id,name,email', 'assignee:id,name,email'])),
@@ -210,7 +217,17 @@ class SupportTicketController extends Controller
         ]);
 
         if ($statusChangedTo !== null) {
-            $this->notifyRequesterOfStatusChange($ticket->fresh(['user:id,name,email,role']), $statusChangedTo);
+            $freshTicket = $ticket->fresh(['user:id,name,email,role']);
+            $this->notifyRequesterOfStatusChange($freshTicket, $statusChangedTo);
+            $this->notifyAdminsOfStatusChange($freshTicket, $statusChangedTo);
+        } else {
+            $this->notifyAdminsOfTicketActivity(
+                $ticket->fresh(['user:id,name,email,role']),
+                'support.ticket_updated',
+                'Support ticket updated',
+                "{$this->ticketReference($ticket)} was updated: ".implode(' ', $changes),
+                $admin->id,
+            );
         }
 
         return response()->json([
@@ -239,6 +256,14 @@ class SupportTicketController extends Controller
         $ticket->touch();
 
         $this->logger->log($admin, 'support.ticket_replied', 'support_ticket', $ticket->id);
+
+        $this->notifyAdminsOfTicketActivity(
+            $ticket->fresh(['user:id,name,email,role']),
+            'support.ticket_replied',
+            'Support ticket reply added',
+            "{$admin->name} replied to {$this->ticketReference($ticket)}.",
+            $admin->id,
+        );
 
         return response()->json([
             'data' => $this->transformTicket($ticket->fresh(['user:id,name,email', 'assignee:id,name,email', 'replies' => fn ($query) => $query->with('user:id,name,email')->orderBy('created_at')]), true),
@@ -295,6 +320,52 @@ class SupportTicketController extends Controller
                 ],
             );
         }
+    }
+
+    private function notifyAdminsOfStatusChange(SupportTicket $ticket, string $status): void
+    {
+        $reference = $this->ticketReference($ticket);
+        $isResolved = in_array($status, ['resolved', 'closed'], true);
+
+        $this->notifyAdminsOfTicketActivity(
+            $ticket,
+            $isResolved ? 'support.ticket_resolved' : 'support.ticket_in_progress',
+            $isResolved ? 'Support ticket resolved' : 'Support ticket in progress',
+            $isResolved
+                ? "{$reference} has been marked as resolved."
+                : "{$reference} is now marked in progress.",
+        );
+    }
+
+    private function notifyAdminsOfTicketActivity(
+        SupportTicket $ticket,
+        string $type,
+        string $title,
+        string $body,
+        ?string $exceptUserId = null,
+    ): void {
+        $reference = $this->ticketReference($ticket);
+
+        User::query()
+            ->where('role', 'admin')
+            ->whereRaw('"is_active" IS TRUE')
+            ->when($exceptUserId, fn ($query) => $query->where('id', '!=', $exceptUserId))
+            ->get(['id', 'name', 'email', 'role'])
+            ->each(function (User $admin) use ($ticket, $type, $title, $body, $reference) {
+                $this->notifications->notify(
+                    $admin,
+                    $type,
+                    $title,
+                    $body,
+                    [
+                        'support_ticket_id' => $ticket->id,
+                        'reference' => $reference,
+                        'status' => $ticket->status,
+                        'priority' => $ticket->priority,
+                        'requester_name' => $ticket->full_name,
+                    ],
+                );
+            });
     }
 
     private function transformTicket(SupportTicket $ticket, bool $includeReplies = true): array

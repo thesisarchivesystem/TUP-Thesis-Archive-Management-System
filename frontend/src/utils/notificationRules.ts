@@ -25,7 +25,14 @@ const notificationTypesByRole: Record<UserRole, NotificationType[]> = {
     'support.ticket_in_progress',
     'support.ticket_resolved',
   ],
-  admin: [],
+  admin: [
+    'new_message',
+    'support.ticket_created',
+    'support.ticket_updated',
+    'support.ticket_replied',
+    'support.ticket_in_progress',
+    'support.ticket_resolved',
+  ],
 };
 
 export function isNotificationTypeAllowedForRole(role: UserRole, type: string): type is NotificationType {

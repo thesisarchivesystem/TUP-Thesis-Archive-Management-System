@@ -598,22 +598,24 @@ export default function AdminTicketsPage() {
               <button type="button" className="admin-ticket-modal-btn neutral" onClick={closeTicket}>
                 Close
               </button>
-              <button
-                type="button"
-                className="admin-ticket-modal-btn progress"
-                disabled={!viewedTicket || viewedTicket.status === 'in_progress' || updatingStatus !== null}
-                onClick={() => updateTicketStatus('in_progress')}
-              >
-                {updatingStatus === 'in_progress' ? 'Updating...' : 'Mark In Progress'}
-              </button>
-              <button
-                type="button"
-                className="admin-ticket-modal-btn resolve"
-                disabled={!viewedTicket || viewedTicket.status === 'resolved' || updatingStatus !== null}
-                onClick={() => updateTicketStatus('resolved')}
-              >
-                {updatingStatus === 'resolved' ? 'Resolving...' : 'Resolve Ticket'}
-              </button>
+              <div className="admin-ticket-view-status-actions">
+                <button
+                  type="button"
+                  className="admin-ticket-modal-btn progress"
+                  disabled={!viewedTicket || viewedTicket.status === 'in_progress' || updatingStatus !== null}
+                  onClick={() => updateTicketStatus('in_progress')}
+                >
+                  {updatingStatus === 'in_progress' ? 'Updating...' : 'Mark In Progress'}
+                </button>
+                <button
+                  type="button"
+                  className="admin-ticket-modal-btn resolve"
+                  disabled={!viewedTicket || viewedTicket.status === 'resolved' || updatingStatus !== null}
+                  onClick={() => updateTicketStatus('resolved')}
+                >
+                  {updatingStatus === 'resolved' ? 'Resolving...' : 'Resolve Ticket'}
+                </button>
+              </div>
             </footer>
           </article>
         </div>

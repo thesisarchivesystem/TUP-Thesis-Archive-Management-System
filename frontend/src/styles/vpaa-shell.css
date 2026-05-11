@@ -7482,7 +7482,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   --ticket-ink: #17110f;
   --ticket-muted: #805f59;
   --ticket-line: rgba(117, 73, 64, 0.13);
-  --ticket-pink: #bd45b7;
+  --ticket-pink: var(--maroon);
   --ticket-shadow: 0 28px 90px rgba(84, 58, 45, 0.11);
   min-height: auto;
   margin: 0;
@@ -7524,7 +7524,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fdf0fb 0%, #f5e8f4 100%);
+  background: linear-gradient(135deg, rgba(var(--book-theme-accent-rgb), 0.12) 0%, rgba(var(--book-theme-accent-rgb), 0.06) 100%);
   color: var(--ticket-pink);
 }
 
@@ -7777,8 +7777,8 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 
 .admin-ticket-view-btn:hover,
 .admin-ticket-view-btn:focus-visible {
-  border-color: rgba(189, 69, 183, 0.28);
-  box-shadow: 0 12px 24px rgba(189, 69, 183, 0.09);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.28);
+  box-shadow: 0 12px 24px rgba(var(--book-theme-accent-rgb), 0.09);
   transform: none;
 }
 
@@ -7910,7 +7910,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 
 .admin-ticket-view-close:hover,
 .admin-ticket-view-close:focus-visible {
-  border-color: rgba(189, 69, 183, 0.26);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.26);
   color: var(--ticket-pink);
 }
 
@@ -8014,7 +8014,7 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   margin-top: 2px;
   padding: 4px;
   border-radius: 7px;
-  background: rgba(189, 69, 183, 0.08);
+  background: rgba(var(--book-theme-accent-rgb), 0.08);
   color: var(--ticket-pink);
   box-sizing: content-box;
 }
@@ -8089,8 +8089,8 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 
 .admin-ticket-note-field textarea:focus {
   outline: none;
-  border-color: rgba(189, 69, 183, 0.34);
-  box-shadow: 0 0 0 4px rgba(189, 69, 183, 0.08);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.34);
+  box-shadow: 0 0 0 4px rgba(var(--book-theme-accent-rgb), 0.08);
 }
 
 .admin-ticket-note-field textarea::placeholder {
@@ -8114,9 +8114,16 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 }
 
 .admin-ticket-view-actions {
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 14px;
   padding-top: 4px;
+}
+
+.admin-ticket-view-status-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
 }
 
 .admin-ticket-modal-btn {
@@ -8146,13 +8153,99 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 .admin-ticket-modal-btn.resolve {
   min-width: 148px;
   border-color: transparent;
-  background: linear-gradient(135deg, #cd58c1 0%, #b83dac 100%);
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-dark) 100%);
   color: #fff;
 }
 
 .admin-ticket-modal-btn:disabled {
   opacity: 0.58;
   cursor: not-allowed;
+}
+
+.admin-app-shell.theme-dark .admin-ticket-page {
+  --ticket-ink: var(--text-primary);
+  --ticket-muted: var(--text-secondary);
+  --ticket-line: rgba(var(--book-theme-accent-rgb), 0.16);
+  --ticket-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+}
+
+.admin-app-shell.theme-dark .admin-ticket-panel,
+.admin-app-shell.theme-dark .admin-ticket-table-wrap,
+.admin-app-shell.theme-dark .admin-ticket-view-modal,
+.admin-app-shell.theme-dark .admin-ticket-view-card,
+.admin-app-shell.theme-dark .admin-ticket-attachment {
+  background: rgba(31, 25, 31, 0.96);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.16);
+  color: var(--text-primary);
+}
+
+.admin-app-shell.theme-dark .admin-ticket-panel-head h1,
+.admin-app-shell.theme-dark .admin-ticket-panel-head h3,
+.admin-app-shell.theme-dark .admin-ticket-view-title h2,
+.admin-app-shell.theme-dark .admin-ticket-view-overview-head h3,
+.admin-app-shell.theme-dark .admin-ticket-view-section h3,
+.admin-app-shell.theme-dark .admin-ticket-view-overview-head p,
+.admin-app-shell.theme-dark .admin-ticket-view-meta-item strong,
+.admin-app-shell.theme-dark .admin-ticket-view-section p,
+.admin-app-shell.theme-dark .admin-ticket-attachment strong,
+.admin-app-shell.theme-dark .admin-ticket-table tbody td {
+  color: var(--text-primary);
+}
+
+.admin-app-shell.theme-dark .admin-ticket-table thead th,
+.admin-app-shell.theme-dark .admin-ticket-table tbody td small,
+.admin-app-shell.theme-dark .admin-ticket-footer p,
+.admin-app-shell.theme-dark .admin-ticket-empty,
+.admin-app-shell.theme-dark .admin-ticket-view-priority small,
+.admin-app-shell.theme-dark .admin-ticket-view-meta-item span,
+.admin-app-shell.theme-dark .admin-ticket-muted,
+.admin-app-shell.theme-dark .admin-ticket-attachment small,
+.admin-app-shell.theme-dark .admin-ticket-note-field span,
+.admin-app-shell.theme-dark .admin-ticket-note-field textarea::placeholder {
+  color: var(--text-secondary) !important;
+}
+
+.admin-app-shell.theme-dark .admin-ticket-title-icon,
+.admin-app-shell.theme-dark .admin-ticket-view-section > svg {
+  background: rgba(var(--book-theme-accent-rgb), 0.14);
+  color: color-mix(in srgb, var(--maroon) 76%, white 24%);
+}
+
+.admin-app-shell.theme-dark .admin-ticket-select,
+.admin-app-shell.theme-dark .admin-ticket-search,
+.admin-app-shell.theme-dark .admin-ticket-select select,
+.admin-app-shell.theme-dark .admin-ticket-search input,
+.admin-app-shell.theme-dark .admin-ticket-note-field textarea,
+.admin-app-shell.theme-dark .admin-ticket-page-btn,
+.admin-app-shell.theme-dark .admin-ticket-pagination-ellipsis,
+.admin-app-shell.theme-dark .admin-ticket-view-close,
+.admin-app-shell.theme-dark .admin-ticket-modal-btn.neutral {
+  background: rgba(20, 16, 21, 0.96);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.18);
+  color: var(--text-primary);
+}
+
+.admin-app-shell.theme-dark .admin-ticket-table tbody tr {
+  border-color: rgba(var(--book-theme-accent-rgb), 0.1);
+}
+
+.admin-app-shell.theme-dark .admin-ticket-table tbody tr:hover,
+.admin-app-shell.theme-dark .admin-ticket-table tbody tr.active {
+  background: rgba(var(--book-theme-accent-rgb), 0.1);
+}
+
+.admin-app-shell.theme-dark .admin-ticket-modal-btn.progress,
+.admin-app-shell.theme-dark .admin-ticket-view-btn,
+.admin-app-shell.theme-dark .admin-ticket-secondary-btn {
+  background: rgba(var(--book-theme-accent-rgb), 0.08);
+  border-color: rgba(var(--book-theme-accent-rgb), 0.22);
+  color: color-mix(in srgb, var(--maroon) 78%, white 22%);
+}
+
+.admin-app-shell.theme-dark .admin-ticket-modal-btn.resolve,
+.admin-app-shell.theme-dark .admin-ticket-primary-btn {
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+  color: #fffaf5;
 }
 
 @media (max-width: 1280px) {
@@ -8234,6 +8327,11 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
 
   .admin-ticket-view-overview-head,
   .admin-ticket-view-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-ticket-view-status-actions {
     align-items: stretch;
     flex-direction: column;
   }
