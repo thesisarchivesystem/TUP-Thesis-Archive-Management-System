@@ -14259,7 +14259,10 @@ body.thesis-detail-mode .vpaa-ai-chatbot-panel {
   line-height: 1.7;
 }
 
-.thesis-abstract-text {
+.thesis-record-section-body .thesis-abstract-text,
+.vpaa-thesis-modal-section .thesis-abstract-text,
+.faculty-submission-section .thesis-abstract-text,
+.faculty-extension-request-info-copy .thesis-abstract-text {
   text-align: justify;
   text-justify: inter-word;
 }
