@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   Star,
+  Trash2,
   Upload,
   UserRound,
   X,
@@ -66,6 +67,14 @@ const formatBytes = (value?: number | null) => {
   const size = value / 1024 ** power;
   return `${size.toFixed(power === 0 ? 0 : size >= 10 ? 1 : 2)} ${units[power]}`;
 };
+
+const sortNewestThesesFirst = (items: AdminThesisRecord[]) => (
+  [...items].sort((first, second) => {
+    const firstTime = first.created_at ? new Date(first.created_at).getTime() : 0;
+    const secondTime = second.created_at ? new Date(second.created_at).getTime() : 0;
+    return secondTime - firstTime;
+  })
+);
 
 const extractApiErrorMessage = (error: unknown, fallback: string) => {
   if (axios.isAxiosError(error)) {
@@ -145,6 +154,7 @@ export default function AdminRecentSubmissionsPage() {
   const [editModalError, setEditModalError] = useState<string | null>(null);
   const [editModalLoading, setEditModalLoading] = useState(false);
   const [editModalSaving, setEditModalSaving] = useState(false);
+  const [editModalDeleting, setEditModalDeleting] = useState(false);
   const [authorInput, setAuthorInput] = useState('');
   const [adviserSearch, setAdviserSearch] = useState('');
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
@@ -164,7 +174,7 @@ export default function AdminRecentSubmissionsPage() {
     ])
       .then(([thesesResponse, structureResponse]) => {
         if (!active) return;
-        setUploads(thesesResponse);
+        setUploads(sortNewestThesesFirst(thesesResponse));
         setStructure(structureResponse);
       })
       .catch((err) => {
@@ -415,6 +425,7 @@ export default function AdminRecentSubmissionsPage() {
     setEditModalError(null);
     setEditModalLoading(false);
     setEditModalSaving(false);
+    setEditModalDeleting(false);
     setAuthorInput('');
     setAdviserSearch('');
     setCategoryMenuOpen(false);
@@ -434,6 +445,7 @@ export default function AdminRecentSubmissionsPage() {
     setEditModalError(null);
     setEditModalLoading(false);
     setEditModalSaving(false);
+    setEditModalDeleting(false);
     setAuthorInput('');
     setAdviserSearch('');
     setCategoryMenuOpen(false);
@@ -594,7 +606,7 @@ export default function AdminRecentSubmissionsPage() {
       const bestThesisResponse = await adminService.getBestTheses();
       setBestThesisAwards(bestThesisResponse.awards);
 
-      setUploads((current) => (
+      setUploads((current) => sortNewestThesesFirst(
         editingId
           ? current.map((record) => (
               record.id === updated.id
@@ -603,7 +615,8 @@ export default function AdminRecentSubmissionsPage() {
                     title: updated.title,
                     author: updated.authors.join(', ') || record.author,
                     category: updated.categories[0]?.name ?? record.category,
-                    status: updated.status,
+                    status: updated.is_archived ? 'archived' : updated.status,
+                    is_archived: updated.is_archived,
                     department: updated.department,
                     program: updated.program ?? record.program,
                   }
@@ -615,7 +628,8 @@ export default function AdminRecentSubmissionsPage() {
                 title: updated.title,
                 author: updated.authors.join(', '),
                 category: updated.categories[0]?.name ?? null,
-                status: updated.status,
+                status: updated.is_archived ? 'archived' : updated.status,
+                is_archived: updated.is_archived,
                 department: updated.department,
                 program: updated.program ?? null,
                 created_at: updated.created_at ?? new Date().toISOString(),
@@ -630,6 +644,29 @@ export default function AdminRecentSubmissionsPage() {
       setEditModalError(extractApiErrorMessage(err, editingId ? 'Unable to save thesis changes right now.' : 'Unable to add this thesis right now.'));
     } finally {
       setEditModalSaving(false);
+    }
+  };
+
+  const handleDeleteThesis = async () => {
+    if (!editingId || !editingThesis) return;
+
+    const confirmed = window.confirm(`Delete "${editingThesis.title}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    setEditModalDeleting(true);
+    setEditModalError(null);
+    setSuccess(null);
+
+    try {
+      await adminService.deleteThesis(editingId);
+      setUploads((current) => current.filter((record) => record.id !== editingId));
+      setBestThesisAwards((current) => current.filter((award) => award.thesis?.id !== editingId));
+      setSuccess('Thesis deleted successfully.');
+      closeEditModal();
+    } catch (err) {
+      setEditModalError(extractApiErrorMessage(err, 'Unable to delete this thesis right now.'));
+    } finally {
+      setEditModalDeleting(false);
     }
   };
 
@@ -1147,10 +1184,24 @@ export default function AdminRecentSubmissionsPage() {
                 </div>
 
                 <div className="admin-thesis-edit-actions">
-                  <button type="button" className="admin-btn" onClick={closeEditModal}>Cancel</button>
-                  <button type="button" className="admin-btn admin-btn-primary" onClick={() => void handleSaveChanges()} disabled={editModalSaving}>
-                    {editModalSaving ? (isCreateMode ? 'Adding...' : 'Saving...') : (isCreateMode ? 'Add Thesis' : 'Save Changes')}
-                  </button>
+                  {!isCreateMode ? (
+                    <button
+                      type="button"
+                      className="admin-btn admin-thesis-delete-btn"
+                      onClick={() => void handleDeleteThesis()}
+                      disabled={editModalSaving || editModalDeleting}
+                    >
+                      <Trash2 size={15} />
+                      <span>{editModalDeleting ? 'Deleting...' : 'Delete Thesis'}</span>
+                    </button>
+                  ) : <span />}
+
+                  <div className="admin-thesis-edit-action-group">
+                    <button type="button" className="admin-btn" onClick={closeEditModal} disabled={editModalDeleting}>Cancel</button>
+                    <button type="button" className="admin-btn admin-btn-primary" onClick={() => void handleSaveChanges()} disabled={editModalSaving || editModalDeleting}>
+                      {editModalSaving ? (isCreateMode ? 'Adding...' : 'Saving...') : (isCreateMode ? 'Add Thesis' : 'Save Changes')}
+                    </button>
+                  </div>
                 </div>
               </>
             )}

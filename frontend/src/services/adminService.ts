@@ -31,6 +31,7 @@ export type AdminDashboardResponse = {
     author: string;
     category?: string | null;
     status: string;
+    is_archived?: boolean;
     department?: string | null;
     program?: string | null;
     created_at?: string | null;
@@ -443,6 +444,11 @@ export const adminService = {
     });
 
     return data.data;
+  },
+
+  async deleteThesis(id: string): Promise<{ message?: string }> {
+    const { data } = await api.delete(`/admin/theses/${id}`);
+    return data;
   },
 
   async createCategory(payload: Record<string, unknown>) {
