@@ -1,5 +1,6 @@
 import { ChevronDown, Eye, EyeOff, GraduationCap, Plus, Search, User, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { adminService, type AdminManagedUser, type AdminStructureCollege } from '../../services/adminService';
 
@@ -72,6 +73,8 @@ const getUserCreatedTime = (user: AdminManagedUser) => (
 
 export default function AdminUsersPage() {
   const { confirm } = useConfirmDialog();
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') ?? '';
   const [users, setUsers] = useState<AdminManagedUser[]>([]);
   const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [roleFilter, setRoleFilter] = useState<AdminUserRole | ''>('');
@@ -150,6 +153,10 @@ export default function AdminUsersPage() {
       setUsers(usersResponse);
       setStructure(structureResponse);
     });
+
+  useEffect(() => {
+    setSearch(urlSearch);
+  }, [urlSearch]);
 
   useEffect(() => {
     void load().catch(() => setError('Failed to load user management data.'));

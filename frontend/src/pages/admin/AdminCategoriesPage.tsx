@@ -1,5 +1,6 @@
 import { ChevronDown, FolderOpen, Plus, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminService, type AdminCategory } from '../../services/adminService';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
@@ -32,6 +33,8 @@ const pageLabel = (totalItems: number, page: number, pageSize: number) => {
 };
 
 export default function AdminCategoriesPage() {
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') ?? '';
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [form, setForm] = useState<CategoryFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,6 +50,10 @@ export default function AdminCategoriesPage() {
   useEffect(() => {
     void load().catch(() => setError('Failed to load categories.'));
   }, []);
+
+  useEffect(() => {
+    setSearch(urlSearch);
+  }, [urlSearch]);
 
   useEffect(() => {
     if (!successMessage && !error) return undefined;

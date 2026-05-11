@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import {
   adminService,
@@ -132,6 +132,8 @@ const initialEditForm: EditFormState = {
 };
 
 export default function AdminRecentSubmissionsPage() {
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') ?? '';
   const [uploads, setUploads] = useState<AdminThesisRecord[]>([]);
   const [structure, setStructure] = useState<AdminStructureCollege[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
@@ -162,6 +164,10 @@ export default function AdminRecentSubmissionsPage() {
   const [newSupplementaryFiles, setNewSupplementaryFiles] = useState<File[]>([]);
   const manuscriptInputRef = useRef<HTMLInputElement | null>(null);
   const supplementaryInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setSearch(urlSearch);
+  }, [urlSearch]);
 
   useEffect(() => {
     let active = true;

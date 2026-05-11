@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import SectionLoadingScreen from '../../components/SectionLoadingScreen';
 import {
   adminService,
@@ -92,6 +93,8 @@ const getAttachmentName = (ticket: AdminSupportTicketSummary | AdminSupportTicke
 };
 
 export default function AdminTicketsPage() {
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') ?? '';
   const [data, setData] = useState<AdminSupportTicketsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +110,10 @@ export default function AdminTicketsPage() {
   const [updatingStatus, setUpdatingStatus] = useState<AdminTicketStatus | null>(null);
   const [resolutionNote, setResolutionNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+
+  useEffect(() => {
+    setSearch(urlSearch);
+  }, [urlSearch]);
 
   useEffect(() => {
     const loadTickets = async () => {

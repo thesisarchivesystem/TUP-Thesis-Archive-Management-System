@@ -49,6 +49,29 @@ export default function AdminLayout() {
 
   useNotificationChannel(user?.id ?? null, user?.role ?? null);
 
+  const resolveAdminSearchPath = (query: string) => {
+    if (location.pathname.startsWith('/admin/users')) return '/admin/users';
+    if (location.pathname.startsWith('/admin/tickets')) return '/admin/tickets';
+    if (location.pathname.startsWith('/admin/categories')) return '/admin/categories';
+    if (location.pathname.startsWith('/admin/submissions') || location.pathname.startsWith('/admin/thesis')) return '/admin/submissions';
+
+    const normalizedQuery = query.toLowerCase();
+    const words = normalizedQuery.split(/\s+/).filter(Boolean);
+    const looksLikePersonName =
+      words.length >= 2 &&
+      words.length <= 5 &&
+      words.every((word) => /^[a-z.'-]+$/.test(word));
+    const looksLikeUserSearch =
+      looksLikePersonName ||
+      normalizedQuery.includes('@') ||
+      /\b(user|student|faculty|admin|account|email)\b/.test(normalizedQuery) ||
+      /^(stu|fac|admin)[-_]?\d+/i.test(query);
+
+    if (looksLikeUserSearch) return '/admin/users';
+
+    return '/admin/submissions';
+  };
+
   useEffect(() => {
     const tick = () => {
       const now = new Date();
@@ -202,7 +225,7 @@ export default function AdminLayout() {
                 }
 
                 navigate({
-                  pathname: '/admin/dashboard',
+                  pathname: resolveAdminSearchPath(query),
                   search: params.toString() ? `?${params.toString()}` : '',
                 });
               }}
