@@ -336,6 +336,20 @@ class AdminController extends Controller
         ]);
     }
 
+    public function theses(): JsonResponse
+    {
+        $theses = Thesis::query()
+            ->with(['submitter:id,name', 'category:id,name'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (Thesis $thesis) => $this->formatAdminThesisSummary($thesis))
+            ->values();
+
+        return response()->json([
+            'data' => $theses,
+        ]);
+    }
+
     public function showThesis(string $id): JsonResponse
     {
         $thesis = Thesis::query()
@@ -560,6 +574,21 @@ class AdminController extends Controller
         }
 
         return [];
+    }
+
+    private function formatAdminThesisSummary(Thesis $thesis): array
+    {
+        return [
+            'id' => $thesis->id,
+            'title' => $thesis->title,
+            'author' => collect($thesis->authors ?? [])->filter()->implode(', ') ?: ($thesis->submitter?->name ?? $thesis->submitter_name ?? 'Unknown author'),
+            'category' => $thesis->category?->name,
+            'status' => $thesis->status,
+            'department' => $thesis->department,
+            'program' => $thesis->program,
+            'course' => $thesis->course,
+            'created_at' => optional($thesis->created_at)?->toISOString(),
+        ];
     }
 
     private function formatAdminThesisDetail(Thesis $thesis): array

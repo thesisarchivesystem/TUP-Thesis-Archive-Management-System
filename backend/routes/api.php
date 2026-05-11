@@ -92,6 +92,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('/best-theses', [AdminController::class, 'bestTheses']);
         Route::post('/best-theses', [AdminController::class, 'appointBestThesis']);
         Route::delete('/best-theses/{schoolYear}', [AdminController::class, 'removeBestThesis']);
+        Route::get('/theses', [AdminController::class, 'theses']);
         Route::post('/theses', [AdminController::class, 'storeThesis']);
         Route::get('/theses/{id}', [AdminController::class, 'showThesis']);
         Route::post('/theses/{id}', [AdminController::class, 'updateThesis']);
